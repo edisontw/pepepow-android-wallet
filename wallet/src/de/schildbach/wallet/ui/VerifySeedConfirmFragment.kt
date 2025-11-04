@@ -27,7 +27,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.verify_seed_verify.*
 
 /**

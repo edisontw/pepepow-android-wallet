@@ -35,7 +35,7 @@ import de.schildbach.wallet.ui.preference.PinRetryController
 import de.schildbach.wallet.ui.widget.NumericKeyboardView
 import de.schildbach.wallet.ui.widget.PinPreviewView
 import de.schildbach.wallet.util.FingerprintHelper
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_lock_screen.*
 import org.bitcoinj.wallet.Wallet.BalanceType
 import org.dash.wallet.common.ui.DialogBuilder

@@ -20,7 +20,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import de.schildbach.wallet.WalletApplication
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_view_seed.*
 
 /**

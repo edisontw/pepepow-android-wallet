@@ -22,7 +22,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.TableLayout
 import android.widget.TextView
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import java.text.DecimalFormatSymbols
 
 class NumericKeyboardView(context: Context, attrs: AttributeSet) : TableLayout(context, attrs), View.OnClickListener {

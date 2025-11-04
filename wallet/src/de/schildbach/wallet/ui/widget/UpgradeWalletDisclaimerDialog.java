@@ -30,7 +30,7 @@ import android.view.ViewGroup;
 import org.dash.wallet.common.ui.DialogBuilder;
 
 import de.schildbach.wallet.ui.BackupWalletToSeedDialogFragment;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 public class UpgradeWalletDisclaimerDialog extends DialogFragment {
 

@@ -114,7 +114,7 @@ import de.schildbach.wallet.util.BlockchainStateUtils;
 import de.schildbach.wallet.util.CrashReporter;
 import de.schildbach.wallet.util.ThrottlingWalletChangeListener;
 import de.schildbach.wallet.util.WalletUtils;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import androidx.lifecycle.LifecycleService;
 import static org.dash.wallet.common.Constants.PREFIX_ALMOST_EQUAL_TO;
 
@@ -697,7 +697,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
 
         try {
             bootStrapStream = getAssets().open(Constants.Files.MNLIST_BOOTSTRAP_FILENAME);
-            SimplifiedMasternodeListManager.setBootStrapStream(bootStrapStream);
+            SimplifiedMasternodeListManager.setBootStrapStream(bootStrapStream, null, 0);
         } catch (IOException x) {
             log.info("cannot load the boot strap stream.  " + x.getMessage());
         }
@@ -814,7 +814,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
                     if(count > 0 && count <= 3)
                         minimum = count;
 
-                    peerGroup.broadcastTransaction(tx, minimum);
+                    peerGroup.broadcastTransaction(tx, minimum, false);
                 } else {
                     log.info("peergroup not available, not broadcasting transaction " + tx.getHashAsString());
                     tx.getConfidence().setPeerInfo(0, 1);

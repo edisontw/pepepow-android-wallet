@@ -33,7 +33,7 @@ import de.schildbach.wallet.livedata.Status
 import de.schildbach.wallet.ui.preference.PinRetryController
 import de.schildbach.wallet.ui.widget.NumericKeyboardView
 import de.schildbach.wallet.ui.widget.PinPreviewView
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 
 class SetPinActivity : AppCompatActivity() {
 

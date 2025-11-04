@@ -57,7 +57,7 @@ import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.util.Crypto;
 import de.schildbach.wallet.util.KeyboardUtil;
 import de.schildbach.wallet.util.WalletUtils;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import android.annotation.SuppressLint;
 
 

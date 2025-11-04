@@ -31,7 +31,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.util.FingerprintHelper
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_security.*
 import org.bitcoinj.wallet.DeterministicSeed
 import org.bitcoinj.wallet.Wallet

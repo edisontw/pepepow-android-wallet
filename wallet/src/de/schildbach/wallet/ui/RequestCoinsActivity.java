@@ -17,7 +17,7 @@
 
 package de.schildbach.wallet.ui;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.os.Bundle;
 

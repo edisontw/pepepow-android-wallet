@@ -102,7 +102,7 @@ import de.schildbach.wallet.ui.TransactionResultActivity;
 import de.schildbach.wallet.ui.security.SecurityGuard;
 import de.schildbach.wallet.util.Bluetooth;
 import de.schildbach.wallet.util.Nfc;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import kotlin.Pair;
 
 import static org.dash.wallet.common.Constants.CHAR_CHECKMARK;

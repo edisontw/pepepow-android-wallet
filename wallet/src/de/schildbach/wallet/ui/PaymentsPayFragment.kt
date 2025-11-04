@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment
 import de.schildbach.wallet.data.PaymentIntent
 import de.schildbach.wallet.ui.scan.ScanActivity
 import de.schildbach.wallet.ui.send.SendCoinsActivity
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.fragment_payments_pay.*
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.core.VerificationException

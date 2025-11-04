@@ -21,7 +21,7 @@ import android.content.Context;
 import androidx.core.content.res.ResourcesCompat;
 import android.util.AttributeSet;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 public class MontserratCheckBox extends androidx.appcompat.widget.AppCompatCheckBox {
 

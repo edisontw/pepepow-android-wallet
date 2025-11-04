@@ -36,7 +36,7 @@ import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.data.BlockInfo;
 import de.schildbach.wallet.service.BlockchainService;
 import de.schildbach.wallet.service.BlockchainServiceImpl;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;

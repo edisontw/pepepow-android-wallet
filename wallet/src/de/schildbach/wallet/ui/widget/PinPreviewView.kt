@@ -25,7 +25,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import de.schildbach.wallet.ui.RestoreWalletFromSeedDialogFragment
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.pin_preview_view.view.*
 
 

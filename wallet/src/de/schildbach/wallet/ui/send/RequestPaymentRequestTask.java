@@ -40,7 +40,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
 import android.os.Looper;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import okhttp3.CacheControl;
 import okhttp3.Call;
 import okhttp3.Request;

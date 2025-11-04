@@ -23,7 +23,7 @@ import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.ui.send.DecryptSeedTask;
 import de.schildbach.wallet.ui.send.DeriveKeyTask;
 import de.schildbach.wallet.util.ParcelableChainPath;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * Created by Hash Engineering on 4/5/2018.

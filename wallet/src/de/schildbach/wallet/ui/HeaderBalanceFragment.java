@@ -51,7 +51,7 @@ import de.schildbach.wallet.rates.ExchangeRate;
 import de.schildbach.wallet.rates.ExchangeRatesViewModel;
 import de.schildbach.wallet.service.BlockchainState;
 import de.schildbach.wallet.service.BlockchainStateLoader;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 public final class HeaderBalanceFragment extends Fragment {
 

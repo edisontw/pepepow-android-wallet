@@ -21,7 +21,7 @@ import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
 import de.schildbach.wallet.WalletApplication
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_more.*
 import org.dash.wallet.integration.uphold.ui.UpholdAccountActivity
 

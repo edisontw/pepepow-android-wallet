@@ -30,7 +30,7 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * @author Samuel Barbosa

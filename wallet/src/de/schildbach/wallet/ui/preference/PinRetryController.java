@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import de.schildbach.wallet.WalletApplication;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import static java.lang.Math.pow;
 

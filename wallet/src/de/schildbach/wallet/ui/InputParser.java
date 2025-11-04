@@ -61,7 +61,7 @@ import de.schildbach.wallet.data.PaymentIntent;
 import de.schildbach.wallet.util.AddressUtil;
 import de.schildbach.wallet.util.Io;
 import de.schildbach.wallet.util.Qr;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.content.Context;
 import android.content.DialogInterface.OnClickListener;

@@ -20,7 +20,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.widget.Toolbar
 import de.schildbach.wallet.WalletApplication
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_more.*
 import kotlinx.android.synthetic.main.activity_settings.*
 import org.dash.wallet.common.ui.DialogBuilder

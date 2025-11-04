@@ -23,7 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
 import de.schildbach.wallet.ui.BaseBottomSheetDialogFragment
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.dialog_confirm_transaction.*
 import kotlinx.android.synthetic.main.dialog_receive_details.*
 import org.bitcoinj.core.Coin

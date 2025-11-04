@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.schildbach.wallet_test"
+    package="org.pepepow.wallet"
     android:installLocation="internalOnly"
     android:versionCode="70004"
     android:versionName="7.0.0">
@@ -102,7 +102,7 @@
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <data android:mimeType="application/x-drktx" />
-                <data android:mimeType="application/x-dashtx" />
+                <data android:mimeType="application/x-pepepowtx" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity-alias>
@@ -116,8 +116,7 @@
             <intent-filter android:label="@string/send_coins_activity_title" >
                 <action android:name="android.intent.action.VIEW" />
 
-                <data android:scheme="dash" />
-                <data android:scheme="darkcoin" />
+                <data android:scheme="pepepow" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -125,8 +124,7 @@
             <intent-filter android:label="@string/send_coins_activity_title" >
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
 
-                <data android:scheme="dash" />
-                <data android:scheme="darkcoin" />
+                <data android:scheme="pepepow" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -176,6 +174,7 @@
 
                 <data android:mimeType="application/x-darkcoin-wallet-backup" />
                 <data android:mimeType="application/x-dash-wallet-backup" />
+                <data android:mimeType="application/x-pepepow-wallet-backup" />
             </intent-filter>
         </activity>
         <activity
@@ -198,7 +197,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
-                <data android:scheme="dashwallet" />
+                <data android:scheme="pepepowwallet" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

@@ -31,7 +31,7 @@ import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.ui.ReceiveActivity
 import de.schildbach.wallet.util.Qr
 import de.schildbach.wallet.util.Toast
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.receive_info_view.view.*
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Coin

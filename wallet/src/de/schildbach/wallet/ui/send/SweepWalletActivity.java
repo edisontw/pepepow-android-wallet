@@ -20,7 +20,7 @@ package de.schildbach.wallet.ui.send;
 import org.bitcoinj.core.PrefixedChecksummedBytes;
 
 import de.schildbach.wallet.ui.AbstractBindServiceActivity;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.content.Context;
 import android.content.Intent;

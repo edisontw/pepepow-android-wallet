@@ -33,6 +33,7 @@ dependencies {
     })
     implementation "org.dashj:dashj-core:$dashjVersion"
     implementation 'com.scottyab:secure-preferences-lib:0.1.4'
+    implementation 'org.slf4j:slf4j-api:1.7.25'
 
     implementation project(path: ':common')
     implementation project(path: ':ui-redesign')

@@ -27,7 +27,7 @@ import androidx.core.content.ContextCompat
 import de.schildbach.wallet.Constants
 import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.util.*
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.MonetaryFormat

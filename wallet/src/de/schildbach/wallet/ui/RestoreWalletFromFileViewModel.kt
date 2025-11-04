@@ -21,7 +21,7 @@ import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import de.schildbach.wallet.Constants
 import de.schildbach.wallet.WalletApplication
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import org.bitcoinj.crypto.MnemonicException
 import org.bitcoinj.wallet.Wallet
 import org.slf4j.LoggerFactory

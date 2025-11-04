@@ -34,7 +34,7 @@ import de.schildbach.wallet.ui.QuickReceiveActivity;
 import de.schildbach.wallet.ui.SendCoinsQrActivity;
 import org.dash.wallet.common.util.GenericUtils;
 import org.dash.wallet.common.util.MonetarySpannable;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;

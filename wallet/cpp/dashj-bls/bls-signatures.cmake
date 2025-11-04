@@ -69,6 +69,6 @@ set(BENCH 0 CACHE INTEGER "")
 set(PP_EXT "LAZYR" CACHE STRING "")
 set(PP_METHD "LAZYR;OATEP" CACHE STRING "")
 
-add_subdirectory(bls-signatures/contrib/relic)
+add_subdirectory(bls-signatures/depends/relic)
 #add_subdirectory(bls-signatures/src)
 include(bls-signatures-src.cmake)

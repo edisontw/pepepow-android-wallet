@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import de.schildbach.wallet.service.BlockchainService;
 import de.schildbach.wallet.service.BlockchainServiceImpl;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.Activity;
 

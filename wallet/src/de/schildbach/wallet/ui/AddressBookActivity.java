@@ -29,7 +29,7 @@ import org.bitcoinj.wallet.Wallet;
 import com.google.common.collect.Iterables;
 
 import de.schildbach.wallet.Constants;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.content.Context;
 import android.content.Intent;

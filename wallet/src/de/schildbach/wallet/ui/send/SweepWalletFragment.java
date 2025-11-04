@@ -86,7 +86,7 @@ import de.schildbach.wallet.ui.ProgressDialogFragment;
 import de.schildbach.wallet.ui.TransactionResultActivity;
 import de.schildbach.wallet.ui.scan.ScanActivity;
 import de.schildbach.wallet.util.WalletUtils;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import static com.google.common.base.Preconditions.checkState;
 

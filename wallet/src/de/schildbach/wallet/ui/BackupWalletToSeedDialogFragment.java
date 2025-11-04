@@ -64,7 +64,7 @@ import de.schildbach.wallet.ui.widget.FingerprintView;
 import de.schildbach.wallet.ui.widget.UpgradeWalletDisclaimerDialog;
 import de.schildbach.wallet.util.FingerprintHelper;
 import de.schildbach.wallet.util.KeyboardUtil;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * @author Andreas Schildbach

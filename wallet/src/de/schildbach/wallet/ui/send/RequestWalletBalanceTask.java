@@ -66,7 +66,7 @@ import com.squareup.moshi.Moshi;
 
 import de.schildbach.wallet.Constants;
 import static de.schildbach.wallet.Constants.HEX;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.os.Looper;

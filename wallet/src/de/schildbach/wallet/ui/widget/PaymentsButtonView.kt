@@ -21,7 +21,7 @@ import android.util.AttributeSet
 import android.util.DisplayMetrics
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.res.ResourcesCompat
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.payments_button_view.view.*
 
 

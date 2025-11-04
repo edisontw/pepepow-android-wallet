@@ -28,7 +28,7 @@ import org.dash.wallet.common.Configuration;
 import de.schildbach.wallet.Constants;
 import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.ui.WalletActivity;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.Notification;
 import android.app.NotificationManager;

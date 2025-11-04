@@ -7,7 +7,7 @@ import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.wallet.Wallet;
 
 import de.schildbach.wallet.Constants;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 public class TransactionUtil {
 

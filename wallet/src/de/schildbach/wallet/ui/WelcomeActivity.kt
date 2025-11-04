@@ -25,7 +25,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentPagerAdapter
 import androidx.viewpager.widget.ViewPager
 import de.schildbach.wallet.WalletApplication
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_welcome.*
 import org.dash.wallet.common.Configuration
 
