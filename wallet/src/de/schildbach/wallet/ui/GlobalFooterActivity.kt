@@ -20,7 +20,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import de.schildbach.wallet.ui.widget.GlobalFooterView
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 
 
 @SuppressLint("Registered")

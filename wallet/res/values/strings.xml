@@ -12,7 +12,7 @@
     <string name="blockchain_state_progress_stalled">Synchronization stalled</string>
     <string name="blockchain_state_progress_problem_storage">Synchronizing: Storage problem</string>
     <string name="blockchain_state_progress_problem_network">Synchronizing: Network problem</string>
-    <string name="wallet_address_fragment_clipboard_msg">Dash address copied to clipboard</string>
+    <string name="wallet_address_fragment_clipboard_msg">PEPEPOW address copied to clipboard</string>
     <string name="wallet_address_dialog_fragment_hint">To protect your privacy, your address will change once it receives a payment.</string>
     <string name="wallet_balance_fragment_too_much">This amount is quite high for carrying in your pocket. Please move some to a safer place.</string>
     <string name="wallet_balance_fragment_replaying">Balance is unavailable during replay.</string>
@@ -38,18 +38,18 @@
     <string name="wallet_options_encrypt_keys_change">Change spending PIN</string>
     <string name="wallet_options_safety">Safety notes</string>
     <string name="wallet_low_storage_dialog_title">Internal device storage space low!</string>
-    <string name="wallet_low_storage_dialog_msg">Dash Wallet uses internal storage for remembering transactions and blocks. If it runs out of space, it will stop working and your Dash will be at risk!\n\nDo you want to open the Application Manager to uninstall unneeded apps?</string>
+    <string name="wallet_low_storage_dialog_msg">PEPEPOW Wallet uses internal storage for remembering transactions and blocks. If it runs out of space, it will stop working and your PEPEPOW will be at risk!\n\nDo you want to open the Application Manager to uninstall unneeded apps?</string>
     <string name="wallet_low_storage_dialog_button_apps">Manage apps</string>
     <string name="wallet_timeskew_dialog_title">Check date &amp; time settings</string>
-    <string name="wallet_timeskew_dialog_msg">Your device time is off by %d minutes. You probably cannot send or receive Dash due to this problem.\n\nYou should check and if necessary correct your date, time and timezone settings.</string>
+    <string name="wallet_timeskew_dialog_msg">Your device time is off by %d minutes. You probably cannot send or receive PEPEPOW due to this problem.\n\nYou should check and if necessary correct your date, time and timezone settings.</string>
     <string name="wallet_version_dialog_title">A new version is available!</string>
     <string name="wallet_version_dialog_msg">This version fixes important bugs. For details, see the change log on Google Play.</string>
     <string name="wallet_version_dialog_msg_deprecated">If you don\'t see an update, this probably means your version of Android isn\'t supported any more.</string>
     <string name="wallet_version_dialog_button_market">Google Play</string>
     <string name="wallet_version_dialog_button_binary">Download</string>
     <string name="wallet_old_sdk_dialog_title">Android version is out of date</string>
-    <string name="wallet_old_sdk_dialog_message">Chances are that one of the next releases of Dash Wallet will not support your device any more. In some cases, it can get difficult to spend coins on this device.\n\nUnless you know what you are doing, it is recommended to move out your coins soon.</string>
-    <string name="send_coins_activity_title">Send Dash</string>
+    <string name="wallet_old_sdk_dialog_message">Chances are that one of the next releases of PEPEPOW Wallet will not support your device any more. In some cases, it can get difficult to spend coins on this device.\n\nUnless you know what you are doing, it is recommended to move out your coins soon.</string>
+    <string name="send_coins_activity_title">Send PEPEPOW</string>
     <string name="send_coins_fragment_request_payment_request_progress">Fetching signature from %s…</string>
     <string name="send_coins_fragment_request_payment_request_failed_title">Fetching signature failed</string>
     <string name="send_coins_fragment_request_payment_request_wrong_signature">Wrong signature!</string>
@@ -57,7 +57,7 @@
     <string name="send_coins_fragment_payee_verified_by_unknown">unknown</string>
     <string name="send_coins_fragment_receiving_address_label">Send to</string>
     <string name="send_coins_fragment_receiving_address_hint">type address or name</string>
-    <string name="send_coins_fragment_receiving_address_error">Invalid Dash address!</string>
+    <string name="send_coins_fragment_receiving_address_error">Invalid PEPEPOW address!</string>
     <string name="send_coins_fragment_receiving_address_own">You\'re about to send to yourself!</string>
     <string name="send_coins_fragment_receiving_address_complex">complex\naddress</string>
     <string name="send_coins_fragment_pending">(%s waiting for confirmation)</string>
@@ -111,21 +111,21 @@
     <string name="maintenance_dialog_state_decrypting">Decrypting…</string>
     <string name="maintenance_dialog_state_done">Done.</string>
     <string name="maintenance_dialog_button_move">Move</string>
-    <string name="request_coins_activity_title">Request Dash</string>
+    <string name="request_coins_activity_title">Request PEPEPOW</string>
     <string name="request_coins_fragment_amount_label">Requested amount (optional)</string>
     <string name="request_coins_fragment_accept_bluetooth_payment">Accept payment via Bluetooth for more reliable processing</string>
     <string name="request_coins_fragment_initiate_request_qr">Have this code scanned by the sender.</string>
     <string name="request_coins_fragment_initiate_request_nfc">Or tap an NFC enabled device.</string>
-    <string name="request_coins_clipboard_msg">Dash request copied to clipboard</string>
-    <string name="request_coins_share_dialog_title">Share request for Dash…</string>
-    <string name="request_coins_no_local_app_msg">No other Dash app found</string>
+    <string name="request_coins_clipboard_msg">PEPEPOW request copied to clipboard</string>
+    <string name="request_coins_share_dialog_title">Share request for PEPEPOW…</string>
+    <string name="request_coins_no_local_app_msg">No other PEPEPOW app found</string>
     <string name="request_coins_options_local_app_title">Request from local app</string>
     <string name="address_book_activity_title">Address book</string>
     <string name="address_book_list_receiving_title">Your addresses</string>
     <string name="address_book_list_receiving_random">Old addresses</string>
     <string name="address_book_list_sending_title">Sending addresses</string>
     <string name="address_book_empty_text">No entries in address book</string>
-    <string name="address_book_context_send_title">Send Dash to address</string>
+    <string name="address_book_context_send_title">Send PEPEPOW to address</string>
     <string name="address_book_context_edit_title">Edit address</string>
     <string name="address_book_context_remove_title">Remove address</string>
     <string name="address_book_context_copy_to_clipboard_title">Copy to clipboard</string>
@@ -149,7 +149,7 @@
     <string name="transaction_row_message_purpose_raise_fee">This transaction raises the network fee for a previous payment.</string>
     <string name="transaction_row_message_own_unbroadcasted">This payment has not been transmitted yet.</string>
     <string name="transaction_row_message_received_direct">This payment has been received directly. There is a risk it might never become spendable.</string>
-    <string name="transaction_row_message_received_unconfirmed_delayed">The confirmation of this payment is delayed, likely due to an overload of the Dash network.</string>
+    <string name="transaction_row_message_received_unconfirmed_delayed">The confirmation of this payment is delayed, likely due to an overload of the PEPEPOW network.</string>
     <string name="transaction_row_message_received_unconfirmed_unlocked">This payment can be spent now without being confirmed.</string>
     <string name="transaction_row_message_received_in_conflict">This payment has an increased risk of being reversed by the sender! If you can, wait for confirmation.</string>
     <string name="transaction_row_message_received_dead">This payment has been reversed by the sender.</string>
@@ -216,8 +216,8 @@
     <string name="export_keys_dialog_success"><![CDATA[<p>Your wallet has been backed up to <tt>%s</tt></p><p>If your device has a removable SD card, your backup <i>should</i> be on that card. Remove it and keep it at a safe place. If the card is <i>not</i> removable, you need to archive your backup to some other place than your device.</p><p><b>If the only place your backup exists is on your device, you run the risk of losing both at the same time!</b></p><p>In any case, make sure you remember your backup password. Do you want to archive your wallet now?</p>]]></string>
     <string name="export_keys_dialog_failure">Your wallet could not be backed up:\n%s</string>
     <string name="export_keys_dialog_button_archive">Archive</string>
-    <string name="export_keys_dialog_mail_subject">Dash Wallet backup</string>
-    <string name="export_keys_dialog_mail_text">The attached encrypted file contains Dash private keys and should be kept safe at all times. Don\'t forget the encryption password!</string>
+    <string name="export_keys_dialog_mail_subject">PEPEPOW Wallet backup</string>
+    <string name="export_keys_dialog_mail_text">The attached encrypted file contains PEPEPOW private keys and should be kept safe at all times. Don\'t forget the encryption password!</string>
     <string name="export_keys_dialog_mail_intent_chooser">Archive wallet using…</string>
     <string name="export_keys_dialog_mail_intent_failed">Archiving wallet failed.</string>
     <string name="import_export_keys_dialog_password">password</string>
@@ -244,8 +244,8 @@
     <string name="scan_camera_permission_dialog_message">In order to scan QR codes, you need to grant permission to use the camera.</string>
     <string name="input_parser_io_error">Cannot read data:\n%s</string>
     <string name="input_parser_cannot_classify">Cannot recognize input:\n%s</string>
-    <string name="input_parser_invalid_bitcoin_uri">Invalid Dash URI:\n%s</string>
-    <string name="input_parser_invalid_address">Got invalid Dash address!\n(Mixing up mainnet/testnet?)</string>
+    <string name="input_parser_invalid_bitcoin_uri">Invalid PEPEPOW URI:\n%s</string>
+    <string name="input_parser_invalid_address">Got invalid PEPEPOW address!\n(Mixing up mainnet/testnet?)</string>
     <string name="input_parser_unverifyable_paymentrequest">Cannot verify payment request:\n%s</string>
     <string name="input_parser_invalid_paymentrequest">Invalid payment request:\n%s</string>
     <string name="input_parser_invalid_transaction">Invalid transaction:\n%s</string>
@@ -292,7 +292,7 @@
     <string name="report_issue_dialog_title_issue">Report issue</string>
     <string name="report_issue_dialog_title_crash">Previous crash detected</string>
     <string name="report_issue_dialog_title_transaction">Report issue with selected payment</string>
-    <string name="report_issue_dialog_message_issue">Please describe your issue precisely enough to be reproduced. Use English language if you can.  Expect an email from Dash Support regarding your issue within 24 hours. </string>
+    <string name="report_issue_dialog_message_issue">Please describe your issue precisely enough to be reproduced. Use English language if you can.  Expect an email from PEPEPOW Support regarding your issue within 24 hours. </string>
     <string name="report_issue_dialog_message_crash">Would you like to send a crash report, helping to fix this issue in the future?</string>
     <string name="report_issue_dialog_description">issue description</string>
     <string name="report_issue_dialog_report">Report</string>
@@ -308,7 +308,7 @@
     <string name="about_license_title">License</string>
     <string name="about_source_title">Source code</string>
     <string name="about_category_credits">This app is using…</string>
-    <string name="about_credits_bitcoinj_title">dashj %s, a Dash protocol implementation</string>
+    <string name="about_credits_bitcoinj_title">pepepowj %s, a PEPEPOW protocol implementation</string>
     <string name="about_credits_zxing_title">ZXing, a QR-code processing library</string>
     <string name="about_credits_icon_title">This app is using an icon by \'bitboy\'</string>
     <string name="about_credits_scrypt_title">Scrypt, implemented by Will Glozer and Colin Percival</string>
@@ -320,11 +320,11 @@
     <string name="about_community_googleplus_summary">Discuss about the app</string>
     <string name="notification_coins_received_msg">Received %s</string>
     <string name="notification_peers_connected_msg">%d peers connected</string>
-    <string name="notification_inactivity_title">You\'ve still got Dash on this device!</string>
-    <string name="notification_inactivity_message">You still have Dash on this device! Please be sure to write down your recovery phrase before you uninstall the Dash Wallet or you will lose your balance of %s.</string>
+    <string name="notification_inactivity_title">You\'ve still got PEPEPOW on this device!</string>
+    <string name="notification_inactivity_message">You still have PEPEPOW on this device! Please be sure to write down your recovery phrase before you uninstall the PEPEPOW Wallet or you will lose your balance of %s.</string>
     <string name="notification_inactivity_action_dismiss">Remind me later</string>
     <string name="notification_inactivity_action_dismiss_forever">Don\'t remind me</string>
-    <string name="appwidget_wallet_balance_title">Dash balance</string>
+    <string name="appwidget_wallet_balance_title">PEPEPOW balance</string>
 
     <!-- generic buttons -->
     <string name="button_ok">OK</string>
@@ -342,8 +342,8 @@
     <string name="button_paste">Paste</string>
     <string name="button_share">Share</string>
     <string name="button_set_as_default">Set as default</string>
-    <string name="button_request_coins">Request Dash</string>
-    <string name="button_send_coins">Send Dash</string>
+    <string name="button_request_coins">Request PEPEPOW</string>
+    <string name="button_send_coins">Send PEPEPOW</string>
     <string name="button_pay">Send</string>
     <string name="button_scan">Scan</string>
     <string name="button_settings">Settings</string>
@@ -364,8 +364,8 @@
 
     <string name="transaction_fragment_confirmations_label">Confirmations</string>
 
-    <string name="dash_slogan">Instant - Private - Secure</string>
-    <string name="dash_wallet">Wallet</string>
+    <string name="pepepow_slogan">Instant - Private - Secure</string>
+    <string name="pepepow_wallet">Wallet</string>
 
     <string name="activity_security_backup_wallet">Back Up Wallet to File</string>
     <string name="activity_security_view_recovery_phrase">View Recovery Phrase</string>

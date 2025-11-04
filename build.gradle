@@ -1,5 +1,5 @@
 ext {
-    dashjVersion = "0.17-SNAPSHOT"
+    dashjVersion = "20.0.2"
 }
 
 buildscript {
@@ -7,6 +7,7 @@ buildscript {
 
     repositories {
         google()
+        mavenCentral()
         jcenter()
     }
 
@@ -15,7 +16,7 @@ buildscript {
         classpath('fr.avianey.androidsvgdrawable:gradle-plugin:3.0.0') {
             exclude group: 'xerces'
         }
-        classpath 'com.google.gms:google-services:4.3.2'
+    //    classpath 'com.google.gms:google-services:4.3.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -24,6 +25,7 @@ allprojects {
     repositories {
         google()
         mavenLocal()
+        mavenCentral()
         jcenter()
         maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
     }

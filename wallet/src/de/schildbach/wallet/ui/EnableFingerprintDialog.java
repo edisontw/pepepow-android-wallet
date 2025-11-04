@@ -37,7 +37,7 @@ import org.dash.wallet.common.ui.DialogBuilder;
 import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.ui.widget.FingerprintView;
 import de.schildbach.wallet.util.FingerprintHelper;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import kotlin.Pair;
 
 /**

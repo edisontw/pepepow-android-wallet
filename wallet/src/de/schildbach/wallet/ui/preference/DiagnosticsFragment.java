@@ -30,7 +30,7 @@ import org.dash.wallet.common.ui.DialogBuilder;
 import de.schildbach.wallet.ui.ReportIssueDialogBuilder;
 import de.schildbach.wallet.util.CrashReporter;
 import de.schildbach.wallet.util.Qr;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.Activity;
 import android.content.DialogInterface;

@@ -9,7 +9,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="de.schildbach.wallet.ui.SendCoinsQrActivity"
-            android:targetPackage="hashengineering.darkcoin.wallet">
+            android:targetPackage="org.pepepow.wallet">
 
             <extra android:name="extra_quick_scan" android:value="true" />
         </intent>
@@ -22,7 +22,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="de.schildbach.wallet.ui.QuickReceiveActivity"
-            android:targetPackage="hashengineering.darkcoin.wallet">
+            android:targetPackage="org.pepepow.wallet">
 
             <extra android:name="extra_quick_scan" android:value="true" />
         </intent>

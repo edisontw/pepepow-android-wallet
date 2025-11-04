@@ -28,7 +28,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * @author Andreas Schildbach

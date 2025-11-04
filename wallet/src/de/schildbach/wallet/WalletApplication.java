@@ -88,8 +88,8 @@ import de.schildbach.wallet.ui.scan.ScanActivity;
 import de.schildbach.wallet.ui.security.SecurityGuard;
 import de.schildbach.wallet.ui.send.SendCoinsActivity;
 import de.schildbach.wallet.util.CrashReporter;
-import de.schildbach.wallet_test.BuildConfig;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.BuildConfig;
+import org.pepepow.wallet.R;
 
 /**
  * @author Andreas Schildbach

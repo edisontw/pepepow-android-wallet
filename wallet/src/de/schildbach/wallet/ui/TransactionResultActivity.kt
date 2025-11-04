@@ -25,7 +25,7 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.util.WalletUtils
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_successful_transaction.*
 import kotlinx.android.synthetic.main.transaction_result_content.*
 import org.bitcoinj.core.Sha256Hash

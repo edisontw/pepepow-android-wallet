@@ -36,7 +36,7 @@ import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.data.PaymentIntent;
 import de.schildbach.wallet.integration.android.BitcoinIntegration;
 import de.schildbach.wallet.ui.send.SendCoinsActivity;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * The only purpose of this Activity is to handle all so called Wallet Uris

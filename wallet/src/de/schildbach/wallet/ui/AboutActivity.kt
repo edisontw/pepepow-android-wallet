@@ -22,8 +22,8 @@ import android.content.Intent.ACTION_VIEW
 import android.net.Uri
 import android.os.Bundle
 import de.schildbach.wallet.WalletApplication
-import de.schildbach.wallet_test.BuildConfig
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.BuildConfig
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_about.*
 import org.bitcoinj.core.VersionMessage
 

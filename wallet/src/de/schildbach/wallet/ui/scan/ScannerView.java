@@ -35,7 +35,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * @author Andreas Schildbach

@@ -22,7 +22,7 @@ import androidx.annotation.Nullable;
 import android.text.format.DateUtils;
 
 import de.schildbach.wallet.service.BlockchainState;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 /**
  * @author Samuel Barbosa

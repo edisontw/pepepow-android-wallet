@@ -22,7 +22,7 @@ import android.net.Uri
 import android.os.Bundle
 import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.data.BlockInfo
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_block_info.*
 
 class BlockInfoActivity : BaseMenuActivity() {

@@ -19,7 +19,7 @@ package de.schildbach.wallet.ui.preference;
 
 import java.util.List;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.os.Bundle;
 import com.google.android.material.appbar.AppBarLayout;

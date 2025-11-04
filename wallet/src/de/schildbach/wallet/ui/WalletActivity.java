@@ -61,7 +61,7 @@ import androidx.lifecycle.ViewModelProviders;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.navigation.NavigationView;
 import com.google.common.collect.ImmutableList;
-import com.squareup.okhttp.HttpUrl;
+import okhttp3.HttpUrl;
 
 import org.bitcoinj.core.PrefixedChecksummedBytes;
 import org.bitcoinj.core.Sha256Hash;
@@ -96,7 +96,7 @@ import de.schildbach.wallet.ui.widget.UpgradeWalletDisclaimerDialog;
 import de.schildbach.wallet.util.CrashReporter;
 import de.schildbach.wallet.util.FingerprintHelper;
 import de.schildbach.wallet.util.Nfc;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 import kotlin.Pair;
 
 /**

@@ -40,7 +40,7 @@ import de.schildbach.wallet.util.Crypto;
 import de.schildbach.wallet.util.FingerprintHelper;
 import de.schildbach.wallet.util.Io;
 import de.schildbach.wallet.util.WalletUtils;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.Dialog;
 import android.content.ContentResolver;

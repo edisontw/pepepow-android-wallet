@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
-import de.schildbach.wallet_test.BuildConfig;
+import org.pepepow.wallet.BuildConfig;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -65,21 +65,21 @@ public final class Constants {
         switch (BuildConfig.FLAVOR) {
             case "prod":
             case "beta": {
-                DNS_SEED = new String[]{"dnsseed.dash.org", "dnsseed.dashdot.io"};
+                DNS_SEED = new String[]{"dnsseed.pepepow.org", "dnsseed.pepepow.foztor.net"};
                 BIP44_PATH = DeterministicKeyChain.BIP44_ACCOUNT_ZERO_PATH;
                 NETWORK_PARAMETERS = MainNetParams.get();
                 IS_PROD_BUILD = true;
                 FILENAME_NETWORK_SUFFIX = "";
-                WALLET_NAME_CURRENCY_CODE = "dash";
+                WALLET_NAME_CURRENCY_CODE = "pepew";
                 break;
             }
             case "_testNet3": {
-                DNS_SEED = new String[]{"testnet-seed.dashdot.io", "95.183.51.146", "35.161.101.35", "54.91.130.170"};
+                DNS_SEED = new String[]{"82.163.79.208", "141.147.71.107", "132.145.54.241"};
                 BIP44_PATH = DeterministicKeyChain.BIP44_ACCOUNT_ZERO_PATH_TESTNET;
                 NETWORK_PARAMETERS = TestNet3Params.get();
                 IS_PROD_BUILD = false;
                 FILENAME_NETWORK_SUFFIX = "-testnet";
-                WALLET_NAME_CURRENCY_CODE = "tdash";
+                WALLET_NAME_CURRENCY_CODE = "tpepew";
                 break;
             }
             case "devNet": {
@@ -94,7 +94,7 @@ public final class Constants {
                 NETWORK_PARAMETERS = DevNetParams.get("maithai", "yMtULrhoxd8vRZrsnFobWgRTidtjg2Rnjm", 20001, DNS_SEED);
                 IS_PROD_BUILD = false;
                 FILENAME_NETWORK_SUFFIX = "-devnet";
-                WALLET_NAME_CURRENCY_CODE = "tdash";
+                WALLET_NAME_CURRENCY_CODE = "tpepew";
                 break;
 
             }
@@ -165,16 +165,16 @@ public final class Constants {
 
     public static final String MIMETYPE_BACKUP_PRIVATE_KEYS = "x-"+CoinDefinition.coinName.toLowerCase()+"/private-keys";
 
-    private static final String BITEASY_API_URL_PROD = CoinDefinition.UNSPENT_API_URL;//"https://api.biteasy.com/blockchain/v1/";
-    private static final String BITEASY_API_URL_TEST = "https://api.biteasy.com/testnet/v1/";
+    private static final String BITEASY_API_URL_PROD = CoinDefinition.UNSPENT_API_URL;
+    private static final String BITEASY_API_URL_TEST = CoinDefinition.UNSPENT_API_URL;
     /** Base URL for blockchain API. */
     public static final String BITEASY_API_URL = NETWORK_PARAMETERS.getId().equals(NetworkParameters.ID_MAINNET) ? BITEASY_API_URL_PROD
             : BITEASY_API_URL_TEST;
 
     /** URL to fetch version alerts from. */
-    public static final HttpUrl VERSION_URL = HttpUrl.parse("https://wallet.schildbach.de/version");
+    public static final HttpUrl VERSION_URL = HttpUrl.parse("https://raw.githubusercontent.com/MattF42/pepepow-wallet/main/android/version.json");
     /** URL to fetch dynamic fees from. */
-    public static final HttpUrl DYNAMIC_FEES_URL = HttpUrl.parse("https://wallet.schildbach.de/fees");
+    public static final HttpUrl DYNAMIC_FEES_URL = HttpUrl.parse("https://raw.githubusercontent.com/MattF42/pepepow-wallet/main/android/fees.json");
 
     /** MIME type used for transmitting single transactions. */
     public static final String MIMETYPE_TRANSACTION = "application/x-" + CoinDefinition.coinTicker.toLowerCase() + "tx";
@@ -192,10 +192,10 @@ public final class Constants {
     public static final String DEFAULT_EXCHANGE_CURRENCY = "USD";
 
     /** Recipient e-mail address for reports. */
-    public static final String REPORT_EMAIL = "support@dash.org";
+    public static final String REPORT_EMAIL = "support@pepepow.org";
 
     /** Subject line for manually reported issues. */
-    public static final String REPORT_SUBJECT_BEGIN = "Android Dash Wallet:  ";
+    public static final String REPORT_SUBJECT_BEGIN = "Android PEPEPOW Wallet:  ";
     public static final String REPORT_SUBJECT_ISSUE = "Reported issue";
 
     /** Subject line for crash reports. */
@@ -212,8 +212,8 @@ public final class Constants {
 
     public static final BaseEncoding HEX = BaseEncoding.base16().lowerCase();
 
-    public static final String SOURCE_URL = "https://github.com/HashEngineering/" + CoinDefinition.coinName.toLowerCase() + "-wallet";
-    public static final String BINARY_URL = "https://github.com/HashEngineering/" + CoinDefinition.coinName.toLowerCase() + "-wallet/releases";
+    public static final String SOURCE_URL = "https://github.com/MattF42/pepepow-wallet";
+    public static final String BINARY_URL = "https://github.com/MattF42/pepepow-wallet/releases";
     public static final String MARKET_APP_URL = "market://details?id=%s";
     public static final String WEBMARKET_APP_URL = "https://play.google.com/store/apps/details?id=%s";
 

@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.dash.wallet.common.Configuration;
 import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.WalletBalanceWidgetProvider;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.app.Activity;
 import android.content.pm.PackageManager;

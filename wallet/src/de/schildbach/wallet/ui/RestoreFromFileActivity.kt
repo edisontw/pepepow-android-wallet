@@ -31,7 +31,7 @@ import androidx.lifecycle.ViewModelProviders
 import de.schildbach.wallet.Constants
 import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.ui.widget.UpgradeWalletDisclaimerDialog
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import org.bitcoinj.wallet.Wallet
 import org.dash.wallet.common.ui.DialogBuilder
 

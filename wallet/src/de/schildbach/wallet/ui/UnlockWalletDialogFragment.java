@@ -25,7 +25,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import de.schildbach.wallet.WalletApplication;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 public class UnlockWalletDialogFragment extends AbstractPINDialogFragment {
 

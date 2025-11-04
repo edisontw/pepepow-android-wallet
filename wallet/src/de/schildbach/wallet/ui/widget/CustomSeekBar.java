@@ -8,7 +8,7 @@ import android.util.AttributeSet;
 
 import androidx.appcompat.widget.AppCompatSeekBar;
 
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 
 //Class use to fix issue: https://stackoverflow.com/questions/41490306/why-seekbar-tick-marker-shown-in-front-of-thumb/47961091#47961091

@@ -22,7 +22,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.fragment_enter_pin.*
 
 open class CheckPinDuringUpgradeDialog : CheckPinDialog() {

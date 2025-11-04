@@ -23,7 +23,7 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
 import com.google.android.material.tabs.TabLayout
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_payments.*
 
 class PaymentsActivity : GlobalFooterActivity() {

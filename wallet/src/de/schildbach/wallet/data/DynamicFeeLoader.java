@@ -24,9 +24,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import org.bitcoinj.core.Coin;
@@ -35,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
-import com.squareup.okhttp.internal.http.HttpDate;
 
 import de.schildbach.wallet.Constants;
 import de.schildbach.wallet.WalletApplication;
@@ -159,7 +161,7 @@ public class DynamicFeeLoader extends AsyncTaskLoader<Map<FeeCategory, Coin>> {
                 .url(url)
                 .header("User-Agent", userAgent);
         if (targetFile.exists())
-            requestBuilder.header("If-Modified-Since", HttpDate.format(new Date(targetFile.lastModified())));
+            requestBuilder.header("If-Modified-Since", formatHttpDate(new Date(targetFile.lastModified())));
 
         final OkHttpClient httpClient = Constants.HTTP_CLIENT.newBuilder()
                 .connectTimeout(5, TimeUnit.SECONDS)
@@ -191,5 +193,19 @@ public class DynamicFeeLoader extends AsyncTaskLoader<Map<FeeCategory, Coin>> {
         } catch (final Exception x) {
             log.warn("Problem when fetching dynamic fees rates from " + url, x);
         }
+    }
+
+    private static final ThreadLocal<SimpleDateFormat> HTTP_DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            final SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
+            format.setLenient(false);
+            format.setTimeZone(TimeZone.getTimeZone("GMT"));
+            return format;
+        }
+    };
+
+    private static String formatHttpDate(final Date date) {
+        return HTTP_DATE_FORMAT.get().format(date);
     }
 }

@@ -9,7 +9,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import de.schildbach.wallet.ui.receive.ReceiveDetailsDialog
 import de.schildbach.wallet.ui.send.EnterAmountSharedViewModel
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import org.bitcoinj.core.Coin
 
 class ReceiveActivity : AppCompatActivity() {

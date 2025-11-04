@@ -24,7 +24,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 
 open class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
 

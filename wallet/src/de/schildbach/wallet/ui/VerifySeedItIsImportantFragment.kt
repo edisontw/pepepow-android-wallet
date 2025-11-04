@@ -23,7 +23,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 
 /**
  * @author Samuel Barbosa

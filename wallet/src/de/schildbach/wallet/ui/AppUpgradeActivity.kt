@@ -28,7 +28,7 @@ import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.ui.preference.PinRetryController
 import de.schildbach.wallet.ui.security.SecurityGuard
 import de.schildbach.wallet.ui.widget.PinPreviewView
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_app_update.*
 import org.dash.wallet.common.Configuration
 import java.util.concurrent.TimeUnit

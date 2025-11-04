@@ -48,7 +48,7 @@ import de.schildbach.wallet.data.AddressBookProvider;
 import de.schildbach.wallet.util.FiatExtensionsKt;
 import de.schildbach.wallet.util.TransactionUtil;
 import de.schildbach.wallet.util.WalletUtils;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.content.Context;
 import android.content.res.Resources;

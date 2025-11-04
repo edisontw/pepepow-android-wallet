@@ -38,7 +38,7 @@ import com.google.zxing.qrcode.QRCodeReader;
 
 import de.schildbach.wallet.ui.AbstractWalletActivity;
 import de.schildbach.wallet.util.OnFirstPreDraw;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.Manifest;
 import android.animation.Animator;

@@ -32,7 +32,7 @@ import de.schildbach.wallet.Constants
 import de.schildbach.wallet.WalletApplication
 import de.schildbach.wallet.ui.send.ConfirmTransactionDialog
 import de.schildbach.wallet.ui.send.EnterAmountSharedViewModel
-import de.schildbach.wallet_test.R
+import org.pepepow.wallet.R
 import org.bitcoinj.core.Coin
 import org.bitcoinj.utils.MonetaryFormat
 import org.dash.wallet.common.util.GenericUtils

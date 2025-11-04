@@ -33,7 +33,7 @@ import de.schildbach.wallet.WalletBalanceWidgetProvider;
 import de.schildbach.wallet.rates.ExchangeRatesViewModel;
 import de.schildbach.wallet.service.BlockchainState;
 import de.schildbach.wallet.service.BlockchainStateLoader;
-import de.schildbach.wallet_test.R;
+import org.pepepow.wallet.R;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
