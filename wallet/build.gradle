@@ -183,7 +183,7 @@ android {
     externalNativeBuild {
         cmake {
             path 'cpp/CMakeLists.txt'
-            version "3.22.1"
+            version "3.19.8"
         }
     }
     packagingOptions {
