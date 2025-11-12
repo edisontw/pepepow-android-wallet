@@ -89,6 +89,7 @@ public abstract class DirectPaymentTask {
                 @Override
                 public void run() {
                     log.info("trying to send tx to {}", url);
+                    final byte[] paymentBytes = payment.toByteArray();
 
                     final Request.Builder requestBuilder = new Request.Builder()
                             .url(url)
@@ -102,12 +103,12 @@ public abstract class DirectPaymentTask {
 
                                 @Override
                                 public long contentLength() throws IOException {
-                                    return payment.getSerializedSize();
+                                    return paymentBytes.length;
                                 }
 
                                 @Override
                                 public void writeTo(final BufferedSink sink) throws IOException {
-                                    payment.writeTo(sink.outputStream());
+                                    sink.write(paymentBytes);
                                 }
                             });
 

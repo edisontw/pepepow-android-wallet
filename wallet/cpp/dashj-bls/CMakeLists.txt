@@ -12,7 +12,10 @@ add_library( # Sets the name of the library.
        SHARED
         # Provides a relative path to your source file(s).
         dashj-bls-signature-wrapper.cpp
-        stdio.cpp)
+        stdio.cpp
+        relic_stubs.c)
+
+include(bls-signatures.cmake)
 
 # Find Java
 
@@ -22,10 +25,13 @@ add_library( # Sets the name of the library.
 #    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
 #endif()
 
+set(BLS_RELIC_INCLUDE_DIR "${BLS_RELIC_SOURCE_DIR}/include")
+set(BLS_RELIC_BINARY_INCLUDE_DIR "${BLS_RELIC_BINARY_DIR}/include")
+
 include_directories(#${JNI_INCLUDE_DIRS}
-					${CMAKE_SOURCE_DIR}/bls-signatures/src
-					${CMAKE_BINARY_DIR}/dashj-bls/bls-signatures/contrib/relic/include
-					${CMAKE_SOURCE_DIR}/bls-signatures/contrib/relic/include
+					${BLS_ROOT}/src
+					${BLS_RELIC_BINARY_INCLUDE_DIR}
+					${BLS_RELIC_INCLUDE_DIR}
 )
 message(STATUS "binary dir = ${CMAKE_BINARY_DIR}")
 
@@ -46,10 +52,9 @@ endif()
 target_link_libraries( # Specifies the target library.
         dashjbls
 
-        # Links the target library to the bls library
-        bls blstmp relic_s)
+        # Links the target library to the bls binaries
+        blstmp relic_s)
 
 #add_subdirectory(src/main/cpp)
-include(bls-signatures.cmake)
 
 add_library(pthread SHARED pthread.c)
