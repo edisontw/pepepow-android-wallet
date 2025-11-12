@@ -1,0 +1,31 @@
+name: Code coverage
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Code coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Build
+        run: |
+          git submodule update --init --recursive
+          git apply catch_changes.patch
+          mvn clean package -DskipTests -Dmaven.javadoc.skip=true
+      - name: Run coverage
+        run: |
+          mvn test -Pno-build-bls
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          ./codecov -t ${CODECOV_TOKEN}
