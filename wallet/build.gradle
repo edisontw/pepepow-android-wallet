@@ -1,4 +1,8 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
+}
 
 ext {
     archivesBaseName = 'pepepow-wallet'
@@ -35,9 +39,10 @@ dependencies {
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
     implementation 'androidx.preference:preference:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.0-beta2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation "org.dashj:dashj-core:$dashjVersion"
     implementation 'com.google.protobuf:protobuf-java:3.4.0'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.0.10'
     implementation 'com.google.guava:guava:27.0.1-android'
     implementation 'com.google.zxing:core:3.3.3'
     implementation 'com.squareup.okhttp3:okhttp:4.3.1'
@@ -91,6 +96,10 @@ dependencies {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
         exclude group: 'com.android.support', module: 'support-annotations'
     }
+}
+
+configurations.all {
+    exclude group: 'com.google.protobuf', module: 'protobuf-javalite'
 }
 
 
@@ -180,6 +189,11 @@ android {
             applicationId = "org.pepepow.wallet.devnet"
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+    }
     externalNativeBuild {
         cmake {
             path 'cpp/CMakeLists.txt'
@@ -200,6 +214,9 @@ android {
     dexOptions {
         preDexLibraries true
     }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
 clean {
@@ -207,5 +224,3 @@ clean {
 }
 
 //apply plugin: 'com.google.gms.google-services'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'

@@ -24,6 +24,17 @@
   * Synchronized dependency versions and cloned `bls-signatures` for native build.
   * Updated CMake configuration for NDK 29 and CMake 3.22.
 
+### Native + Build updates (2025-11)
+
+* Updated the Gradle wrapper to 6.5 + AGP 4.0.2, switched `wallet` to the `plugins {}` DSL, enabled Java 8 `compileOptions`, Kotlin `jvmTarget = 1.8`, and wired up `coreLibraryDesugaring` to silence desugar warnings.
+* Vendorized `wallet/cpp/dashj-bls/bls-signatures` at upstream commit `581b761f5f6c9f8b975082d7336c371273db3556`, preserved upstream LICENSE/NOTICE, and patched `contrib/relic/src/md/blake2.h` to drop `#pragma pack` in favor of explicit padding for ARM alignment.
+* Added `relic_stubs.c`, refreshed `bls-signatures.cmake`, `bls-signatures-src.cmake`, and the JNI `CMakeLists.txt` so we build against the vendored relic sources deterministically.
+* Regenerated the SWIG wrapper which now uses `bls::Signature::Aggregate(...)` and tightened JNI exception paths.
+* Standardized all protobuf usage on `com.google.protobuf:protobuf-java:3.4.0` and globally excluded `protobuf-javalite` to avoid duplicate lite/runtime issues.
+* Buffered OkHttp direct payment uploads by caching the serialized `Payment` proto, fixing intermittent content-length issues in `DirectPaymentTask`.
+* Documented the side-by-side NDK r29 and CMake 3.19.8 requirements in `README.md` so a clean clone can build `:wallet:assembleDebug` without host tooling leakage.
+* NOTE: `XelisV2` remains a stub implementation until the finalized consensus hashing routine is available.
+
 ### Current Build Status
 
 * Java/Kotlin components compile successfully.

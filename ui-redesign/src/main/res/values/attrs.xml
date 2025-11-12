@@ -5,6 +5,7 @@
     <attr name="action_text" format="string" />
     <attr name="action_active" format="boolean" />
     <attr name="action_dark_mode" format="boolean" />
+    <attr name="text" format="string" />
     <declare-styleable name="QuickActionButton">
         <attr name="action_icon" />
         <attr name="action_icon_size_percent" />

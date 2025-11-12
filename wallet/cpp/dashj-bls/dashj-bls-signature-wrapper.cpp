@@ -2228,7 +2228,7 @@ SWIGEXPORT jlong JNICALL Java_org_dashj_bls_JNI_Signature_1AggregateSigs(JNIEnv 
     return 0;
   } 
   try {
-    result = bls::Signature::AggregateSigs((std::vector< bls::Signature > const &)*arg1);
+    result = bls::Signature::Aggregate((std::vector< bls::Signature > const &)*arg1);
   } catch (std::string & x) {
     SWIG_JavaThrowException(jenv, DashJ_JavaBLSException, x.c_str());
     return 0;
