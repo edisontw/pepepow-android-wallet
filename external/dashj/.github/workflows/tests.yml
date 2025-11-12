@@ -1,0 +1,45 @@
+name: Java CI
+on:
+  push:
+    branches: [ master, release-*, feature-* ]
+  pull_request:
+    branches: [ master, release-*, feature-* ]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+        java: ['11']
+      fail-fast: false
+    name: JAVA ${{ matrix.distribution }} ${{ matrix.java }} OS ${{ matrix.os }} Gradle ${{ matrix.gradle }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      - name: Build bls library
+        run: |
+          git submodule update --init --recursive
+          cd contrib/dashj-bls
+          git apply catch_changes.patch
+          mvn package -DskipTests -Dmaven.javadoc.skip=true
+          cd ../..
+      - name: Build X11 library
+        run: |
+          cd contrib/x11
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+          cd ../../..
+      - name: Build dashj with Gradle
+        run: ./gradlew build
+      - name: Upload Test Results and Reports
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            chmod +x codecov
+            ./codecov -t ${CODECOV_TOKEN}
+          fi
