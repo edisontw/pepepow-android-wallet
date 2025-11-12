@@ -1,0 +1,45 @@
+Index: src/main/cpp/bls-signatures/depends/catch2/include/catch2/catch.hpp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bls/src/main/cpp/bls-signatures/depends/catch2/include/catch2/catch.hpp b/bls/src/main/cpp/bls-signatures/depends/catch2/include/catch2/catch.hpp
+--- a/bls/src/main/cpp/bls-signatures/depends/catch2/include/catch2/catch.hpp	(revision bc880a3ca97857ae8ec78cd027823132f64fc2d6)
++++ b/bls/src/main/cpp/bls-signatures/depends/catch2/include/catch2/catch.hpp	(date 1666494320021)
+@@ -10819,7 +10819,7 @@
+ 
+     // 32kb for the alternate stack seems to be sufficient. However, this value
+     // is experimentally determined, so that's not guaranteed.
+-    static constexpr std::size_t sigStackSize = 32768 >= MINSIGSTKSZ ? 32768 : MINSIGSTKSZ;
++    static constexpr std::size_t sigStackSize = 32768;// >= MINSIGSTKSZ ? 32768 : MINSIGSTKSZ;
+ 
+     static SignalDefs signalDefs[] = {
+         { SIGINT,  "SIGINT - Terminal interrupt signal" },
+Index: src/main/cpp/bls-signatures/depends/catch2/CMakeLists.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bls/src/main/cpp/bls-signatures/depends/catch2/CMakeLists.txt b/bls/src/main/cpp/bls-signatures/depends/catch2/CMakeLists.txt
+--- a/bls/src/main/cpp/bls-signatures/depends/catch2/CMakeLists.txt	(revision bc880a3ca97857ae8ec78cd027823132f64fc2d6)
++++ b/bls/src/main/cpp/bls-signatures/depends/catch2/CMakeLists.txt	(date 1666494318677)
+@@ -22,7 +22,6 @@
+ add_library(
+     ${PROJECT_NAME}
+     INTERFACE
+-    "${${PROJECT_NAME}_HEADERS}"
+ )
+ 
+ target_include_directories(
+diff --git a/depends/minialloc/contrib/bitcoin/support/lockedpool.cpp b/depends/minialloc/contrib/bitcoin/support/lockedpool.cpp
+index a78e86c..36b4dbc 100644
+--- a/bls/src/main/cpp/bls-signatures/depends/minialloc/contrib/bitcoin/support/lockedpool.cpp
++++ b/bls/src/main/cpp/bls-signatures/depends/minialloc/contrib/bitcoin/support/lockedpool.cpp
+@@ -18,6 +18,7 @@
+ #endif
+
+ #include <algorithm>
++#include <stdexcept>
+ #ifdef ARENA_DEBUG
+ #include <iomanip>
+ #include <iostream>
