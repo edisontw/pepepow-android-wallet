@@ -21,6 +21,7 @@ import com.google.common.annotations.*;
 import com.google.common.base.*;
 import com.google.common.collect.*;
 import com.hashengineering.crypto.X11;
+import com.hashengineering.crypto.XelisV2;
 import org.bitcoinj.script.*;
 import org.slf4j.*;
 
@@ -463,11 +464,17 @@ public class Block extends Message {
      * Calculates the block hash by serializing the block and hashing the
      * resulting bytes.
      */
+    private static final long XELIS_VERSION_FLAG = 0x8000L;
+
     private Sha256Hash calculateHash() {
         try {
             ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(HEADER_SIZE);
             writeHeader(bos);
-            return Sha256Hash.wrapReversed(X11.x11Digest(bos.toByteArray()));
+            byte[] header = bos.toByteArray();
+            if ((version & XELIS_VERSION_FLAG) != 0) {
+                return Sha256Hash.wrapReversed(XelisV2.hash(header, 0, header.length));
+            }
+            return Sha256Hash.wrapReversed(X11.x11Digest(header));
         } catch (IOException e) {
             throw new RuntimeException(e); // Cannot happen.
         }
