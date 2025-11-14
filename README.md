@@ -1,4 +1,4 @@
-Welcome to _Dash Wallet_, a standalone Dash payment app for your Android device!
+Welcome to _PEPEPOW Wallet_, a standalone PEPEW payment app for your Android device!
 
 This project contains several sub-projects:
 
@@ -51,4 +51,10 @@ Release builds continue to work through:
 
 APK artifacts are written under `wallet/build/outputs/apk`.
 
+## Current development status
+
+* Native dependencies have been vendored (dashj, bls-signatures) and updated to BLS commit `581b761f5f6c9f8b975082d7336c371273db3556`, with the JNI bindings adjusted accordingly.
+* The PEPEPOW consensus path now runs the pure-Java XelisV2 hash (ported from PePe-core) when the block version carries the post-Xelis flag; JNI hooks are ready for future native optimizations.
+* Builds are reproducible with Gradle 6.5 + AGP 4.0.2 and Java 11; both testnet (`:wallet:assembleDebug`) and mainnet (`:wallet:assembleProdDebug`) APKs are produced regularly for QA.
+* Pending work: migrate XelisV2 to a native (JNI) implementation for better performance, expand test vectors, and modernize Gradle/AGP once the upstream dependencies are ready.
 
