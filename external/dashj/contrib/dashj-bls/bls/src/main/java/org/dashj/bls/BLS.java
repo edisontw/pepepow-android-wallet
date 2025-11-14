@@ -60,6 +60,10 @@ public class BLS {
     this(DASHJBLSJNI.new_BLS(), true);
   }
 
-  public final static int MESSAGE_HASH_LEN = DASHJBLSJNI.BLS_MESSAGE_HASH_LEN_get();
+  // MESSAGE_HASH_LEN is a compile-time constant (32) in the new upstream bls implementation.
+  // The previous SWIG bindings exposed it via DASHJBLSJNI.BLS_MESSAGE_HASH_LEN_get(), but that
+  // native accessor no longer exists after upgrading the C++ sources. Hard-code the constant to
+  // avoid calling a missing JNI symbol.
+  public final static int MESSAGE_HASH_LEN = 32;
   public final static int RLC_OK = DASHJBLSJNI.BLS_RLC_OK_get();
 }
