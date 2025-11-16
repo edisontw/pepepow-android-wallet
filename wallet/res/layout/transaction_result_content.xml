@@ -67,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="17sp"
-            tools:text="-3.14938028 Dash" />
+            tools:text="-3.14938028 PEPEPOW" />
 
     </LinearLayout>
 
@@ -207,7 +207,7 @@
                 android:textSize="16sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="-0.00000239 Dash" />
+                tools:text="-0.00000239 PEPEPOW" />
 
             <ImageView
                 android:id="@+id/fee_dash_icon"

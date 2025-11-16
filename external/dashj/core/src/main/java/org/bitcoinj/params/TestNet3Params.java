@@ -44,22 +44,24 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
 
         // 00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         maxTarget = Utils.decodeCompactBits(0x1e0fffffL);
-        port = 19999;
+        port = 18833;
         addressHeader = 140;
         p2shHeader = 19;
         dumpedPrivateKeyHeader = 239;
-        genesisBlock.setTime(1390666206L);
-        genesisBlock.setDifficultyTarget(0x1e0ffff0L);
-        genesisBlock.setNonce(3861367235L);
+        genesisBlock.setTime(1683638200L);
+        genesisBlock.setDifficultyTarget(0x1e0fffffL);
+        genesisBlock.setNonce(413519);
         spendableCoinbaseDepth = 100;
         subsidyDecreaseBlockCount = 210240;
         String genesisHash = genesisBlock.getHashAsString();
 
-        checkState(genesisHash.equals("00000bafbc94add76cb75e2ec92894837288a481e5c005f6563d91623bf8bc2c"));
+        checkState(genesisHash.equals("000004ac806a95514c329a8cf20303e68b9257bdf29ea520173b5d09022863ac"));
         alertSigningKey = HEX.decode("04517d8a699cb43d3938d7b24faaff7cda448ca4ea267723ba614784de661949bf632d6304316b244646dea079735b9a6fc4af804efb4752075b9fe2245e14e412");
 
         dnsSeeds = new String[] {
-                "testnet-seed.dashdot.io" // this seeder is offline
+                "82.163.79.208",
+                "141.147.71.107",
+                "132.145.54.241"
         };
 
         bip32HeaderP2PKHpub = 0x043587cf; // The 4 byte header that serializes in base58 to "tpub".
@@ -68,29 +70,20 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
         dip14HeaderP2PKHpriv = 0x0eed2774; // The 4 byte header that serializes in base58 to "dpts"
 
 
-        checkpoints.put(261, Sha256Hash.wrap("00000c26026d0815a7e2ce4fa270775f61403c040647ff2c3091f99e894a4618"));
-        checkpoints.put(1999, Sha256Hash.wrap("00000052e538d27fa53693efe6fb6892a0c1d26c0235f599171c48a3cce553b1"));
-        checkpoints.put(2999, Sha256Hash.wrap("0000024bc3f4f4cb30d29827c13d921ad77d2c6072e586c7f60d83c2722cdcc5"));
-        checkpoints.put(96090, Sha256Hash.wrap("00000000033df4b94d17ab43e999caaf6c4735095cc77703685da81254d09bba"));
-        checkpoints.put(200000, Sha256Hash.wrap("000000001015eb5ef86a8fe2b3074d947bc972c5befe32b28dd5ce915dc0d029"));
-        checkpoints.put(395750, Sha256Hash.wrap("000008b78b6aef3fd05ab78db8b76c02163e885305545144420cb08704dce538"));
-        checkpoints.put(470000, Sha256Hash.wrap("0000009303aeadf8cf3812f5c869691dbd4cb118ad20e9bf553be434bafe6a52"));
-        checkpoints.put(794950, Sha256Hash.wrap("000001860e4c7248a9c5cc3bc7106041750560dc5cd9b3a2641b49494bcff5f2"));
-        checkpoints.put(808000, Sha256Hash.wrap("00000104cb60a2b5e00a8a4259582756e5bf0dca201c0993c63f0e54971ea91a"));
-        checkpoints.put(850100, Sha256Hash.wrap("000004728b8ff2a16b9d4eebb0fd61eeffadc9c7fe4b0ec0b5a739869401ab5b"));
-        checkpoints.put(899760, Sha256Hash.wrap("000007b169cbf75796ee1147b24f6cdf627c189490d7472187408e0902413a68"));
+        checkpoints.clear();
+        checkpoints.put(0, Sha256Hash.wrap("000004ac806a95514c329a8cf20303e68b9257bdf29ea520173b5d09022863ac"));
 
         // updated with Dash Core 20.0.0 seed list
         addrSeeds = new int[] {
-                0x2e4de52b,
-                0xf7a74d2d,
-                0xf9cb3eb2
+                0xd04fa352,
+                0x6b47938d,
+                0xf1369184
         };
 
         bip32HeaderP2PKHpub = 0x043587cf;
         bip32HeaderP2PKHpriv = 0x04358394;
 
-        strSporkAddress = "yjPtiKh2uwk3bDutTEA2q9mCtXyiZRWn55";
+        strSporkAddress = "PM3E76WHM8MsRaWdDaoX2XWEnBoganZxjT";
         minSporkKeys = 1;
         budgetPaymentsStartBlock = 4100;
         budgetPaymentsCycleBlocks = 50;
@@ -109,40 +102,33 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
         nGovernanceMinQuorum = 1;
         nGovernanceFilterElements = 500;
 
-        powDGWHeight = 4002;
-        powKGWHeight = 4002;
+        powDGWHeight = 4001;
+        powKGWHeight = 4001;
         powAllowMinimumDifficulty = true;
         powNoRetargeting = false;
 
         instantSendConfirmationsRequired = 2;
         instantSendKeepLock = 6;
 
-        DIP0003BlockHeight = 7000;
-        deterministicMasternodesEnabledHeight = 7300;
-        deterministicMasternodesEnabled = true;
+        DIP0003BlockHeight = Integer.MAX_VALUE;
+        deterministicMasternodesEnabledHeight = Integer.MAX_VALUE;
+        deterministicMasternodesEnabled = false;
 
-        DIP0008BlockHeight = 78800;
-        DIP0024BlockHeight = 769700 + 4 * 288;
-        v19BlockHeight = 850100;
-        v20BlockHeight = 905100;
+        DIP0008BlockHeight = Integer.MAX_VALUE;
+        DIP0024BlockHeight = Integer.MAX_VALUE;
+        v19BlockHeight = Integer.MAX_VALUE;
+        v20BlockHeight = Integer.MAX_VALUE;
 
-        //LLMQ parameters
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_50_60);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_400_60);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_400_85);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_100_67);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_60_75);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_25_67);
-        llmqChainLocks = LLMQParameters.LLMQType.LLMQ_50_60;
-        llmqForInstantSend = LLMQParameters.LLMQType.LLMQ_50_60;
-        llmqTypePlatform = LLMQParameters.LLMQType.LLMQ_25_67;
-        llmqTypeDIP0024InstantSend = LLMQParameters.LLMQType.LLMQ_60_75;
-        llmqTypeMnhf = LLMQParameters.LLMQType.LLMQ_50_60;
-        llmqTypeAssetLocks = LLMQParameters.LLMQType.LLMQ_50_60;
+        llmqChainLocks = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqForInstantSend = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypePlatform = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeDIP0024InstantSend = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeMnhf = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeAssetLocks = LLMQParameters.LLMQType.LLMQ_NONE;
 
-        BIP34Height = 76;   // 000008ebb1db2598e897d17275285767717c6acfeac4c73def49fbea1ddcbcb6
-        BIP65Height = 2431; // 0000039cf01242c7f921dcb4806a5994bc003b48c1973ae0c89b67809c2bb2ab
-        BIP66Height = 2075;
+        BIP34Height = 1;
+        BIP65Height = 1;
+        BIP66Height = 1;
 
         coinType = 1;
         assumeValidQuorums.add(Sha256Hash.wrap("0000000007697fd69a799bfa26576a177e817bc0e45b9fcfbf48b362b05aeff2"));

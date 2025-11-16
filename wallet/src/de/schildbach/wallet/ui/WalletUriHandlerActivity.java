@@ -29,7 +29,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.wallet.Wallet;
 import org.dash.wallet.common.ui.DialogBuilder;
-import org.dash.wallet.integration.uphold.ui.UpholdSplashActivity;
 
 import de.schildbach.wallet.Constants;
 import de.schildbach.wallet.WalletApplication;
@@ -78,20 +77,6 @@ public final class WalletUriHandlerActivity extends AppCompatActivity {
         final String scheme = intentUri != null ? intentUri.getScheme() : null;
 
         if (Intent.ACTION_VIEW.equals(action) && Constants.WALLET_URI_SCHEME.equals(scheme)) {
-            if (intentUri.getHost().equalsIgnoreCase("brokers")) {
-                if (intentUri.getPath().contains("uphold")) {
-                    String code = intentUri.getQueryParameter("code");
-                    String state = intentUri.getQueryParameter("state");
-                    if (code != null && state != null) {
-                        Intent upholdActivityIntent = new Intent(this, UpholdSplashActivity.class);
-                        upholdActivityIntent.putExtra(UpholdSplashActivity.UPHOLD_EXTRA_CODE, code);
-                        upholdActivityIntent.putExtra(UpholdSplashActivity.UPHOLD_EXTRA_STATE,
-                                intentUri.getQueryParameter("state"));
-                        startActivity(upholdActivityIntent);
-                    }
-                }
-                finish();
-            } else {
                 new InputParser.WalletUriParser(intentUri) {
                     @Override
                     protected void handlePaymentIntent(final PaymentIntent paymentIntent, boolean forceInstantSend) {
@@ -143,7 +128,6 @@ public final class WalletUriHandlerActivity extends AppCompatActivity {
                         return stringId == 0 ? applicationInfo.nonLocalizedLabel.toString() : getString(stringId);
                     }
                 }.parse();
-            }
         }
     }
 

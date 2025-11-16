@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">Dash Wallet [devnet]</string>
-	<string name="app_name_short">Dash [devnet]</string>
+	<string name="app_name">PEPEPOW Wallet [devnet]</string>
+	<string name="app_name_short">PEPEPOW [devnet]</string>
 
 	<string-array name="preferences_precision_values">
 		<item>8</item>
@@ -11,19 +11,19 @@
 		<item>0/6</item>
 	</string-array>
 	<string-array name="preferences_precision_labels">
-		<item>tDASH, 8 decimal places</item>
-		<item>tDASH, 6 decimal places</item>
-		<item>tDASH, 4 decimal places</item>
-		<item>mtDASH, 2 decimal places</item>
-		<item>µtDASH, no decimal places</item>
+		<item>tPEPEPOW, 8 decimal places</item>
+		<item>tPEPEPOW, 6 decimal places</item>
+		<item>tPEPEPOW, 4 decimal places</item>
+		<item>mtPEPEPOW, 2 decimal places</item>
+		<item>µtPEPEPOW, no decimal places</item>
 	</string-array>
 	<string-array name="preferences_block_explorer_values">
-		<item>https://test.insight.dash.siampm.com/</item>
-		<item>http://test.explorer.dash.org/</item>
+		<item>https://pepepow.org/explorer</item>
+		<item>https://explorer.pepepow.foztor.net/</item>
 	</string-array>
 	<string-array name="preferences_block_explorer_labels">
-		<item>Insight TestNet Block Explorer</item>
-		<item>Dash Block Explorer (Official Testnet)</item>
+		<item>PEPEPOW Explorer</item>
+		<item>FOZTOR Explorer</item>
 	</string-array>
 
 </resources>

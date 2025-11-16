@@ -20,10 +20,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
-import de.schildbach.wallet.WalletApplication
 import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_more.*
-import org.dash.wallet.integration.uphold.ui.UpholdAccountActivity
 
 class MoreActivity : GlobalFooterActivity() {
 
@@ -42,7 +40,6 @@ class MoreActivity : GlobalFooterActivity() {
 
         setTitle(R.string.more_title)
 
-        buy_and_sell.setOnClickListener { startBuyAndSellActivity() }
         security.setOnClickListener {
             startActivity(Intent(this, SecurityActivity::class.java))
         }
@@ -57,11 +54,6 @@ class MoreActivity : GlobalFooterActivity() {
     override fun startActivity(intent: Intent) {
         super.startActivity(intent)
         overridePendingTransition(R.anim.slide_in_right, R.anim.activity_stay)
-    }
-
-    private fun startBuyAndSellActivity() {
-        val wallet = WalletApplication.getInstance().wallet
-        startActivity(UpholdAccountActivity.createIntent(this, wallet))
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

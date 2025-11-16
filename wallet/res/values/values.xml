@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
 	<string name="symbol_to">→</string>
@@ -22,11 +22,11 @@
 		<item>@string/preferences_precision_labels_0_6</item>
 	</string-array>
 	<string-array name="preferences_block_explorer_values">
-		<item>http://insight.dash.org/insight/</item>
-		<item>http://explorer.dash.org/chain/Dash/</item>
+		<item>https://pepepow.org/explorer</item>
+		<item>https://explorer.pepepow.foztor.net/</item>
 	</string-array>
 	<string-array name="preferences_block_explorer_labels">
-		<item>Dash Insight Block Explorer</item>
-		<item>Dash Block Explorer (Official)</item>
+		<item>PEPEPOW Block Explorer</item>
+		<item>FOZTOR Explorer</item>
 	</string-array>
 </resources>

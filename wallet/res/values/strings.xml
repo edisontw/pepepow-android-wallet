@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+﻿<?xml version='1.0' encoding='UTF-8'?>
 <resources>
 
     <string name="toast_wallet_reset">Your wallet was reset!\nIt will take some time to recover.</string>
@@ -100,7 +100,7 @@
     <string name="sweep_wallet_fragment_balance">Balance to sweep</string>
     <string name="sweep_wallet_fragment_button_decrypt">Decrypt</string>
     <string name="sweep_wallet_fragment_button_sweep">Sweep</string>
-    <string name="sweep_wallet_fragment_decrypt_progress">Decrypting…\nTakes up to 2 minutes.</string>
+    <string name="sweep_wallet_fragment_decrypt_progress">Decrypting?吒nTakes up to 2 minutes.</string>
     <string name="sweep_wallet_fragment_request_wallet_balance_progress">Loading balance…</string>
     <string name="sweep_wallet_fragment_request_wallet_balance_failed_title">Loading wallet balance failed</string>
     <string name="sweep_wallet_fragment_insufficient_money_title">Not enough coins</string>
@@ -190,7 +190,7 @@
     <string name="block_row_mining_reward_adjustment">Mining reward halving</string>
     <string name="block_row_now">just now</string>
     <string name="peer_list_fragment_empty">No peers connected</string>
-    <string name="peer_list_row_ping_time">⇆ %d&#x2009;ms</string>
+    <string name="peer_list_row_ping_time">%1$d&#x2009;ms</string>
     <string name="restore_wallet_permission_dialog_title">Read permission missing</string>
     <string name="restore_wallet_permission_dialog_message">In order to search for wallet backups on your external storage, you need to grant read permission.</string>
     <string name="import_keys_dialog_title">Restore wallet</string>
@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Labs</string>
     <string name="preferences_precision_title">Denomination and precision</string>
     <string name="preferences_precision_summary">Unit to show amounts in. This does not affect computations.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 decimal places</string>
-    <string name="preferences_precision_labels_6">DASH, 6 decimal places</string>
-    <string name="preferences_precision_labels_4">DASH, 4 decimal places</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 decimal places</string>
-    <string name="preferences_precision_labels_0_6">µDASH, no decimal places</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 decimal places</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 decimal places</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 decimal places</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 decimal places</string>
+    <string name="preferences_precision_labels_0_6">繕PEPEPOW, no decimal places</string>
     <string name="preferences_own_name_title">Own name</string>
     <string name="preferences_own_name_summary">Name of yourself, to be added to payment requests. Try to keep it short.</string>
     <string name="preferences_send_coins_autoclose_title">Auto-close send coins dialog</string>
@@ -308,7 +308,7 @@
     <string name="about_license_title">License</string>
     <string name="about_source_title">Source code</string>
     <string name="about_category_credits">This app is using…</string>
-    <string name="about_credits_bitcoinj_title">pepepowj %s, a PEPEPOW protocol implementation</string>
+    <string name="about_credits_bitcoinj_title">PePe-core %s, a PEPEPOW protocol implementation</string>
     <string name="about_credits_zxing_title">ZXing, a QR-code processing library</string>
     <string name="about_credits_icon_title">This app is using an icon by \'bitboy\'</string>
     <string name="about_credits_scrypt_title">Scrypt, implemented by Will Glozer and Colin Percival</string>
@@ -375,3 +375,5 @@
     <string name="reset_to_default">Reset to Default</string>
 
 </resources>
+
+

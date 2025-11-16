@@ -38,12 +38,12 @@ public class RegTestParams extends AbstractBitcoinNetParams {
         p2shHeader = 19;
         targetTimespan = TARGET_TIMESPAN;
         dumpedPrivateKeyHeader = 128 + 140;
-        genesisBlock.setTime(1417713337L);
-        genesisBlock.setDifficultyTarget(0x207fffff);
-        genesisBlock.setNonce(1096447);
+        genesisBlock.setTime(1683639200L);
+        genesisBlock.setDifficultyTarget(0x1e0fffffL);
+        genesisBlock.setNonce(968493);
         spendableCoinbaseDepth = 100;
         String genesisHash = genesisBlock.getHashAsString();
-        checkState(genesisHash.equals("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e"));
+        checkState(genesisHash.equals("000005a5972746168c79c0ec95e86a50e317312eadd374e762111303487cf0df"));
         dnsSeeds = null;
         addrSeeds = null;
         bip32HeaderP2PKHpub = 0x043587cf; // The 4 byte header that serializes in base58 to "tpub".
@@ -59,7 +59,7 @@ public class RegTestParams extends AbstractBitcoinNetParams {
         interval = Integer.MAX_VALUE;
         maxTarget = MAX_TARGET;
         subsidyDecreaseBlockCount = 150;
-        port = 19899;
+        port = 18844;
         id = ID_REGTEST;
 
         majorityEnforceBlockUpgrade = TestNet3Params.TESTNET_MAJORITY_ENFORCE_BLOCK_UPGRADE;
@@ -67,7 +67,7 @@ public class RegTestParams extends AbstractBitcoinNetParams {
         majorityWindow = MainNetParams.MAINNET_MAJORITY_WINDOW;
 
         DIP0001BlockHeight = 15000;
-        strSporkAddress = "yjPtiKh2uwk3bDutTEA2q9mCtXyiZRWn55";
+        strSporkAddress = "PM3E76WHM8MsRaWdDaoX2XWEnBoganZxjT";
         minSporkKeys = 1;
 
         fulfilledRequestExpireTime = 5*60;
@@ -88,20 +88,23 @@ public class RegTestParams extends AbstractBitcoinNetParams {
         budgetPaymentsCycleBlocks = 50;
         budgetPaymentsWindowBlocks = 10;
 
-        //LLMQ parameters
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_TEST);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_TEST_INSTANTSEND);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_TEST_V17);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_TEST_DIP0024);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_TEST_PLATFORM);
-        llmqChainLocks = LLMQParameters.LLMQType.LLMQ_TEST;
-        llmqForInstantSend = LLMQParameters.LLMQType.LLMQ_TEST_INSTANTSEND;
-        llmqTypeDIP0024InstantSend = LLMQParameters.LLMQType.LLMQ_TEST_DIP0024;
-        llmqTypePlatform = LLMQParameters.LLMQType.LLMQ_TEST_PLATFORM;
-        llmqTypeMnhf = LLMQParameters.LLMQType.LLMQ_TEST;
-        llmqTypeAssetLocks = LLMQParameters.LLMQType.LLMQ_TEST;
+        DIP0003BlockHeight = Integer.MAX_VALUE;
+        deterministicMasternodesEnabledHeight = Integer.MAX_VALUE;
+        deterministicMasternodesEnabled = false;
 
-        BIP34Height = 100000000;
+        DIP0008BlockHeight = Integer.MAX_VALUE;
+        DIP0024BlockHeight = Integer.MAX_VALUE;
+        v19BlockHeight = Integer.MAX_VALUE;
+        v20BlockHeight = Integer.MAX_VALUE;
+
+        llmqChainLocks = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqForInstantSend = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeDIP0024InstantSend = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypePlatform = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeMnhf = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeAssetLocks = LLMQParameters.LLMQType.LLMQ_NONE;
+
+        BIP34Height = -1;
         BIP65Height = 1365;
         BIP66Height = 1251;
 
@@ -120,9 +123,9 @@ public class RegTestParams extends AbstractBitcoinNetParams {
         synchronized (RegTestParams.class) {
             if (genesis == null) {
                 genesis = super.getGenesisBlock();
-                genesis.setNonce(2);
-                genesis.setDifficultyTarget(0x207fFFFFL);
-                genesis.setTime(1296688602L);
+                genesis.setNonce(968493);
+                genesis.setDifficultyTarget(0x1e0fffffL);
+                genesis.setTime(1683639200L);
             }
             return genesis;
         }

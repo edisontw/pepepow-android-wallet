@@ -33,7 +33,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/dash_logo"
-        tools:text="Dash Wallet v7.0.0-redesign" />
+        tools:text="PEPEPOW Wallet v1.0.0" />
 
     <TextView
         android:id="@+id/library_version_name"
@@ -49,7 +49,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/app_version_name"
-        tools:text="DashJ 17.0.0" />
+        tools:text="pepepowj 1.0.0" />
 
     <TextView
         android:id="@+id/fork_disclaimer"

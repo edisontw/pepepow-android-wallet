@@ -51,7 +51,7 @@
         android:textSize="12sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/peer_list_row_height"
-        tools:text="/Dash Core:0.12.3.2/\nprotocol: 70210" />
+        tools:text="/PEPEPOW Core:0.12.3.2/\nprotocol: 70210" />
 
     <TextView
         android:id="@+id/peer_list_row_ping"

@@ -53,16 +53,16 @@ public abstract class NetworkParameters {
     public static final byte[] SATOSHI_KEY = Utils.HEX.decode("048240a8748a80a286b270ba126705ced4f2ce5a7847b3610ea3c06513150dade2a8512ed5ea86320824683fc0818f0ac019214973e677acd1244f6d0571fc5103");
 
     /** The string returned by getId() for the main, production network where people trade things. */
-    public static final String ID_MAINNET = "org.darkcoin.production";
+    public static final String ID_MAINNET = "org.pepepow.mainnet";
     /** The string returned by getId() for the testnet. */
 
-    public static final String ID_TESTNET = "org.darkcoin.test";
+    public static final String ID_TESTNET = "org.pepepow.test";
     /** The string returned by getId() for the devnet. */
-    public static final String ID_DEVNET = "org.dash.dev";
+    public static final String ID_DEVNET = "org.pepepow.dev";
     /** Unit test network. */
-    public static final String ID_UNITTESTNET = "com.google.darkcoin.unittest";
+    public static final String ID_UNITTESTNET = "org.pepepow.unittest";
     /** The string returned by getId() for regtest mode. */
-    public static final String ID_REGTEST = "org.bitcoin.regtest";
+    public static final String ID_REGTEST = "org.pepepow.regtest";
 
     /** The string used by the payment protocol to represent the main net. */
     public static final String PAYMENT_PROTOCOL_ID_MAINNET = "main";

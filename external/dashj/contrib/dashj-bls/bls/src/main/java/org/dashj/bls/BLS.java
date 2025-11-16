@@ -65,5 +65,7 @@ public class BLS {
   // native accessor no longer exists after upgrading the C++ sources. Hard-code the constant to
   // avoid calling a missing JNI symbol.
   public final static int MESSAGE_HASH_LEN = 32;
-  public final static int RLC_OK = DASHJBLSJNI.BLS_RLC_OK_get();
+  // The SWIG layer no longer exports BLS_RLC_OK_get(), but the underlying constant still equals 0.
+  // Hard-code the value to keep the static initializer from touching a missing JNI entry point.
+  public final static int RLC_OK = 0;
 }

@@ -123,11 +123,35 @@ public final class Constants {
         public static final String WALLET_KEY_BACKUP_PROTOBUF = "key-backup-protobuf" + FILENAME_NETWORK_SUFFIX;
 
         /** Path to external storage */
-        public static final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
+        public static final File EXTERNAL_STORAGE_DIR;
 
         /** Manual backups go here. */
-        public static final File EXTERNAL_WALLET_BACKUP_DIR = Environment
-                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        public static final File EXTERNAL_WALLET_BACKUP_DIR;
+
+        static {
+            File storageDir = null;
+            try {
+                storageDir = Environment.getExternalStorageDirectory();
+            } catch (final Throwable t) {
+                log.warn("Unable to access shared external storage directory", t);
+                storageDir = Environment.getDataDirectory();
+            }
+            EXTERNAL_STORAGE_DIR = storageDir;
+
+            File backupDir = null;
+            try {
+                backupDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            } catch (final Throwable t) {
+                log.warn("Unable to access public downloads directory", t);
+                final File cache = Environment.getDownloadCacheDirectory();
+                backupDir = new File(cache, "downloads");
+                if (!backupDir.exists()) {
+                    //noinspection ResultOfMethodCallIgnored
+                    backupDir.mkdirs();
+                }
+            }
+            EXTERNAL_WALLET_BACKUP_DIR = backupDir;
+        }
 
         /** Filename of the manual key backup (old format, can only be read). */
         public static final String EXTERNAL_WALLET_KEY_BACKUP = CoinDefinition.coinName.toLowerCase()+"-wallet-keys" + FILENAME_NETWORK_SUFFIX;

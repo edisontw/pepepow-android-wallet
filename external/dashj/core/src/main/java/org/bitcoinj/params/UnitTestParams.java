@@ -42,7 +42,7 @@ public class UnitTestParams extends AbstractBitcoinNetParams {
         genesisBlock.setTime(Utils.currentTimeSeconds());
         genesisBlock.setDifficultyTarget(Block.EASIEST_DIFFICULTY_TARGET);
         genesisBlock.solve();
-        port = 19999;
+        port = 18833;
         interval = 10;
         dumpedPrivateKeyHeader = 239;
         targetTimespan = 200000000;  // 6 years. Just a very big number.
@@ -61,7 +61,7 @@ public class UnitTestParams extends AbstractBitcoinNetParams {
         majorityWindow = 7;
 
         DIP0001BlockHeight = 100000;  // not active
-        strSporkAddress = "yjPtiKh2uwk3bDutTEA2q9mCtXyiZRWn55";
+        strSporkAddress = "PM3E76WHM8MsRaWdDaoX2XWEnBoganZxjT";
         budgetPaymentsStartBlock = 4100;
         budgetPaymentsCycleBlocks = 50;
         budgetPaymentsWindowBlocks = 10;
@@ -74,18 +74,21 @@ public class UnitTestParams extends AbstractBitcoinNetParams {
         instantSendConfirmationsRequired = MainNetParams.get().getInstantSendConfirmationsRequired();
         instantSendKeepLock = MainNetParams.get().getInstantSendKeepLock();
 
-        //LLMQ parameters
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_50_60);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_400_60);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_400_85);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_100_67);
-        addLLMQ(LLMQParameters.LLMQType.LLMQ_60_75);
-        llmqChainLocks = LLMQParameters.LLMQType.LLMQ_50_60;
-        llmqForInstantSend = LLMQParameters.LLMQType.LLMQ_50_60;
-        llmqTypePlatform = LLMQParameters.LLMQType.LLMQ_100_67;
-        llmqTypeDIP0024InstantSend = LLMQParameters.LLMQType.LLMQ_60_75;
-        llmqTypeMnhf = LLMQParameters.LLMQType.LLMQ_50_60;
-        llmqTypeAssetLocks = LLMQParameters.LLMQType.LLMQ_50_60;
+        DIP0003BlockHeight = Integer.MAX_VALUE;
+        deterministicMasternodesEnabledHeight = Integer.MAX_VALUE;
+        deterministicMasternodesEnabled = false;
+
+        DIP0008BlockHeight = Integer.MAX_VALUE;
+        DIP0024BlockHeight = Integer.MAX_VALUE;
+        v19BlockHeight = Integer.MAX_VALUE;
+        v20BlockHeight = Integer.MAX_VALUE;
+
+        llmqChainLocks = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqForInstantSend = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypePlatform = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeDIP0024InstantSend = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeMnhf = LLMQParameters.LLMQType.LLMQ_NONE;
+        llmqTypeAssetLocks = LLMQParameters.LLMQType.LLMQ_NONE;
 
         BIP65Height = 2431; // 0000039cf01242c7f921dcb4806a5994bc003b48c1973ae0c89b67809c2bb2ab
 

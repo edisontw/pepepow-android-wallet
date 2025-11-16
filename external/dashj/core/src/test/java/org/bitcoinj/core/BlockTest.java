@@ -37,6 +37,7 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -133,6 +134,21 @@ public class BlockTest {
         Block header = block.cloneAsHeader();
         Block reparsed = TESTNET.getDefaultSerializer().makeBlock(header.bitcoinSerialize());
         assertEquals(reparsed, header);
+    }
+
+    @Test
+    public void testXelisV2HashMatchesCore() {
+        new Context(MAINNET);
+        long version = 0x20008000L;
+        Sha256Hash prev = Sha256Hash.wrap("000000008787ef94c860d8ea2bed281ea3a004dcfc8a367f5bd8c0bf9116212a");
+        Sha256Hash merkle = Sha256Hash.wrap("949e2eeb91373a98423f91cc6061860c4b067bd973636fd61141737d058f05be");
+        long time = 1724953625L;
+        long bits = 0x1e00ae6aL;
+        long nonce = 2928396253L;
+
+        Block header = new Block(MAINNET, version, prev, merkle, time, bits, nonce, Collections.emptyList());
+
+        assertEquals("000000118127a9bcce687bfab1c4604051cf3b7d8c943f6aa832aff590131de6", header.getHashAsString());
     }
 
     @Test

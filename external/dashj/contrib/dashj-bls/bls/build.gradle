@@ -1,13 +1,15 @@
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'maven'
 apply plugin: 'eclipse'
 
+group = 'org.dashj'
 version = '0.18-SNAPSHOT'
 archivesBaseName = 'dashj-bls'
 eclipse.project.name = 'dashj-bls'
 
 dependencies {
     implementation 'com.google.guava:guava:28.2-android'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
     testImplementation 'junit:junit:4.13.1'
 }
 

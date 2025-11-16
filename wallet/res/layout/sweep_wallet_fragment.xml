@@ -144,7 +144,7 @@
                         android:layout_height="24dp"
                         android:layout_marginTop="4dp"
                         android:tint="@color/darkest_blue"
-                        app:srcCompat="@drawable/ic_dash_d_white_bottom" />
+                        app:srcCompat="@drawable/ic_pepe_mark" />
 
                     <org.dash.wallet.common.ui.CurrencyTextView
                         android:id="@+id/sweep_wallet_fragment_balance"

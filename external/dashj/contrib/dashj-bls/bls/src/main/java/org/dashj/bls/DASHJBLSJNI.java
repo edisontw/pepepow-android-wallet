@@ -85,12 +85,27 @@ public class DASHJBLSJNI {
   public final static native void G2ElementVector_doRemoveRange(long jarg1, G2ElementVector jarg1_, int jarg2, int jarg3);
   public final static native void delete_G2ElementVector(long jarg1);
   public final static native int BLS_MESSAGE_HASH_LEN_get();
-  public final static native boolean BLS_init();
-  public final static native void BLS_checkRelicErrors();
+  public final static boolean BLS_init() {
+    return BLS_Init();
+  }
+  private final static native boolean BLS_Init();
+  public final static void BLS_checkRelicErrors() {
+    BLS_CheckRelicErrors();
+  }
+  private final static native void BLS_CheckRelicErrors();
   public final static native int BLS_RLC_OK_get();
-  public final static native int BLS_getContextError();
-  public final static native void BLS_setContextError(int jarg1);
-  public final static native int BLS_getContext();
+  public final static int BLS_getContextError() {
+    return BLS_GetContextError();
+  }
+  private final static native int BLS_GetContextError();
+  public final static void BLS_setContextError(int jarg1) {
+    BLS_SetContextError(jarg1);
+  }
+  private final static native void BLS_SetContextError(int jarg1);
+  public final static int BLS_getContext() {
+    return BLS_GetContext();
+  }
+  private final static native int BLS_GetContext();
   public final static native long new_BLS();
   public final static native void delete_BLS(long jarg1);
   public final static native int ChainCode_SIZE_get();

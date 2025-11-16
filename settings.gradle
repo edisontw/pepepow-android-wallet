@@ -1,6 +1,12 @@
 include 'wallet'
 include 'integration-android'
 include 'sample-integration-android'
-include ':uphold-integration', ':ui-redesign'
+include ':ui-redesign'
 include ':common'
-includeBuild 'external/dashj'
+
+includeBuild('external/dashj') {
+    dependencySubstitution {
+        substitute module('org.dashj:dashj-core') with project(':core')
+        substitute module('org.dashj:dashj-bls') with project(':contrib:dashj-bls:bls')
+    }
+}

@@ -64,7 +64,6 @@ import com.google.common.collect.ImmutableList;
 import okhttp3.HttpUrl;
 
 import org.bitcoinj.core.PrefixedChecksummedBytes;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.crypto.ChildNumber;
@@ -72,8 +71,6 @@ import org.bitcoinj.wallet.Wallet;
 import org.dash.wallet.common.Configuration;
 import org.dash.wallet.common.data.CurrencyInfo;
 import org.dash.wallet.common.ui.DialogBuilder;
-import org.dash.wallet.integration.uphold.data.UpholdClient;
-import org.dash.wallet.integration.uphold.ui.UpholdAccountActivity;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -161,7 +158,6 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
         MaybeMaintenanceFragment.add(getSupportFragmentManager());
 
-        initUphold();
         initView();
 
         //Prevent showing dialog twice or more when activity is recreated (e.g: rotating device, etc)
@@ -200,25 +196,9 @@ public final class WalletActivity extends AbstractBindServiceActivity
         }
     }
 
-    private void initUphold() {
-        //Uses Sha256 hash of excerpt of xpub as Uphold authentication salt
-        String xpub = wallet.getWatchingKey().serializePubB58(Constants.NETWORK_PARAMETERS);
-        byte[] xpubExcerptHash = Sha256Hash.hash(xpub.substring(4, 15).getBytes());
-        String authenticationHash = Sha256Hash.wrap(xpubExcerptHash).toString();
-
-        UpholdClient.init(getApplicationContext(), authenticationHash);
-    }
-
     private void initView() {
         initNavigationDrawer();
         initQuickActions();
-        findViewById(R.id.uphold_account_section).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startUpholdActivity();
-                viewDrawer.closeDrawer(GravityCompat.START);
-            }
-        });
         findViewById(R.id.pay_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -249,12 +229,6 @@ public final class WalletActivity extends AbstractBindServiceActivity
             @Override
             public void onClick(View v) {
                 handleScan(v);
-            }
-        });
-        findViewById(R.id.buy_sell_action).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startUpholdActivity();
             }
         });
         findViewById(R.id.pay_to_address_action).setOnClickListener(new View.OnClickListener() {
@@ -965,10 +939,6 @@ public final class WalletActivity extends AbstractBindServiceActivity
         } else {
             super.onBackPressed();
         }
-    }
-
-    private void startUpholdActivity() {
-        startActivity(UpholdAccountActivity.createIntent(this, wallet));
     }
 
     //Dash Specific
