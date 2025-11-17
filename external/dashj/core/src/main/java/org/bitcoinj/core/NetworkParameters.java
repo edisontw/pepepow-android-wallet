@@ -667,7 +667,7 @@ public abstract class NetworkParameters {
     public abstract int getProtocolVersionNum(final ProtocolVersion version);
 
     public static enum ProtocolVersion {
-        MINIMUM(70230),
+        MINIMUM(70520),
         PONG(60001),
         BLOOM_FILTER(MINIMUM.getBitcoinProtocolVersion()),
         BLOOM_FILTER_BIP111(MINIMUM.getBitcoinProtocolVersion()+1),
@@ -686,7 +686,7 @@ public abstract class NetworkParameters {
         SMNLE_VERSIONED(70228),
         MNLISTDIFF_VERSION_ORDER(70229),
         MNLISTDIFF_CHAINLOCKS(70230),
-        CURRENT(70230); //testnet is still 70228
+        CURRENT(70520); //testnet is still 70228
 
         private final int bitcoinProtocol;
 

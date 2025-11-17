@@ -41,7 +41,7 @@ public class DevNetParams extends AbstractBitcoinNetParams {
     BigInteger maxUint256 = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16);
 
 
-    private static int DEFAULT_PROTOCOL_VERSION = 70211;
+    private static int DEFAULT_PROTOCOL_VERSION = 70520;
     private int protocolVersion;
 
 
