@@ -12,7 +12,7 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 'android-15'
+    compileSdkVersion 33
 
     lintOptions { abortOnError false }
 
@@ -35,6 +35,12 @@ android {
         exclude 'org/bitcoinj/crypto/cacerts'
     }
     defaultConfig {
-        minSdkVersion = 15
+        minSdkVersion 15
+        targetSdkVersion 33
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }

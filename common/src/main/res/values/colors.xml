@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="colorPrimary">#FF008DE4</color>
-    <color name="colorPrimaryDark">#FF012060</color>
+    <color name="colorPrimary">#FF00A650</color>
+    <color name="colorPrimaryDark">#FF007B3A</color>
     <color name="colorAccent">#666666</color>
 
-    <color name="strong_blue">#1c75bc</color>
-    <color name="strong_blue_bis">#295290</color>
-    <color name="dark_blue">#1e487c</color>
-    <color name="darkest_blue">#FF111921</color>
+    <color name="strong_blue">#009A47</color>
+    <color name="strong_blue_bis">#007F38</color>
+    <color name="dark_blue">#00622B</color>
+    <color name="darkest_blue">#FF003B1C</color>
     <color name="vivid_red">#ec2227</color>
     <color name="white">#ffffff</color>
     <color name="menu_gray">#FFC9C9C9</color>
@@ -39,5 +39,8 @@
     <color name="bg_dialog_title">@android:color/transparent</color>
     <color name="bg_shortcut">@color/colorPrimary</color>
     <color name="bg_dialog">#54000000</color>
+
+    <!-- buttons -->
+    <color name="inverted_button">@color/colorPrimary</color>
 
 </resources>

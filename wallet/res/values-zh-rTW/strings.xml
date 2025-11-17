@@ -12,7 +12,7 @@
     <string name="blockchain_state_progress_stalled">同步停滯</string>
     <string name="blockchain_state_progress_problem_storage">同步中: 出現儲存問題</string>
     <string name="blockchain_state_progress_problem_network">同步中: 出現網路問題</string>
-    <string name="wallet_address_fragment_clipboard_msg">達世幣位址已經複製到剪貼簿</string>
+    <string name="wallet_address_fragment_clipboard_msg">佩佩礦工幣位址已經複製到剪貼簿</string>
     <string name="wallet_address_dialog_fragment_hint">為了保護您的私隱，每當你收到一筆交易後你的錢包地址將會改變。</string>
     <string name="wallet_balance_fragment_too_much">存放在流動錢包的餘額相當大。請將部份資金存放到一些比較安全的地方。</string>
     <string name="wallet_balance_fragment_replaying">重播中餘額無法展示</string>
@@ -38,18 +38,18 @@
     <string name="wallet_options_encrypt_keys_change">修改支付 PIN 碼</string>
     <string name="wallet_options_safety">安全提示</string>
     <string name="wallet_low_storage_dialog_title">儲存空間不足!</string>
-    <string name="wallet_low_storage_dialog_msg">達世幣錢包使用內部存儲來記錄交易和區塊資料。如果空間不足，它將停止工作，你的達世幣將處於危險之中!\n\n你想打開應用程序管理器來卸載不需要的應用程式嗎?</string>
+    <string name="wallet_low_storage_dialog_msg">佩佩礦工幣錢包使用內部存儲來記錄交易和區塊資料。如果空間不足，它將停止工作，你的佩佩礦工幣將處於危險之中!\n\n你想打開應用程序管理器來卸載不需要的應用程式嗎?</string>
     <string name="wallet_low_storage_dialog_button_apps">管理App</string>
     <string name="wallet_timeskew_dialog_title">檢查日期 &amp; 時間設置</string>
-    <string name="wallet_timeskew_dialog_msg">你的裝置時間慢了%d分鐘。由於這個問題，您可能無法發送或接收達世幣。\n\n您應該檢查，如有必要，更正您的日期，時間和時區設置。</string>
+    <string name="wallet_timeskew_dialog_msg">你的裝置時間慢了%d分鐘。由於這個問題，您可能無法發送或接收佩佩礦工幣。\n\n您應該檢查，如有必要，更正您的日期，時間和時區設置。</string>
     <string name="wallet_version_dialog_title">有新版本!</string>
     <string name="wallet_version_dialog_msg">這版本修正重要的錯誤，細節請參閱Google Play上說明。</string>
     <string name="wallet_version_dialog_msg_deprecated">如果你看不到任何 App 更新，很可能你的 Android 版本已經不再支援。</string>
     <string name="wallet_version_dialog_button_market">Google Play</string>
     <string name="wallet_version_dialog_button_binary">下載</string>
     <string name="wallet_old_sdk_dialog_title">Android 版本太舊</string>
-    <string name="wallet_old_sdk_dialog_message">下個版本的達世幣錢包可能不再支援你的裝置。在某些情況下，在這台裝置上的錢可能會出現發送困難的情況。\n\n除非你知道你在做什麼，否則建議你盡快轉出你的幣。</string>
-    <string name="send_coins_activity_title">達世幣付款</string>
+    <string name="wallet_old_sdk_dialog_message">下個版本的佩佩礦工幣錢包可能不再支援你的裝置。在某些情況下，在這台裝置上的錢可能會出現發送困難的情況。\n\n除非你知道你在做什麼，否則建議你盡快轉出你的幣。</string>
+    <string name="send_coins_activity_title">佩佩礦工幣付款</string>
     <string name="send_coins_fragment_request_payment_request_progress">由 %s 讀取簽名…</string>
     <string name="send_coins_fragment_request_payment_request_failed_title">讀取簽名失敗</string>
     <string name="send_coins_fragment_request_payment_request_wrong_signature">簽名錯誤!</string>
@@ -57,7 +57,7 @@
     <string name="send_coins_fragment_payee_verified_by_unknown">不知名</string>
     <string name="send_coins_fragment_receiving_address_label">發給</string>
     <string name="send_coins_fragment_receiving_address_hint">輸入地址或是名稱</string>
-    <string name="send_coins_fragment_receiving_address_error">無效的達世幣位址!</string>
+    <string name="send_coins_fragment_receiving_address_error">無效的佩佩礦工幣位址!</string>
     <string name="send_coins_fragment_receiving_address_own">您即將發送交易給自己！</string>
     <string name="send_coins_fragment_receiving_address_complex">複雜\n地址</string>
     <string name="send_coins_fragment_pending">(%s 等候確認)</string>
@@ -92,7 +92,7 @@
     <string name="send_coins_options_empty">空錢包</string>
     <string name="sweep_wallet_activity_title">導入私鑰</string>
     <string name="sweep_wallet_fragment_intro">你將移轉一個紙錢包或點卷，這將把紙錢包裡的所有幣一次轉到目前裝置錢包裡，當交易完成確認，該紙錢包變無價值，同時為了安全性，請勿再次使用。</string>
-    <string name="sweep_wallet_fragment_hint">紙錢包常用於冷存放，一些達世幣提款機印出紙錢包而不是直接轉帳到你手機，人們有時用預付紙錢包方式來傳遞達世幣(不建議)。</string>
+    <string name="sweep_wallet_fragment_hint">紙錢包常用於冷存放，一些佩佩礦工幣提款機印出紙錢包而不是直接轉帳到你手機，人們有時用預付紙錢包方式來傳遞佩佩礦工幣(不建議)。</string>
     <string name="sweep_wallet_fragment_wallet_unknown">開始掃描紙錢包的私鑰，使用鏡頭的動作按鈕。</string>
     <string name="sweep_wallet_fragment_encrypted">該私鑰受密碼保護。</string>
     <string name="sweep_wallet_fragment_password">密碼</string>
@@ -107,18 +107,18 @@
     <string name="sweep_wallet_fragment_insufficient_money_msg">錢包餘額不足移轉</string>
     <string name="sweep_wallet_options_reload">重新載入餘額</string>
     <string name="maintenance_dialog_title">建議進行維護</string>
-    <string name="maintenance_dialog_message">你收到了 %1$s 存放在不安全的地址中。您想將這些達世幣轉移到安全的地址嗎？您需要支付  %2$s  的小額網絡費用。</string>
+    <string name="maintenance_dialog_message">你收到了 %1$s 存放在不安全的地址中。您想將這些佩佩礦工幣轉移到安全的地址嗎？您需要支付  %2$s  的小額網絡費用。</string>
     <string name="maintenance_dialog_state_decrypting">正在解密…</string>
     <string name="maintenance_dialog_state_done">已完成。</string>
     <string name="maintenance_dialog_button_move">轉移</string>
-    <string name="request_coins_activity_title">索取達世幣</string>
+    <string name="request_coins_activity_title">索取佩佩礦工幣</string>
     <string name="request_coins_fragment_amount_label">請款金額(可不填)</string>
     <string name="request_coins_fragment_accept_bluetooth_payment">接受藍芽付款</string>
     <string name="request_coins_fragment_initiate_request_qr">請付款人掃描QR二維條碼</string>
     <string name="request_coins_fragment_initiate_request_nfc">或是使用 NFC 裝置付款。</string>
-    <string name="request_coins_clipboard_msg">索取達世幣的請求已複製到剪貼簿</string>
-    <string name="request_coins_share_dialog_title">分享索取達世幣的資訊…</string>
-    <string name="request_coins_no_local_app_msg">未找到其他達世幣應用程式</string>
+    <string name="request_coins_clipboard_msg">索取佩佩礦工幣的請求已複製到剪貼簿</string>
+    <string name="request_coins_share_dialog_title">分享索取佩佩礦工幣的資訊…</string>
+    <string name="request_coins_no_local_app_msg">未找到其他佩佩礦工幣應用程式</string>
     <string name="request_coins_options_local_app_title">來自本裝置 app 的請款</string>
     <string name="address_book_activity_title">地址簿</string>
     <string name="address_book_list_receiving_title">你的地址</string>
@@ -149,7 +149,7 @@
     <string name="transaction_row_message_purpose_raise_fee">這個交易增加了先前交易的網絡費用。</string>
     <string name="transaction_row_message_own_unbroadcasted">付款尚未傳輸。</string>
     <string name="transaction_row_message_received_direct">該付款已經被直接接收，這類付款存在可能無法花費的風險。</string>
-    <string name="transaction_row_message_received_unconfirmed_delayed">這筆款項的確認被延遲了，可能是由於達世幣網絡的超載所致。</string>
+    <string name="transaction_row_message_received_unconfirmed_delayed">這筆款項的確認被延遲了，可能是由於佩佩礦工幣網絡的超載所致。</string>
     <string name="transaction_row_message_received_unconfirmed_unlocked">這筆款項現在可以在未被確認的情況下使用。</string>
     <string name="transaction_row_message_received_in_conflict">這筆款項有被發送者逆轉的風險！ 如果可以，請等待確認。</string>
     <string name="transaction_row_message_received_dead">該付款已被付款人撤銷。</string>
@@ -195,7 +195,7 @@
     <string name="restore_wallet_permission_dialog_message">為了在外部存儲器上搜索錢包備份，您需要授予讀取權限。</string>
     <string name="import_keys_dialog_title">回復錢包</string>
     <string name="import_keys_dialog_message">從外部或是app內部存放區選取一個備份錢包檔案</string>
-    <string name="restore_wallet_dialog_replace_warning">你打算更換現有錢包，如無另外備份，任何現有錢包裡的達世幣將會消失。</string>
+    <string name="restore_wallet_dialog_replace_warning">你打算更換現有錢包，如無另外備份，任何現有錢包裡的佩佩礦工幣將會消失。</string>
     <string name="import_keys_dialog_warning">重要: 不要自不安全地方載入私鑰，可能導致你的錢包被控制。</string>
     <string name="import_keys_dialog_file_security_encrypted">密碼加密</string>
     <string name="import_keys_dialog_file_security_unencrypted">未加密</string>
@@ -216,8 +216,8 @@
     <string name="export_keys_dialog_success"><![CDATA[<p>你的錢包已被備份到 <tt>%s</tt></p><p>如果你的裝置裡有可移除 SD 記憶卡，你的備份<i>應該</i>在卡裡面。移除該卡片並保管到安全地方。如果該卡片為<i>不可移除</i> ，你需要將該檔案歸檔取出到其他地方。</p><p><b>如果你只將備份放裝置裡面，你裝置遺失時一起遺失備份!</b></p><p>無論如何，請記得你的備份密碼，現在你確認要歸檔你的錢包 嗎？</p>]]></string>
     <string name="export_keys_dialog_failure">你的錢包無法備份 :\n%s</string>
     <string name="export_keys_dialog_button_archive">歸檔</string>
-    <string name="export_keys_dialog_mail_subject">達世幣錢包備份</string>
-    <string name="export_keys_dialog_mail_text">附件加密檔案包含達世幣私人金鑰，請保持該檔案安全並記得你的密碼。</string>
+    <string name="export_keys_dialog_mail_subject">佩佩礦工幣錢包備份</string>
+    <string name="export_keys_dialog_mail_text">附件加密檔案包含佩佩礦工幣私人金鑰，請保持該檔案安全並記得你的密碼。</string>
     <string name="export_keys_dialog_mail_intent_chooser">歸檔錢包使用…</string>
     <string name="export_keys_dialog_mail_intent_failed">歸檔錢包失敗</string>
     <string name="import_export_keys_dialog_password">密碼</string>
@@ -244,8 +244,8 @@
     <string name="scan_camera_permission_dialog_message">為了掃描QR碼，您需要授予使用相機的權限。</string>
     <string name="input_parser_io_error">無法讀取資料:\n%s</string>
     <string name="input_parser_cannot_classify">無法辨識輸入:\n%s</string>
-    <string name="input_parser_invalid_bitcoin_uri">達世幣 URI 無效:\\n%s</string>
-    <string name="input_parser_invalid_address">取得無效達世幣地址!\\n(是否 Mainnet/Testnet 混用?)</string>
+    <string name="input_parser_invalid_bitcoin_uri">佩佩礦工幣 URI 無效:\\n%s</string>
+    <string name="input_parser_invalid_address">取得無效佩佩礦工幣地址!\\n(是否 Mainnet/Testnet 混用?)</string>
     <string name="input_parser_unverifyable_paymentrequest">無法驗證付款請求:\n%s</string>
     <string name="input_parser_invalid_paymentrequest">無效付款請求:\n%s</string>
     <string name="input_parser_invalid_transaction">無效交易:\n%s</string>
@@ -292,7 +292,7 @@
     <string name="report_issue_dialog_title_issue">問題報告</string>
     <string name="report_issue_dialog_title_crash">發現前次當機</string>
     <string name="report_issue_dialog_title_transaction">於選定的付款中報告問題</string>
-    <string name="report_issue_dialog_message_issue">請準確描述您的問題以方便重現刻問題。 如果可以的話請使用英文。預計您會於24小時內收到來自達世幣支援，關於您的問題的電子郵件。</string>
+    <string name="report_issue_dialog_message_issue">請準確描述您的問題以方便重現刻問題。 如果可以的話請使用英文。預計您會於24小時內收到來自佩佩礦工幣支援，關於您的問題的電子郵件。</string>
     <string name="report_issue_dialog_message_crash">你是否要寄送當機報告幫助解決問題?</string>
     <string name="report_issue_dialog_description">問題描述</string>
     <string name="report_issue_dialog_report">報告</string>
@@ -308,7 +308,7 @@
     <string name="about_license_title">授權</string>
     <string name="about_source_title">原始碼</string>
     <string name="about_category_credits">這個程式正在使用...</string>
-    <string name="about_credits_bitcoinj_title">dashj%s，一個達世幣協議實施</string>
+    <string name="about_credits_bitcoinj_title">dashj%s，一個佩佩礦工幣協議實施</string>
     <string name="about_credits_zxing_title">ZXing，一個二維碼處理庫</string>
     <string name="about_credits_icon_title">這個應用程式正在使用\'bitboy\'的圖示</string>
     <string name="about_credits_scrypt_title">由Will Glozer和Colin Percival所實施的Scrypt</string>
@@ -320,11 +320,11 @@
     <string name="about_community_googleplus_summary">討論應用程式的相關資訊</string>
     <string name="notification_coins_received_msg">收到 %s</string>
     <string name="notification_peers_connected_msg">%d 節點連線</string>
-    <string name="notification_inactivity_title">你在這個裝置上還存放有達世幣!</string>
-    <string name="notification_inactivity_message">你仍然有達世幣在此設備上! 在卸載達世幣錢包之前，請務必記下您的恢復詞組，否則您將失去 %s的結餘。</string>
+    <string name="notification_inactivity_title">你在這個裝置上還存放有佩佩礦工幣!</string>
+    <string name="notification_inactivity_message">你仍然有佩佩礦工幣在此設備上! 在卸載佩佩礦工幣錢包之前，請務必記下您的恢復詞組，否則您將失去 %s的結餘。</string>
     <string name="notification_inactivity_action_dismiss">稍後提醒我</string>
     <string name="notification_inactivity_action_dismiss_forever">不要提醒我</string>
-    <string name="appwidget_wallet_balance_title">達世幣結餘</string>
+    <string name="appwidget_wallet_balance_title">佩佩礦工幣結餘</string>
 
     <!-- generic buttons -->
     <string name="button_ok">OK</string>
@@ -342,8 +342,8 @@
     <string name="button_paste">貼上</string>
     <string name="button_share">分享</string>
     <string name="button_set_as_default">設為預設</string>
-    <string name="button_request_coins">索取達世幣</string>
-    <string name="button_send_coins">達世幣付款</string>
+    <string name="button_request_coins">索取佩佩礦工幣</string>
+    <string name="button_send_coins">佩佩礦工幣付款</string>
     <string name="button_pay">付款</string>
     <string name="button_scan">掃描</string>
     <string name="button_settings">設定</string>

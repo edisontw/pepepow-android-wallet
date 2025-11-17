@@ -20,6 +20,7 @@ package org.bitcoinj.core;
 import com.google.common.annotations.*;
 import com.google.common.base.*;
 import com.google.common.collect.*;
+import com.hashengineering.crypto.PepeHash;
 import com.hashengineering.crypto.X11;
 import com.hashengineering.crypto.XelisV2;
 import org.bitcoinj.script.*;
@@ -323,7 +324,12 @@ public class Block extends Message {
         time = readUint32();
         difficultyTarget = readUint32();
         nonce = readUint32();
-        hash = Sha256Hash.wrapReversed(X11.x11Digest(payload, offset, cursor - offset));
+        byte[] headerBytes = Arrays.copyOfRange(payload, offset, offset + HEADER_SIZE);
+        if ((version & XELIS_VERSION_FLAG) != 0) {
+            hash = Sha256Hash.wrapReversed(XelisV2.hash(headerBytes, 0, headerBytes.length));
+        } else {
+            hash = Sha256Hash.wrapReversed(PepeHash.pepeDigest(headerBytes));
+        }
         headerBytesValid = serializer.isParseRetainMode();
 
         // transactions
@@ -474,7 +480,7 @@ public class Block extends Message {
             if ((version & XELIS_VERSION_FLAG) != 0) {
                 return Sha256Hash.wrapReversed(XelisV2.hash(header, 0, header.length));
             }
-            return Sha256Hash.wrapReversed(X11.x11Digest(header));
+            return Sha256Hash.wrapReversed(PepeHash.pepeDigest(header));
         } catch (IOException e) {
             throw new RuntimeException(e); // Cannot happen.
         }

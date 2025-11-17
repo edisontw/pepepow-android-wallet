@@ -3,3 +3,5 @@
     public protected *;
 }
 -keep public interface org.dash.wallet.common.** {*;}
+-dontwarn org.conscrypt.ConscryptHostnameVerifier
+-dontwarn java.lang.ClassValue

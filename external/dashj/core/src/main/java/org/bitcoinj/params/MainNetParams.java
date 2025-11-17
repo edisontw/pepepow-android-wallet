@@ -66,7 +66,7 @@ public class MainNetParams extends AbstractBitcoinNetParams {
         subsidyDecreaseBlockCount = 210240;
         spendableCoinbaseDepth = 100;
         String genesisHash = genesisBlock.getHashAsString();
-        checkState(genesisHash.equals("b6cae08c323905b8a5a719516056d83a5abef35ad99ea1bbd71daa5b270e4b93"),
+        checkState(genesisHash.equals("00000a308cc3b469703a3bc1aa55bc251a71c9287d7b413242592c0ab0a31f13"),
                 genesisHash);
 
         dnsSeeds = new String[] {
@@ -78,7 +78,7 @@ public class MainNetParams extends AbstractBitcoinNetParams {
         // transactions are handled. Duplicated transactions could occur in the case where a coinbase had the same
         // extraNonce and the same outputs but appeared at different heights, and greatly complicated re-org handling.
         // Having these here simplifies block connection logic considerably.
-        checkpoints.put(0, Sha256Hash.wrap("b6cae08c323905b8a5a719516056d83a5abef35ad99ea1bbd71daa5b270e4b93"));
+        checkpoints.put(0, Sha256Hash.wrap("00000a308cc3b469703a3bc1aa55bc251a71c9287d7b413242592c0ab0a31f13"));
         checkpoints.put(1920000, Sha256Hash.wrap("000000000018cef21f56b393e0fbb3c5b28c77f0a6134ea2c0424fc4fe937fdc"));
 
         // Dash does not have a Http Seeder
