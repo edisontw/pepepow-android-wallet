@@ -258,8 +258,8 @@ public abstract class NetworkParameters {
         return devNetGenesis;
     }
 
-    public static final int TARGET_TIMESPAN = (24 * 60 * 60); // 24 hours difficulty adjustment before KGW and DGW
-    public static final int TARGET_SPACING = (int)(2.5 * 60); // 2.5 minutes per block
+    public static final int TARGET_TIMESPAN = (1 * 60 * 60); // 1 hour difficulty adjustment before KGW and DGW
+    public static final int TARGET_SPACING = 20; // 20 seconds per block
     public static final int INTERVAL = TARGET_TIMESPAN / TARGET_SPACING; // 576 blocks before diff adjustment pre KGW
     
     /**
