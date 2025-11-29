@@ -15,11 +15,11 @@ public final class CoinDefinition {
     public static final String PATTERN_PRIVATE_KEY_START_UNCOMPRESSED = "[7]";
     public static final String PATTERN_PRIVATE_KEY_START_COMPRESSED = "[Xx]";
 
-    public static final String BLOCKEXPLORER_BASE_URL_PROD = "https://explorer.pepepow.org/";
-    public static final String BLOCKEXPLORER_BASE_URL_TEST = "https://testnet.explorer.pepepow.org/";
+    public static final String BLOCKEXPLORER_BASE_URL_PROD = "https://explorer.pepepow.net/";
+    public static final String BLOCKEXPLORER_BASE_URL_TEST = "https://testnet.explorer.pepepow.net/";
     public static final String BLOCKEXPLORER_ADDRESS_PATH = "address/";
     public static final String BLOCKEXPLORER_TRANSACTION_PATH = "tx/";
     public static final String BLOCKEXPLORER_BLOCK_PATH = "block/";
 
-    public static final String UNSPENT_API_URL = "https://explorer.pepepow.org/api/";
+    public static final String UNSPENT_API_URL = "https://explorer.pepepow.net/api/";
 }

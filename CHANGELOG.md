@@ -2,12 +2,43 @@
 
 ## CHANGELOG.md
 
+# Changelog
+
+## [1.0.0-beta] - 2025-11-28
+
+### Added
+- FAST_API_10POW accelerated sync mode.
+- New API bootstrap: fetch tip, pull last 1000 headers, verify 10 PoW blocks.
+- `SyncMode` enum (`FULL_SPV`, `FAST_API_10POW`, `API_1000POW`).
+- Developer Options UI for selecting sync mode.
+- API status display.
+
+### Changed
+- Rebuilt SPV bootstrap pipeline (blockstore → API → blockchain → peergroup).
+- Updated API endpoints and parsing logic (difficulty, masternodes, price).
+- Improved initialization order to prevent blockstore corruption.
+- Increased robustness of difficulty verification.
+
+### Fixed
+- Resolved `UnreadableWalletException` caused by premature wallet load.
+- Fixed `difficulty bits mismatch` after API-assisted bootstrap.
+- Eliminated loading freeze due to early PeerGroup start.
+- Repaired block list display and explorer link navigation.
+
+### Removed
+- Removed static checkpoint system.
+- Removed hardcoded height-based checkpoint assumptions.
+
+### Known Issues
+- SPV may momentarily appear ahead by ~300 headers.
+- API-based UTXO sync not yet implemented.
+- SyncMode changes may require reinstall due to DI caching.
+
+---
+
 ### Key Updates
 
 * **PEPEPOW retargeting**
-
-  * Renamed package to `org.pepepow.wallet` and rewired all application IDs.
-  * Updated URIs, explorer links, constants, and introduced a minimal `CoinDefinition` for PEPEPOW (ticker, MIME types, explorer endpoints, and URI scheme).
 * **Network Parameters**
 
   * Replaced Dash-specific seeds and budgeting defaults with PEPEPOW parameters.

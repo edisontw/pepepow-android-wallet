@@ -34,6 +34,8 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.text.format.DateUtils;
@@ -42,6 +44,7 @@ import android.widget.Toast;
 import androidx.annotation.StringRes;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.multidex.MultiDexApplication;
+import androidx.lifecycle.MutableLiveData;
 
 import com.google.common.base.Stopwatch;
 import com.jakewharton.processphoenix.ProcessPhoenix;
@@ -77,6 +80,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
+import javax.annotation.Nullable;
 import de.schildbach.wallet.service.BlockchainService;
 import de.schildbach.wallet.service.BlockchainServiceImpl;
 import de.schildbach.wallet.ui.LockScreenActivity;
@@ -90,11 +94,17 @@ import de.schildbach.wallet.ui.send.SendCoinsActivity;
 import de.schildbach.wallet.util.CrashReporter;
 import org.pepepow.wallet.BuildConfig;
 import org.pepepow.wallet.R;
+import de.schildbach.wallet.data.api.ApiStatus;
+import de.schildbach.wallet.data.api.ExplorerApiStatsRepository;
+import de.schildbach.wallet.data.api.NetworkStats;
+
+import androidx.lifecycle.ViewModelStore;
+import androidx.lifecycle.ViewModelStoreOwner;
 
 /**
  * @author Andreas Schildbach
  */
-public class WalletApplication extends MultiDexApplication {
+public class WalletApplication extends MultiDexApplication implements ViewModelStoreOwner {
     private static WalletApplication instance;
     private Configuration config;
     private ActivityManager activityManager;
@@ -106,11 +116,23 @@ public class WalletApplication extends MultiDexApplication {
     private File walletFile;
     private Wallet wallet;
     private PackageInfo packageInfo;
+    private org.bitcoinj.core.Context bitcoinContext;
+
+    public org.bitcoinj.core.Context getBitcoinContext() {
+        return bitcoinContext;
+    }
 
     private boolean backupDisclaimerDismissed = false;
 
     public static final String ACTION_WALLET_REFERENCE_CHANGED = WalletApplication.class.getPackage().getName()
             + ".wallet_reference_changed";
+
+    public enum WalletState {
+        NOT_LOADED,
+        LOADING,
+        LOADED,
+        FAILED
+    }
 
     public static final int VERSION_CODE_SHOW_BACKUP_REMINDER = 205;
 
@@ -121,6 +143,26 @@ public class WalletApplication extends MultiDexApplication {
     private boolean deviceWasLocked = false;
 
     private AutoLogout autoLogout;
+    private final MutableLiveData<ApiStatus> apiStatusLiveData = new MutableLiveData<>();
+    private final MutableLiveData<NetworkStats> networkStatsLiveData = new MutableLiveData<>();
+    private ExplorerApiStatsRepository explorerApiStatsRepository;
+    private int lastCheckpointHeight = 0;
+    private String lastCheckpointHash;
+    private volatile WalletState walletState = WalletState.NOT_LOADED;
+    private Throwable lastWalletLoadError;
+    private final MutableLiveData<WalletState> walletStateLiveData = new MutableLiveData<>(WalletState.NOT_LOADED);
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private long loadingStartTime = 0;
+
+    private de.schildbach.wallet.data.api.ApiPowBootstrapper apiPowBootstrapper;
+
+    private final ViewModelStore viewModelStore = new ViewModelStore();
+
+    @androidx.annotation.NonNull
+    @Override
+    public ViewModelStore getViewModelStore() {
+        return viewModelStore;
+    }
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -140,12 +182,68 @@ public class WalletApplication extends MultiDexApplication {
                 || (activity instanceof ShortcutComponentActivity);
     }
 
+    private void initApiTracking() {
+        ApiStatus initialStatus = new ApiStatus(ApiStatus.State.DEGRADED, 0, null, 0, lastCheckpointHeight,
+                lastCheckpointHash, config.getApiBaseUrl());
+        apiStatusLiveData.setValue(initialStatus);
+    }
+
+    public MutableLiveData<ApiStatus> getApiStatusLiveData() {
+        return apiStatusLiveData;
+    }
+
+    public MutableLiveData<NetworkStats> getNetworkStatsLiveData() {
+        return networkStatsLiveData;
+    }
+
+    public synchronized ExplorerApiStatsRepository getExplorerApiStatsRepository() {
+        if (explorerApiStatsRepository == null) {
+            explorerApiStatsRepository = new ExplorerApiStatsRepository(config.getApiBaseUrl(), apiStatusLiveData,
+                    networkStatsLiveData);
+            explorerApiStatsRepository.setCheckpointInfo(lastCheckpointHeight, lastCheckpointHash);
+        } else {
+            explorerApiStatsRepository.setBaseUrl(config.getApiBaseUrl());
+        }
+        return explorerApiStatsRepository;
+    }
+
+    public void refreshExplorerStats(boolean force) {
+        getExplorerApiStatsRepository().refresh(force);
+    }
+
+    public synchronized void updateApiCheckpoint(int height, String hash) {
+        if (height > 0) {
+            lastCheckpointHeight = height;
+        }
+        if (hash != null && !hash.isEmpty()) {
+            lastCheckpointHash = hash;
+        }
+        if (explorerApiStatsRepository != null) {
+            explorerApiStatsRepository.setCheckpointInfo(lastCheckpointHeight, lastCheckpointHash);
+        }
+        ApiStatus current = apiStatusLiveData.getValue();
+        if (current != null) {
+            ApiStatus refreshed = new ApiStatus(current.getState(), current.getLastCheckedMillis(),
+                    current.getLastErrorMessage(), current.getLastHttpCode(), lastCheckpointHeight, lastCheckpointHash,
+                    current.getBaseUrl());
+            apiStatusLiveData.postValue(refreshed);
+        }
+    }
+
+    public synchronized void publishApiStatus(ApiStatus.State state, String errorMessage, int httpCode) {
+        ApiStatus status = new ApiStatus(state, System.currentTimeMillis(), errorMessage, httpCode,
+                lastCheckpointHeight,
+                lastCheckpointHash, config.getApiBaseUrl());
+        apiStatusLiveData.postValue(status);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        log.info("WalletApplication.onCreate()");
+        log.info("WalletApplication.onCreate() thread={}", Thread.currentThread().getName());
         config = new Configuration(PreferenceManager.getDefaultSharedPreferences(this), getResources());
         autoLogout = new AutoLogout(config);
+        initApiTracking();
         registerActivityLifecycleCallbacks(new ActivitiesTracker() {
 
             @Override
@@ -165,15 +263,63 @@ public class WalletApplication extends MultiDexApplication {
             }
         });
         walletFile = getFileStreamPath(Constants.Files.WALLET_FILENAME_PROTOBUF);
-        if (walletFileExists()) {
-            fullInitialization();
-        }
+
+        // Initialize the single shared Context for the application
+        bitcoinContext = new org.bitcoinj.core.Context(Constants.NETWORK_PARAMETERS);
+        org.bitcoinj.core.Context.propagate(bitcoinContext);
+
+        // Delay wallet loading until BlockchainService requests it
+        // if (walletFileExists()) {
+        // fullInitialization();
+        // }
+        initEnvironment();
         registerDeviceInteractiveReceiver();
+    }
+
+    public void loadWallet() {
+        // Check state without locking first to avoid blocking Main Thread if background
+        // thread is loading
+        if (wallet != null || walletState == WalletState.LOADED) {
+            log.info("loadWallet(): wallet already loaded (state={})", walletState);
+            return;
+        }
+        if (walletState == WalletState.LOADING) {
+            long elapsed = System.currentTimeMillis() - loadingStartTime;
+            log.info("loadWallet(): already loading on another thread (elapsed={}ms)", elapsed);
+
+            // Safety timeout check
+            if (elapsed > 15000) { // 15 seconds
+                log.error("WalletApplication: wallet load appears stuck for >15s; marking FAILED and notifying UI.");
+                updateWalletState(WalletState.FAILED, new RuntimeException("Wallet load timed out"));
+            }
+            return;
+        }
+
+        synchronized (this) {
+            // Double-check inside lock
+            if (wallet != null || walletState == WalletState.LOADED) {
+                return;
+            }
+            if (walletState == WalletState.LOADING) {
+                return;
+            }
+
+            log.info("loadWallet(): starting wallet load on thread {}", Thread.currentThread().getName());
+            loadingStartTime = System.currentTimeMillis();
+            updateWalletState(WalletState.LOADING, null);
+        }
+
+        try {
+            loadWalletFromProtobuf();
+        } catch (final Exception e) {
+            log.error("loadWallet(): unexpected failure", e);
+            updateWalletState(WalletState.FAILED, e);
+        }
     }
 
     public void fullInitialization() {
         initEnvironment();
-        loadWalletFromProtobuf();
+        loadWallet();
     }
 
     public void initEnvironmentIfNeeded() {
@@ -217,12 +363,41 @@ public class WalletApplication extends MultiDexApplication {
         activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 
         blockchainServiceIntent = new Intent(this, BlockchainServiceImpl.class);
+
+        // Initialize ApiPowBootstrapper
+        de.schildbach.wallet.data.api.ApiHeaderClient apiClient = new de.schildbach.wallet.data.api.ApiHeaderClient(
+                config.getApiBaseUrl());
+        de.schildbach.wallet.data.api.PowVerifier powVerifier = new de.schildbach.wallet.data.api.PowVerifier(
+                Constants.NETWORK_PARAMETERS);
+        apiPowBootstrapper = new de.schildbach.wallet.data.api.ApiPowBootstrapper(this, apiClient, powVerifier,
+                Constants.NETWORK_PARAMETERS);
     }
 
-    public void setWallet(Wallet newWallet) {
+    public synchronized void setWallet(Wallet newWallet) {
         this.wallet = newWallet;
-        if (!wallet.hasKeyChain(Constants.BIP44_PATH)) {
-            wallet.addKeyChain(Constants.BIP44_PATH);
+        if (!newWallet.hasKeyChain(Constants.BIP44_PATH)) {
+            newWallet.addKeyChain(Constants.BIP44_PATH);
+        }
+        updateWalletState(WalletState.LOADED, null);
+        broadcastWalletReferenceChanged();
+    }
+
+    private void broadcastWalletReferenceChanged() {
+        final Intent broadcast = new Intent(ACTION_WALLET_REFERENCE_CHANGED);
+        broadcast.setPackage(getPackageName());
+        LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+    }
+
+    public void saveWallet() {
+        if (wallet == null || walletState != WalletState.LOADED) {
+            log.warn("saveWallet(): wallet is null or not LOADED (state={}); skipping save", walletState);
+            return;
+        }
+
+        try {
+            protobufSerializeWallet(wallet);
+        } catch (IOException x) {
+            log.error("problem saving wallet", x);
         }
     }
 
@@ -237,6 +412,7 @@ public class WalletApplication extends MultiDexApplication {
 
     public void finalizeInitialization() {
         wallet.getContext().initDash(true, true);
+        updateWalletState(WalletState.LOADED, null);
 
         if (config.versionCodeCrossed(packageInfo.versionCode, VERSION_CODE_SHOW_BACKUP_REMINDER)
                 && !wallet.getImportedKeys().isEmpty()) {
@@ -274,12 +450,12 @@ public class WalletApplication extends MultiDexApplication {
 
     @TargetApi(Build.VERSION_CODES.O)
     private void createNotificationChannels() {
-        //Transactions
+        // Transactions
         createNotificationChannel(Constants.NOTIFICATION_CHANNEL_ID_TRANSACTIONS,
                 R.string.notification_transactions_channel_name,
                 R.string.notification_transactions_channel_description,
                 NotificationManager.IMPORTANCE_HIGH);
-        //Synchronization
+        // Synchronization
         createNotificationChannel(Constants.NOTIFICATION_CHANNEL_ID_ONGOING,
                 R.string.notification_synchronization_channel_name,
                 R.string.notification_synchronization_channel_description,
@@ -288,7 +464,7 @@ public class WalletApplication extends MultiDexApplication {
 
     @TargetApi(Build.VERSION_CODES.O)
     private void createNotificationChannel(String channelId, @StringRes int channelName,
-                                           @StringRes int channelDescription, int importance) {
+            @StringRes int channelDescription, int importance) {
         CharSequence name = getString(channelName);
         String description = getString(channelDescription);
 
@@ -311,7 +487,6 @@ public class WalletApplication extends MultiDexApplication {
         }
     }
 
-
     private void afterLoadWallet() {
         wallet.autosaveToFile(walletFile, Constants.Files.WALLET_AUTOSAVE_DELAY_MS, TimeUnit.MILLISECONDS, null);
 
@@ -319,13 +494,18 @@ public class WalletApplication extends MultiDexApplication {
         try {
             wallet.cleanup();
         } catch (IllegalStateException x) {
-            //Catch an inconsistent exception here and reset the blockchain.  This is for loading older wallets that had
-            //txes with fees that were too low or dust that were stuck and could not be sent.  In a later version
-            //the fees were fixed, then those stuck transactions became inconsistant and the exception is thrown.
+            // Catch an inconsistent exception here and reset the blockchain. This is for
+            // loading older wallets that had
+            // txes with fees that were too low or dust that were stuck and could not be
+            // sent. In a later version
+            // the fees were fixed, then those stuck transactions became inconsistant and
+            // the exception is thrown.
             if (x.getMessage().contains("Inconsistent spent tx:")) {
-                File blockChainFile = new File(getDir("blockstore", Context.MODE_PRIVATE), Constants.Files.BLOCKCHAIN_FILENAME);
+                File blockChainFile = new File(getDir("blockstore", Context.MODE_PRIVATE),
+                        Constants.Files.BLOCKCHAIN_FILENAME);
                 blockChainFile.delete();
-            } else throw x;
+            } else
+                throw x;
         }
 
         // make sure there is at least one recent backup
@@ -366,7 +546,6 @@ public class WalletApplication extends MultiDexApplication {
         rollingPolicy.setFileNamePattern(logDir.getAbsolutePath() + "/wallet.%d{yyyy-MM-dd,UTC}.log.gz");
         rollingPolicy.setMaxHistory(7);
         rollingPolicy.start();
-
 
         PreferenceManager.setDefaultValues(this, R.xml.preference_settings, false);
         fileAppender.setEncoder(filePattern);
@@ -412,34 +591,103 @@ public class WalletApplication extends MultiDexApplication {
         return config;
     }
 
-    public Wallet getWallet() {
+    public synchronized Wallet getWallet() {
         return wallet;
+    }
+
+    public synchronized Wallet getWalletOrNull() {
+        return wallet;
+    }
+
+    public WalletState getWalletState() {
+        return walletState;
+    }
+
+    public MutableLiveData<WalletState> getWalletStateLiveData() {
+        return walletStateLiveData;
+    }
+
+    private synchronized void updateWalletState(WalletState newState, @Nullable Throwable error) {
+        walletState = newState;
+        if (newState == WalletState.FAILED) {
+            lastWalletLoadError = error;
+        } else {
+            lastWalletLoadError = null;
+        }
+        log.info("Wallet state changed to {} (thread={})", newState, Thread.currentThread().getName());
+        walletStateLiveData.postValue(newState);
+    }
+
+    public de.schildbach.wallet.data.api.ApiPowBootstrapper getBootstrapper() {
+        return apiPowBootstrapper;
+    }
+
+    private boolean isContextMismatch(Throwable t) {
+        while (t != null) {
+            if (t instanceof IllegalStateException) {
+                String msg = t.getMessage();
+                if (msg != null && msg.contains("Context does not match implicit network context")) {
+                    return true;
+                }
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 
     private void loadWalletFromProtobuf() {
         FileInputStream walletStream = null;
+        Wallet loadedWallet = null;
+        log.info("loadWalletFromProtobuf(): begin (thread={})", Thread.currentThread().getName());
+        log.info("[main] loadWalletFromProtobuf(): using params = " + Constants.NETWORK_PARAMETERS.getId());
+        if (org.bitcoinj.core.Context.get() != null) {
+            log.info("[main] current Context params = " + org.bitcoinj.core.Context.get().getParams().getId());
+        }
 
         try {
             final Stopwatch watch = Stopwatch.createStarted();
             walletStream = new FileInputStream(walletFile);
-            wallet = new WalletProtobufSerializer().readWallet(walletStream);
 
-            if (!wallet.getParams().equals(Constants.NETWORK_PARAMETERS))
-                throw new UnreadableWalletException("bad wallet network parameters: " + wallet.getParams().getId());
+            // Ensure dashj Context is in place
+            org.bitcoinj.core.Context.propagate(bitcoinContext);
+
+            loadedWallet = new WalletProtobufSerializer().readWallet(walletStream);
+
+            if (!loadedWallet.getParams().equals(Constants.NETWORK_PARAMETERS))
+                throw new UnreadableWalletException(
+                        "bad wallet network parameters: " + loadedWallet.getParams().getId());
 
             log.info("wallet loaded from: '{}', took {}", walletFile, watch);
         } catch (final FileNotFoundException x) {
             log.error("problem loading wallet", x);
 
-            Toast.makeText(WalletApplication.this, x.getClass().getName(), Toast.LENGTH_LONG).show();
+            showToastSafe(x.getClass().getName());
 
-            wallet = restoreWalletFromBackup();
+            loadedWallet = restoreWalletFromBackup();
         } catch (final UnreadableWalletException x) {
+            if (isContextMismatch(x)) {
+                // This is NOT a corrupted wallet; it means our app/network config is wrong.
+                log.error(
+                        "[main] loadWalletFromProtobuf(): context mismatch when reading wallet-protobuf, refusing to delete wallet or create new one",
+                        x);
+                // Re-throw or wrap as a runtime to abort startup; do NOT try backup or new
+                // wallet here.
+                throw new RuntimeException(
+                        "Wallet network context mismatch; please fix NetworkParameters configuration", x);
+            }
+
             log.error("problem loading wallet", x);
 
-            Toast.makeText(WalletApplication.this, x.getClass().getName(), Toast.LENGTH_LONG).show();
+            showToastSafe(x.getClass().getName());
 
-            wallet = restoreWalletFromBackup();
+            loadedWallet = restoreWalletFromBackup();
+        } catch (final IllegalStateException x) {
+            if (isContextMismatch(x)) {
+                log.error("[main] loadWalletFromProtobuf(): context mismatch (ISE), refusing to delete wallet", x);
+                throw new RuntimeException(
+                        "Wallet network context mismatch; please fix NetworkParameters configuration", x);
+            }
+            throw x;
         } finally {
             if (walletStream != null) {
                 try {
@@ -450,16 +698,24 @@ public class WalletApplication extends MultiDexApplication {
             }
         }
 
-        if (!wallet.isConsistent()) {
-            Toast.makeText(this, "inconsistent wallet: " + walletFile, Toast.LENGTH_LONG).show();
-
-            wallet = restoreWalletFromBackup();
+        if (loadedWallet == null) {
+            updateWalletState(WalletState.FAILED, new IllegalStateException("Loaded wallet is null"));
+            return;
         }
 
-        if (!wallet.getParams().equals(Constants.NETWORK_PARAMETERS))
-            throw new Error("bad wallet network parameters: " + wallet.getParams().getId());
+        if (!loadedWallet.isConsistent()) {
+            showToastSafe("inconsistent wallet: " + walletFile);
 
+            loadedWallet = restoreWalletFromBackup();
+        }
+
+        if (!loadedWallet.getParams().equals(Constants.NETWORK_PARAMETERS))
+            throw new Error("bad wallet network parameters: " + loadedWallet.getParams().getId());
+
+        setWallet(loadedWallet);
         finalizeInitialization();
+        log.info("loadWalletFromProtobuf(): finished successfully (thread={})",
+                Thread.currentThread().getName());
     }
 
     private Wallet restoreWalletFromBackup() {
@@ -468,42 +724,64 @@ public class WalletApplication extends MultiDexApplication {
         try {
             is = openFileInput(Constants.Files.WALLET_KEY_BACKUP_PROTOBUF);
 
-            final Wallet wallet = new WalletProtobufSerializer().readWallet(is, true, null);
+            org.bitcoinj.core.Context.propagate(bitcoinContext);
 
-            if (!wallet.isConsistent())
+            final Wallet restoredWallet = new WalletProtobufSerializer().readWallet(is, true, null);
+
+            if (!restoredWallet.isConsistent())
                 throw new Error("inconsistent backup");
 
-            wallet.addKeyChain(Constants.BIP44_PATH);
+            restoredWallet.addKeyChain(Constants.BIP44_PATH);
 
             resetBlockchain();
 
-            Toast.makeText(this, R.string.toast_wallet_reset, Toast.LENGTH_LONG).show();
+            showToastSafe(getString(R.string.toast_wallet_reset));
 
             log.info("wallet restored from backup: '" + Constants.Files.WALLET_KEY_BACKUP_PROTOBUF + "'");
 
-            return wallet;
-        } catch (final IOException x) {
-            throw new Error("cannot read backup", x);
-        } catch (final UnreadableWalletException x) {
-            throw new Error("cannot read backup", x);
+            return restoredWallet;
+        } catch (final IOException | UnreadableWalletException | Error x) {
+            if (isContextMismatch(x)) {
+                log.error("[main] restoreWalletFromBackup(): context mismatch, refusing to delete backup", x);
+                // Do NOT delete backup; rethrow to abort startup.
+                throw new RuntimeException(
+                        "Backup wallet network context mismatch; please fix NetworkParameters configuration", x);
+            } else if (x instanceof IllegalStateException && isContextMismatch(x)) {
+                log.error("[main] restoreWalletFromBackup(): context mismatch (ISE), refusing to delete backup", x);
+                throw new RuntimeException(
+                        "Backup wallet network context mismatch; please fix NetworkParameters configuration", x);
+            }
+
+            log.error("cannot read backup, creating new wallet instead", x);
+
+            // Delete the corrupted backup to prevent future issues
+            File backupFile = getFileStreamPath(Constants.Files.WALLET_KEY_BACKUP_PROTOBUF);
+            if (backupFile.exists()) {
+                boolean deleted = backupFile.delete();
+                log.info("Deleted corrupted backup file: " + deleted);
+            }
+
+            showToastSafe("Backup corrupted, creating new wallet");
+
+            // Fallback to creating a new wallet
+            Wallet fallbackWallet = new Wallet(Constants.NETWORK_PARAMETERS);
+            fallbackWallet.addKeyChain(Constants.BIP44_PATH);
+            return fallbackWallet;
         } finally {
             try {
-                is.close();
+                if (is != null)
+                    is.close();
             } catch (final IOException x) {
                 // swallow
             }
         }
     }
 
-    public void saveWallet() {
-        try {
-            protobufSerializeWallet(wallet);
-        } catch (final IOException x) {
-            throw new RuntimeException(x);
-        }
-    }
-
     private void protobufSerializeWallet(final Wallet wallet) throws IOException {
+        if (wallet == null) {
+            log.warn("protobufSerializeWallet(): wallet is null; skipping save");
+            return;
+        }
         final Stopwatch watch = Stopwatch.createStarted();
         wallet.saveToFile(walletFile);
         watch.stop();
@@ -554,7 +832,8 @@ public class WalletApplication extends MultiDexApplication {
 
     public void startBlockchainService(final boolean cancelCoinsReceived) {
         if (cancelCoinsReceived) {
-            Intent blockchainServiceCancelCoinsReceivedIntent = new Intent(BlockchainService.ACTION_CANCEL_COINS_RECEIVED, null,
+            Intent blockchainServiceCancelCoinsReceivedIntent = new Intent(
+                    BlockchainService.ACTION_CANCEL_COINS_RECEIVED, null,
                     this, BlockchainServiceImpl.class);
             startService(blockchainServiceCancelCoinsReceivedIntent);
         } else {
@@ -568,7 +847,8 @@ public class WalletApplication extends MultiDexApplication {
 
     public void resetBlockchain() {
         // implicitly stops blockchain service
-        Intent blockchainServiceResetBlockchainIntent = new Intent(BlockchainService.ACTION_RESET_BLOCKCHAIN, null, this,
+        Intent blockchainServiceResetBlockchainIntent = new Intent(BlockchainService.ACTION_RESET_BLOCKCHAIN, null,
+                this,
                 BlockchainServiceImpl.class);
         startService(blockchainServiceResetBlockchainIntent);
     }
@@ -579,13 +859,9 @@ public class WalletApplication extends MultiDexApplication {
             wallet.shutdownAutosaveAndWait();
         }
 
-        wallet = newWallet;
+        setWallet(newWallet);
         config.maybeIncrementBestChainHeightEver(newWallet.getLastBlockSeenHeight());
         afterLoadWallet();
-
-        final Intent broadcast = new Intent(ACTION_WALLET_REFERENCE_CHANGED);
-        broadcast.setPackage(getPackageName());
-        LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
     }
 
     public void processDirectTransaction(final Transaction tx) throws VerificationException {
@@ -652,8 +928,11 @@ public class WalletApplication extends MultiDexApplication {
      * @return The number of scrypt interations
      */
     public int scryptIterationsTarget() {
-        boolean is64bitABI = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? Build.SUPPORTED_64_BIT_ABIS.length != 0 : false;
-        return (isLowRamDevice() || !is64bitABI) ? Constants.SCRYPT_ITERATIONS_TARGET_LOWRAM : Constants.SCRYPT_ITERATIONS_TARGET;
+        boolean is64bitABI = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+                ? Build.SUPPORTED_64_BIT_ABIS.length != 0
+                : false;
+        return (isLowRamDevice() || !is64bitABI) ? Constants.SCRYPT_ITERATIONS_TARGET_LOWRAM
+                : Constants.SCRYPT_ITERATIONS_TARGET;
     }
 
     public static void scheduleStartBlockchainService(final Context context) {
@@ -705,10 +984,11 @@ public class WalletApplication extends MultiDexApplication {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public void finalizeWipe() {
         if (walletFile.exists()) {
-            wallet.shutdownAutosaveAndWait();
+            if (wallet != null) {
+                wallet.shutdownAutosaveAndWait();
+            }
             walletFile.delete();
         }
-        System.out.println("walletFile.exists(): " + walletFile.exists());
         if (walletFile.exists()) {
             walletFile.delete();
         }
@@ -726,6 +1006,8 @@ public class WalletApplication extends MultiDexApplication {
         if (walletBackupFile.exists()) {
             walletBackupFile.delete();
         }
+        wallet = null;
+        updateWalletState(WalletState.NOT_LOADED, null);
         ProcessPhoenix.triggerRebirth(this);
     }
 
@@ -751,7 +1033,8 @@ public class WalletApplication extends MultiDexApplication {
             @Override
             public void onReceive(Context context, Intent intent) {
                 KeyguardManager myKM = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
-                deviceWasLocked |= Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1 ? myKM.isDeviceLocked() : myKM.inKeyguardRestrictedInputMode();
+                deviceWasLocked |= Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1 ? myKM.isDeviceLocked()
+                        : myKM.inKeyguardRestrictedInputMode();
             }
         }, filter);
     }
@@ -763,5 +1046,14 @@ public class WalletApplication extends MultiDexApplication {
             context.startActivity(lockScreenIntent);
         }
         deviceWasLocked = false;
+    }
+
+    private void showToastSafe(final CharSequence text) {
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(WalletApplication.this, text, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }

@@ -50,7 +50,7 @@
     <string name="wallet_old_sdk_dialog_title">Android version is out of date</string>
     <string name="wallet_old_sdk_dialog_message">Chances are that one of the next releases of PEPEPOW Wallet will not support your device any more. In some cases, it can get difficult to spend coins on this device.\n\nUnless you know what you are doing, it is recommended to move out your coins soon.</string>
     <string name="send_coins_activity_title">Send PEPEPOW</string>
-    <string name="send_coins_fragment_request_payment_request_progress">Fetching signature from %s…</string>
+    <string name="send_coins_fragment_request_payment_request_progress">Fetching signature from %s...</string>
     <string name="send_coins_fragment_request_payment_request_failed_title">Fetching signature failed</string>
     <string name="send_coins_fragment_request_payment_request_wrong_signature">Wrong signature!</string>
     <string name="send_coins_fragment_payee_verified_by">verified by: %s</string>
@@ -80,9 +80,9 @@
     <string name="send_coins_fragment_insufficient_money_msg1">You\'re missing %s.</string>
     <string name="send_coins_fragment_insufficient_money_msg2">Do you want to send with all you have?</string>
     <string name="send_coins_fragment_empty_wallet_failed_title">Emptying of wallet failed</string>
-    <string name="send_coins_fragment_state_decrypting">Decrypting…</string>
-    <string name="send_coins_preparation_msg">Signing…</string>
-    <string name="send_coins_sending_msg">Sending…</string>
+    <string name="send_coins_fragment_state_decrypting">Decrypting...</string>
+    <string name="send_coins_preparation_msg">Signing...</string>
+    <string name="send_coins_sending_msg">Sending...</string>
     <string name="send_coins_sent_msg">Sent!</string>
     <string name="send_coins_failed_msg">Failed!</string>
     <string name="send_coins_error_msg">Problem sending coins!</string>
@@ -101,14 +101,14 @@
     <string name="sweep_wallet_fragment_button_decrypt">Decrypt</string>
     <string name="sweep_wallet_fragment_button_sweep">Sweep</string>
     <string name="sweep_wallet_fragment_decrypt_progress">Decrypting?吒nTakes up to 2 minutes.</string>
-    <string name="sweep_wallet_fragment_request_wallet_balance_progress">Loading balance…</string>
+    <string name="sweep_wallet_fragment_request_wallet_balance_progress">Loading balance...</string>
     <string name="sweep_wallet_fragment_request_wallet_balance_failed_title">Loading wallet balance failed</string>
     <string name="sweep_wallet_fragment_insufficient_money_title">Not enough coins</string>
     <string name="sweep_wallet_fragment_insufficient_money_msg">The amount of coins in the wallet is too small for sweeping.</string>
     <string name="sweep_wallet_options_reload">Reload balance</string>
     <string name="maintenance_dialog_title">Maintenance recommended</string>
     <string name="maintenance_dialog_message">You received %1$s to unsecure addresses. Would you like to move these coins to secure addresses? A small network fee of %2$s will be paid.</string>
-    <string name="maintenance_dialog_state_decrypting">Decrypting…</string>
+    <string name="maintenance_dialog_state_decrypting">Decrypting...</string>
     <string name="maintenance_dialog_state_done">Done.</string>
     <string name="maintenance_dialog_button_move">Move</string>
     <string name="request_coins_activity_title">Request PEPEPOW</string>
@@ -117,7 +117,7 @@
     <string name="request_coins_fragment_initiate_request_qr">Have this code scanned by the sender.</string>
     <string name="request_coins_fragment_initiate_request_nfc">Or tap an NFC enabled device.</string>
     <string name="request_coins_clipboard_msg">PEPEPOW request copied to clipboard</string>
-    <string name="request_coins_share_dialog_title">Share request for PEPEPOW…</string>
+    <string name="request_coins_share_dialog_title">Share request for PEPEPOW...</string>
     <string name="request_coins_no_local_app_msg">No other PEPEPOW app found</string>
     <string name="request_coins_options_local_app_title">Request from local app</string>
     <string name="address_book_activity_title">Address book</string>
@@ -186,6 +186,40 @@
     <string name="network_monitor_activity_title">Network monitor</string>
     <string name="network_monitor_peer_list_title">Peers</string>
     <string name="network_monitor_block_list_title">Blocks</string>
+    <string name="network_monitor_spv_section_title">P2P / SPV</string>
+    <string name="network_monitor_api_section_title">Explorer / API</string>
+    <string name="network_monitor_current_height_label">Current height (SPV)</string>
+    <string name="network_monitor_peers_label">Peers</string>
+    <string name="network_monitor_sync_progress_label">Sync progress</string>
+    <string name="network_monitor_sync_mode_label">Sync mode</string>
+    <string name="network_monitor_chain_warning">SPV height is %1$d blocks behind explorer. Sync in progress…</string>
+    <string name="network_monitor_api_status_label">Explorer status</string>
+    <string name="network_monitor_api_tip_height_label">Explorer tip height</string>
+    <string name="network_monitor_api_difficulty_label">Difficulty (API)</string>
+    <string name="network_monitor_api_hashrate_label">Network hashrate</string>
+    <string name="network_monitor_api_masternodes_label">Masternodes</string>
+    <string name="network_monitor_api_price_label">Price</string>
+    <string name="network_monitor_api_updated_label">Last updated</string>
+    <string name="network_monitor_api_source_label">Data source: %1$s</string>
+    <string name="network_monitor_progress_bootstrap">Bootstrapping from explorer API…</string>
+    <string name="network_monitor_sync_unknown">Unknown</string>
+    <string name="network_monitor_stat_unavailable">Unavailable</string>
+    <string name="network_monitor_hashrate_unit">H/s</string>
+    <string name="sync_mode_fast_api_10pow">Fast API Sync (Default)</string>
+    <string name="sync_mode_secure_api_1000pow">Secure API Sync (1000 PoW)</string>
+    <string name="sync_mode_full_spv">Full SPV validation</string>
+    <string name="network_monitor_height_diff_wallet_ahead">Explorer is lagging by %1$d blocks (wallet is ahead).</string>
+    <string name="network_monitor_height_diff_wallet_ahead_delay">SPV height is %1$d blocks ahead of explorer (likely API delay).</string>
+    <string name="network_monitor_height_diff_wallet_behind">Wallet is behind explorer by %1$d blocks.</string>
+    <string name="network_monitor_height_diff_in_sync">Explorer is in sync with wallet.</string>
+    <string name="network_monitor_block_not_on_explorer">Explorer has only indexed up to height %1$d. SPV is ahead (likely API delay).</string>
+    <string name="network_monitor_block_not_on_explorer_toast">This block is ahead of the explorer and cannot be opened yet (likely API delay).</string>
+    <string name="network_monitor_wallet_not_loaded">Wallet not loaded yet. Please wait...</string>
+    <string name="wallet_load_failed_message">Unable to load wallet. Please restart the app and try again.</string>
+    <string name="network_monitor_blocks_hint_fast_api">Headers from explorer snapshot, then P2P headers; explorer may be behind.</string>
+    <string name="network_monitor_blocks_hint_secure_api">Explorer snapshot + 1000 PoW-verified headers.</string>
+    <string name="network_monitor_blocks_hint_full_spv">All headers fully PoW-verified from genesis (slow).</string>
+    <string name="network_monitor_blocks_hint_unknown">Block list source unknown.</string>
     <string name="block_row_mining_difficulty_adjustment">Mining difficulty adjustment</string>
     <string name="block_row_mining_reward_adjustment">Mining reward halving</string>
     <string name="block_row_now">just now</string>
@@ -218,7 +252,7 @@
     <string name="export_keys_dialog_button_archive">Archive</string>
     <string name="export_keys_dialog_mail_subject">PEPEPOW Wallet backup</string>
     <string name="export_keys_dialog_mail_text">The attached encrypted file contains PEPEPOW private keys and should be kept safe at all times. Don\'t forget the encryption password!</string>
-    <string name="export_keys_dialog_mail_intent_chooser">Archive wallet using…</string>
+    <string name="export_keys_dialog_mail_intent_chooser">Archive wallet using...</string>
     <string name="export_keys_dialog_mail_intent_failed">Archiving wallet failed.</string>
     <string name="import_export_keys_dialog_password">password</string>
     <string name="backup_wallet_dialog_password_again">again</string>
@@ -235,8 +269,8 @@
     <string name="encrypt_keys_dialog_password_strength_good">good</string>
     <string name="encrypt_keys_dialog_password_strength_strong">strong</string>
     <string name="encrypt_keys_dialog_show">Show PIN</string>
-    <string name="encrypt_keys_dialog_state_encrypting">Encrypting…</string>
-    <string name="encrypt_keys_dialog_state_decrypting">Decrypting…</string>
+    <string name="encrypt_keys_dialog_state_encrypting">Encrypting...</string>
+    <string name="encrypt_keys_dialog_state_decrypting">Decrypting...</string>
     <string name="encrypt_keys_dialog_state_done">Done</string>
     <string name="scan_camera_problem_dialog_title">Sorry</string>
     <string name="scan_camera_problem_dialog_message">The camera has a problem. You probably need to restart the device.</string>
@@ -267,7 +301,7 @@
     <string name="preferences_connectivity_notification_summary">Show current number of connected peers in the notification area.</string>
     <string name="preferences_trusted_peer_title">Trusted peer</string>
     <string name="preferences_trusted_peer_summary">IP or hostname of single peer to connect to.</string>
-    <string name="preferences_trusted_peer_resolve_progress">Resolving…</string>
+    <string name="preferences_trusted_peer_resolve_progress">Resolving...</string>
     <string name="preferences_trusted_peer_resolve_unknown_host">Unknown hostname!</string>
     <string name="preferences_trusted_peer_only_title">Skip regular peer discovery</string>
     <string name="preferences_trusted_peer_only_summary">Prevents connecting to any peers besides the trusted peer.</string>
@@ -286,9 +320,73 @@
     <string name="preferences_initiate_reset_dialog_positive">Reset</string>
     <string name="preferences_extended_public_key_title">Show xpub</string>
     <string name="preferences_extended_public_key_summary">View the extended public key of your wallet, so it can be imported into other apps and services. Be careful: doing so will disclose your monetary privacy to that app.</string>
-    <string name="bitmap_fragment_share">Share…</string>
+    <string name="preferences_category_developer">Developer Options</string>
+    <string name="preferences_developer_mode_title">Developer mode</string>
+    <string name="preferences_developer_mode_summary">Enable extra diagnostics and debugging tools.</string>
+    <string name="preferences_debug_dashboard_title">API status dashboard</string>
+    <string name="preferences_debug_dashboard_summary">Peek at explorer vs. local synchronization state.</string>
+    <string name="preferences_debug_dashboard_locked">Enable developer mode to open the dashboard.</string>
+    <string name="preferences_api_category_title">API / Explorer</string>
+    <string name="preferences_api_sync_mode_title">Sync mode</string>
+    <string name="preferences_api_sync_mode_summary">Current synchronization strategy</string>
+    <string name="preferences_api_base_url_title">API base URL</string>
+    <string name="preferences_api_base_url_summary">Endpoint used for explorer bootstrap</string>
+    <string name="preferences_api_health_title">Explorer health</string>
+    <string name="preferences_api_health_summary">Waiting for status…</string>
+    <string name="preferences_api_last_check_title">Last health check</string>
+    <string name="preferences_api_last_check_summary">Not checked yet</string>
+    <string name="preferences_api_checkpoint_title">Last checkpoint</string>
+    <string name="preferences_api_checkpoint_summary">No checkpoint recorded</string>
+    <string name="preferences_api_error_title">Last error</string>
+    <string name="preferences_api_error_summary">No errors from explorer</string>
+    <string name="api_status_healthy">Healthy</string>
+    <string name="api_status_degraded">Degraded</string>
+    <string name="api_status_offline">Offline</string>
+    <string name="api_status_bootstrapping">Bootstrapping</string>
+    <string name="api_status_unknown">Not checked yet</string>
+    <string name="api_status_last_checked">Last checked %1$s</string>
+    <string name="preferences_full_sync_title">Full validation sync</string>
+    <string name="preferences_full_sync_summary">Download and validate every block. Initial sync may take weeks.</string>
+    <string name="preferences_full_sync_dialog_title">Full validation sync</string>
+    <string name="preferences_full_sync_dialog_message">Full validation sync may take several weeks and uses more data and battery. Continue?</string>
+    <string name="preferences_full_sync_dialog_positive">Continue</string>
+    <string name="preferences_full_sync_dialog_negative">Cancel</string>
+    <string name="preferences_full_sync_active_toast">Full validation sync enabled. Initial sync may take weeks.</string>
+
+    <string name="debug_dashboard_title">API Status</string>
+    <string name="debug_dashboard_explorer_height">Explorer block height</string>
+    <string name="debug_dashboard_local_header_height">Local SPV header height</string>
+    <string name="debug_dashboard_local_wallet_height">Local wallet height</string>
+    <string name="debug_dashboard_explorer_balance">Explorer balance</string>
+    <string name="debug_dashboard_spv_balance">SPV balance</string>
+    <string name="debug_dashboard_api_status">Last explorer update</string>
+    <string name="debug_dashboard_status_loading">Loading...</string>
+    <string name="debug_dashboard_status_error">Failed to reach explorer</string>
+    <string name="debug_dashboard_status_ok">Updated just now</string>
+    <string name="debug_dashboard_test_address_label">Test address</string>
+    <string name="debug_dashboard_refresh">Refresh</string>
+    <string name="debug_dashboard_value_unknown">--</string>
+    <string name="debug_dashboard_source_label_explorer">Data source: Explorer (syncing...)\nHeight %1$d / Local %2$s</string>
+    <string name="debug_dashboard_source_label_local">Data source: Local node (synced)\nHeight %1$s</string>
+    <string name="debug_dashboard_source_label_unknown">Data source: Local node</string>
+    <string name="debug_dashboard_checkpoint_section_title">Checkpoint verification</string>
+    <string name="debug_dashboard_checkpoint_label">Checkpoint height %1$d</string>
+    <string name="debug_dashboard_checkpoint_expected">Local: %1$s</string>
+    <string name="debug_dashboard_checkpoint_explorer">Explorer: %1$s</string>
+    <string name="debug_dashboard_checkpoint_status_match">Status: hashes match</string>
+    <string name="debug_dashboard_checkpoint_status_mismatch">Status: hashes differ</string>
+    <string name="debug_dashboard_checkpoint_status_unknown">Status: awaiting data</string>
+    <string name="debug_dashboard_recent_logs">Recent logcat highlights</string>
+    <string name="debug_dashboard_logs_loading">Reading logs...</string>
+    <string name="debug_dashboard_logs_empty">No local log data available.</string>
+    <string name="debug_dashboard_logs_error">Unable to read logs (%1$s)</string>
+    <string name="debug_status_wallet_not_ready">Wallet is still initializing. Please try again in a few seconds.</string>
+    <string name="wallet_balance_source_explorer">Data source: Explorer (syncing...)\nHeight %1$d / Local %2$s</string>
+    <string name="wallet_balance_source_local">Data source: Local node (synced)\nHeight %1$d</string>
+    <string name="wallet_balance_source_pending">Data source: Exploring...</string>
+    <string name="bitmap_fragment_share">Share...</string>
     <string name="extended_public_key_fragment_title">Extended Public Key</string>
-    <string name="extended_public_key_fragment_share">Share xpub…</string>
+    <string name="extended_public_key_fragment_share">Share xpub...</string>
     <string name="report_issue_dialog_title_issue">Report issue</string>
     <string name="report_issue_dialog_title_crash">Previous crash detected</string>
     <string name="report_issue_dialog_title_transaction">Report issue with selected payment</string>
@@ -300,14 +398,14 @@
     <string name="report_issue_dialog_collect_installed_packages">Append list of installed packages</string>
     <string name="report_issue_dialog_collect_application_log">Append application log</string>
     <string name="report_issue_dialog_collect_wallet_dump">Append wallet dump</string>
-    <string name="report_issue_dialog_mail_intent_chooser">Send report using…</string>
+    <string name="report_issue_dialog_mail_intent_chooser">Send report using...</string>
     <string name="report_issue_dialog_mail_intent_failed">Sending report failed.</string>
     <string name="about_title">About</string>
     <string name="about_version_title">Version</string>
     <string name="about_copyright_title">Copyright</string>
     <string name="about_license_title">License</string>
     <string name="about_source_title">Source code</string>
-    <string name="about_category_credits">This app is using…</string>
+    <string name="about_category_credits">This app is using...</string>
     <string name="about_credits_bitcoinj_title">PePe-core %s, a PEPEPOW protocol implementation</string>
     <string name="about_credits_zxing_title">ZXing, a QR-code processing library</string>
     <string name="about_credits_icon_title">This app is using an icon by \'bitboy\'</string>
@@ -325,6 +423,8 @@
     <string name="notification_inactivity_action_dismiss">Remind me later</string>
     <string name="notification_inactivity_action_dismiss_forever">Don\'t remind me</string>
     <string name="appwidget_wallet_balance_title">PEPEPOW balance</string>
+
+
 
     <!-- generic buttons -->
     <string name="button_ok">OK</string>
@@ -364,7 +464,7 @@
 
     <string name="transaction_fragment_confirmations_label">Confirmations</string>
 
-    <string name="pepepow_slogan">Instant - Private - Secure</string>
+    <string name="pepepow_slogan">From Memes to Momentum.</string>
     <string name="pepepow_wallet">Wallet</string>
 
     <string name="activity_security_backup_wallet">Back Up Wallet to File</string>
@@ -373,7 +473,15 @@
     <string name="activity_security_biometric_auth">Fingerprint Authentication</string>
     <string name="activity_security_hide_balance">Autohide Balance</string>
     <string name="reset_to_default">Reset to Default</string>
+    <string name="menu_api_status">API Status</string>
+    <string name="menu_developer_options">Developer Options</string>
+    
+    <!-- Sync mode preferences -->
+    <string name="preferences_sync_mode_title">Sync Mode</string>
+    <string name="preferences_sync_mode_summary">Choose how to synchronize blockchain data</string>
+    <string name="sync_status_syncing_headers">Syncing headers…</string>
+    <string name="sync_status_verifying_network">Verifying network…</string>
+    <string name="sync_status_syncing_wallet">Syncing wallet data…</string>
+    <string name="sync_status_complete">Sync complete (block %d)</string>
 
 </resources>
-
-

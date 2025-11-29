@@ -63,6 +63,9 @@ public class DevNetParams extends AbstractBitcoinNetParams {
         targetTimespan = TARGET_TIMESPAN;
 
         maxTarget = MAX_TARGET;
+        maxTargetAfterSwitch = maxTarget;
+        newHashHeight = 4;
+        newHashBits = 0x2000ffffL;
         port = defaultPort;
         addressHeader = 140;
         p2shHeader = 19;

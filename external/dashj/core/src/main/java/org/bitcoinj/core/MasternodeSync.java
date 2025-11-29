@@ -26,20 +26,22 @@ import static org.bitcoinj.governance.GovernanceManager.MIN_GOVERNANCE_PEER_PROT
  */
 public class MasternodeSync {
     private static final Logger log = LoggerFactory.getLogger(MasternodeSync.class);
-    public static final int MASTERNODE_SYNC_BLOCKCHAIN      = 1;
-    public static final int MASTERNODE_SYNC_GOVERNANCE      = 4;
-    public static final int MASTERNODE_SYNC_GOVOBJ          = 10;
-    public static final int MASTERNODE_SYNC_GOVOBJ_VOTE     = 11;
-    public static final int MASTERNODE_SYNC_FINISHED        = 999;
+    public static final int MASTERNODE_SYNC_BLOCKCHAIN = 1;
+    public static final int MASTERNODE_SYNC_GOVERNANCE = 4;
+    public static final int MASTERNODE_SYNC_GOVOBJ = 10;
+    public static final int MASTERNODE_SYNC_GOVOBJ_VOTE = 11;
+    public static final int MASTERNODE_SYNC_FINISHED = 999;
 
-    public static final int MASTERNODE_SYNC_TICK_SECONDS    = 6;
-    public static final int MASTERNODE_SYNC_TIMEOUT_SECONDS = 30; // our blocks are 2.5 minutes so 30 seconds should be fine
-    public static final int MASTERNODE_SYNC_RESET_SECONDS   = 600; // Reset fReachedBestHeader in CMasternodeSync::Reset if UpdateBlockTip hasn't been called for this seconds
-
+    public static final int MASTERNODE_SYNC_TICK_SECONDS = 6;
+    public static final int MASTERNODE_SYNC_TIMEOUT_SECONDS = 30; // our blocks are 2.5 minutes so 30 seconds should be
+                                                                  // fine
+    public static final int MASTERNODE_SYNC_RESET_SECONDS = 600; // Reset fReachedBestHeader in CMasternodeSync::Reset
+                                                                 // if UpdateBlockTip hasn't been called for this
+                                                                 // seconds
 
     public enum SYNC_FLAGS {
         @Deprecated
-        SYNC_MASTERNODE_LIST, //obsolete
+        SYNC_MASTERNODE_LIST, // obsolete
         SYNC_OWNED_MASTERNODES,
         SYNC_MNW,
         SYNC_GOVERNANCE,
@@ -115,28 +117,50 @@ public class MasternodeSync {
         this.context = context;
         this.eventListeners = new CopyOnWriteArrayList<ListenerRegistration<MasternodeSyncListener>>();
         if (context.isLiteMode() && context.allowInstantXinLiteMode()) {
-            this.syncFlags = SYNC_DEFAULT_SPV;
-            this.verifyFlags = VERIFY_DEFAULT_SPV;
-            this.featureFlags = FEATURES_SPV;
+            this.syncFlags = EnumSet.copyOf(SYNC_DEFAULT_SPV);
+            this.verifyFlags = EnumSet.copyOf(VERIFY_DEFAULT_SPV);
+            this.featureFlags = EnumSet.copyOf(FEATURES_SPV);
         } else if (context.isLiteMode()) {
-            this.syncFlags = SYNC_LITE_MODE;
-            this.verifyFlags = VERIFY_LITE_MODE;
-            this.featureFlags = FEATURES_LITE_MODE;
-            //TODO:add other flags here to get other information such as governance messsages, by default
+            this.syncFlags = EnumSet.copyOf(SYNC_LITE_MODE);
+            this.verifyFlags = EnumSet.copyOf(VERIFY_LITE_MODE);
+            this.featureFlags = EnumSet.copyOf(FEATURES_LITE_MODE);
+            // TODO:add other flags here to get other information such as governance
+            // messsages, by default
         } else {
-            this.syncFlags = SYNC_ALL_OBJECTS;
-            this.verifyFlags = VERIFY_ALL_OBJECTS;
+            this.syncFlags = EnumSet.copyOf(SYNC_ALL_OBJECTS);
+            this.verifyFlags = EnumSet.copyOf(VERIFY_ALL_OBJECTS);
             this.featureFlags = EnumSet.noneOf(FEATURE_FLAGS.class);
         }
+
+        if (!context.getParams().isLlmqEnabled()) {
+            this.syncFlags.remove(SYNC_QUORUM_LIST);
+            this.syncFlags.remove(SYNC_CHAINLOCKS);
+            this.syncFlags.remove(SYNC_INSTANTSENDLOCKS);
+            this.syncFlags.remove(SYNC_DMN_LIST);
+
+            this.verifyFlags.remove(VERIFY_FLAGS.MNLISTDIFF_QUORUM);
+            this.verifyFlags.remove(VERIFY_FLAGS.CHAINLOCK);
+            this.verifyFlags.remove(VERIFY_FLAGS.INSTANTSENDLOCK);
+            this.verifyFlags.remove(VERIFY_FLAGS.MNLISTDIFF_MNLIST);
+            this.verifyFlags.remove(VERIFY_FLAGS.BLS_SIGNATURES);
+        }
+
         reset();
     }
 
-    public MasternodeSync(Context context, @Nullable EnumSet<SYNC_FLAGS> syncFlags)
-    {
+    public MasternodeSync(Context context, @Nullable EnumSet<SYNC_FLAGS> syncFlags) {
         this.context = context;
-        this.syncFlags = syncFlags == null ? EnumSet.noneOf(SYNC_FLAGS.class) : syncFlags;
+        this.syncFlags = syncFlags == null ? EnumSet.noneOf(SYNC_FLAGS.class) : EnumSet.copyOf(syncFlags);
         this.verifyFlags = EnumSet.noneOf(VERIFY_FLAGS.class);
         this.featureFlags = EnumSet.noneOf(FEATURE_FLAGS.class);
+
+        if (!context.getParams().isLlmqEnabled()) {
+            this.syncFlags.remove(SYNC_QUORUM_LIST);
+            this.syncFlags.remove(SYNC_CHAINLOCKS);
+            this.syncFlags.remove(SYNC_INSTANTSENDLOCKS);
+            this.syncFlags.remove(SYNC_DMN_LIST);
+        }
+
         if (this.syncFlags.contains(SYNC_FLAGS.SYNC_DMN_LIST)) {
             verifyFlags.add(VERIFY_FLAGS.MNLISTDIFF_MNLIST);
             verifyFlags.add(VERIFY_FLAGS.BLS_SIGNATURES);
@@ -151,8 +175,8 @@ public class MasternodeSync {
         reset();
     }
 
-    public MasternodeSync(Context context, @Nullable EnumSet<SYNC_FLAGS> syncFlags, @Nullable EnumSet<VERIFY_FLAGS> verifyFlags)
-    {
+    public MasternodeSync(Context context, @Nullable EnumSet<SYNC_FLAGS> syncFlags,
+            @Nullable EnumSet<VERIFY_FLAGS> verifyFlags) {
         this(context, syncFlags);
         this.verifyFlags = verifyFlags == null ? EnumSet.noneOf(VERIFY_FLAGS.class) : verifyFlags;
     }
@@ -165,8 +189,7 @@ public class MasternodeSync {
         reset(false, notifyReset);
     }
 
-    void reset(boolean force, boolean notifyReset)
-    {
+    void reset(boolean force, boolean notifyReset) {
         // Avoid resetting the sync process if we just "recently" received a new block
         if (!force) {
             if (Utils.currentTimeSeconds() - timeLastUpdateBlockTip.get() < MASTERNODE_SYNC_RESET_SECONDS) {
@@ -183,14 +206,17 @@ public class MasternodeSync {
             queueOnSyncStatusChanged(-1, 0);
         }
     }
+
     public void bumpAssetLastTime(@Nullable String strFuncName) {
         bumpAssetLastTime(strFuncName, true);
     }
+
     public void bumpAssetLastTime(@Nullable String strFuncName, boolean debug) {
-        if (isSynced()) return;
+        if (isSynced())
+            return;
         timeLastBumped.set(Utils.currentTimeSeconds());
         if (strFuncName != null && debug)
-            log.info("bumpAssetLastTime -- "+ strFuncName);
+            log.info("bumpAssetLastTime -- " + strFuncName);
     }
 
     public boolean isBlockchainSynced() {
@@ -201,19 +227,19 @@ public class MasternodeSync {
         return currentAsset.get() == MASTERNODE_SYNC_FINISHED;
     }
 
-    void switchToNextAsset()
-    {
-        switch(currentAsset.get()) {
+    void switchToNextAsset() {
+        switch (currentAsset.get()) {
             case MASTERNODE_SYNC_BLOCKCHAIN:
                 log.info("switchToNextAsset -- Completed {} in {}",
                         getAssetName(), Utils.currentTimeSeconds() - timeAssetSyncStarted.get());
 
                 if (syncFlags.contains(SYNC_GOVERNANCE))
                     currentAsset.set(MASTERNODE_SYNC_GOVERNANCE);
-                else currentAsset.set(MASTERNODE_SYNC_FINISHED);
+                else
+                    currentAsset.set(MASTERNODE_SYNC_FINISHED);
                 log.info("switchToNextAsset -- Starting {}", getAssetName());
                 break;
-            case(MASTERNODE_SYNC_GOVERNANCE):
+            case (MASTERNODE_SYNC_GOVERNANCE):
                 log.info("switchToNextAsset -- Completed {} in {}",
                         getAssetName(), Utils.currentTimeSeconds() - timeAssetSyncStarted.get());
                 currentAsset.set(MASTERNODE_SYNC_FINISHED);
@@ -226,8 +252,7 @@ public class MasternodeSync {
         queueOnSyncStatusChanged(currentAsset.get(), 1.0);
     }
 
-    public String getSyncStatus()
-    {
+    public String getSyncStatus() {
         {
             switch (currentAsset.get()) {
                 case MASTERNODE_SYNC_BLOCKCHAIN:
@@ -243,11 +268,10 @@ public class MasternodeSync {
     }
 
     public String getAssetName() {
-        switch(currentAsset.get())
-        {
-            case(MASTERNODE_SYNC_BLOCKCHAIN):
+        switch (currentAsset.get()) {
+            case (MASTERNODE_SYNC_BLOCKCHAIN):
                 return "MASTERNODE_SYNC_BLOCKCHAIN";
-            case(MASTERNODE_SYNC_GOVERNANCE):
+            case (MASTERNODE_SYNC_GOVERNANCE):
                 return "MASTERNODE_SYNC_GOVERNANCE";
             case MASTERNODE_SYNC_FINISHED:
                 return "MASTERNODE_SYNC_FINISHED";
@@ -256,13 +280,13 @@ public class MasternodeSync {
         }
     }
 
-    void processSyncStatusCount(Peer peer, SyncStatusCount ssc)
-    {
-        //do not care about stats if sync process finished or failed
+    void processSyncStatusCount(Peer peer, SyncStatusCount ssc) {
+        // do not care about stats if sync process finished or failed
         if (isSynced())
             return;
 
-        log.info("SYNCSTATUSCOUNT -- got inventory count: nItemID="+ssc.itemId+"  nCount="+ssc.count+"  peer="+peer);
+        log.info("SYNCSTATUSCOUNT -- got inventory count: nItemID=" + ssc.itemId + "  nCount=" + ssc.count + "  peer="
+                + peer);
     }
 
     int tick = 0;
@@ -273,11 +297,11 @@ public class MasternodeSync {
     final long syncStart = Utils.currentTimeMillis();
     final String allow = String.format("allow-sync-%d", syncStart);
 
-    public void processTick()
-    {
+    public void processTick() {
         tick++;
-        // reset the sync process if the last call to this function was more than 60 minutes ago (client was in sleep mode)
-        if (Utils.currentTimeSeconds() - timeLastProcess > 60*60) {
+        // reset the sync process if the last call to this function was more than 60
+        // minutes ago (client was in sleep mode)
+        if (Utils.currentTimeSeconds() - timeLastProcess > 60 * 60) {
             log.info("processTick -- WARNING: no actions for too long, restarting sync...");
             reset(true);
             timeLastProcess = Utils.currentTimeSeconds();
@@ -316,7 +340,7 @@ public class MasternodeSync {
                 // QUICK MODE (REGTEST ONLY!)
                 if (context.getParams().getId().equals(NetworkParameters.ID_REGTEST)) {
                     if (currentAsset.get() <= MASTERNODE_SYNC_BLOCKCHAIN) {
-                        peer.sendMessage(new GetSporksMessage(context.getParams())); //get current network sporks
+                        peer.sendMessage(new GetSporksMessage(context.getParams())); // get current network sporks
                         switchToNextAsset();
                     } else if (currentAsset.get() == MASTERNODE_SYNC_GOVERNANCE) {
                         sendGovernanceSyncRequest(peer);
@@ -339,20 +363,26 @@ public class MasternodeSync {
                 // SPORK : ALWAYS ASK FOR SPORKS AS WE SYNC (we skip this mode now)
                 if (!netFullfilledRequestManager.hasFulfilledRequest(peer.getAddress(), "spork-sync")) {
                     netFullfilledRequestManager.addFulfilledRequest(peer.getAddress(), "spork-sync");
-                    peer.sendMessage(new GetSporksMessage(context.getParams())); //get current network sporks
+                    peer.sendMessage(new GetSporksMessage(context.getParams())); // get current network sporks
                 }
 
                 if (currentAsset.get() == MASTERNODE_SYNC_BLOCKCHAIN) {
-                    long timeSyncTimeout = nodesCopy.size() > 3 ? MASTERNODE_SYNC_TICK_SECONDS : MASTERNODE_SYNC_TIMEOUT_SECONDS;
-                    if (reachedBestHeader.get() && (Utils.currentTimeSeconds() - timeLastBumped.get() > timeSyncTimeout)) {
+                    long timeSyncTimeout = nodesCopy.size() > 3 ? MASTERNODE_SYNC_TICK_SECONDS
+                            : MASTERNODE_SYNC_TIMEOUT_SECONDS;
+                    if (reachedBestHeader.get()
+                            && (Utils.currentTimeSeconds() - timeLastBumped.get() > timeSyncTimeout)) {
                         // At this point we know that:
                         // a) there are peers (because we are looping on at least one of them);
-                        // b) we waited for at least MASTERNODE_SYNC_TICK_SECONDS/MASTERNODE_SYNC_TIMEOUT_SECONDS
-                        //    (depending on the number of connected peers) since we reached the headers tip the last
-                        //    time (i.e. since fReachedBestHeader has been set to true);
-                        // c) there were no blocks (UpdatedBlockTip, NotifyHeaderTip) or headers (AcceptedBlockHeader)
-                        //    for at least MASTERNODE_SYNC_TICK_SECONDS/MASTERNODE_SYNC_TIMEOUT_SECONDS (depending on
-                        //    the number of connected peers).
+                        // b) we waited for at least
+                        // MASTERNODE_SYNC_TICK_SECONDS/MASTERNODE_SYNC_TIMEOUT_SECONDS
+                        // (depending on the number of connected peers) since we reached the headers tip
+                        // the last
+                        // time (i.e. since fReachedBestHeader has been set to true);
+                        // c) there were no blocks (UpdatedBlockTip, NotifyHeaderTip) or headers
+                        // (AcceptedBlockHeader)
+                        // for at least MASTERNODE_SYNC_TICK_SECONDS/MASTERNODE_SYNC_TIMEOUT_SECONDS
+                        // (depending on
+                        // the number of connected peers).
                         // We must be at the tip already, let's move to the next asset.
                         switchToNextAsset();
                         queueOnSyncStatusChanged(currentAsset.get(), nSyncProgress);
@@ -414,15 +444,17 @@ public class MasternodeSync {
                         timeNoObjectsLeft = Utils.currentTimeSeconds();
                     }
                     // make sure the condition below is checked only once per tick
-                    if (lastTick == tick) continue;
+                    if (lastTick == tick)
+                        continue;
                     if (Utils.currentTimeSeconds() - timeNoObjectsLeft > MASTERNODE_SYNC_TIMEOUT_SECONDS &&
-                            0 /*governance.GetVoteCount()*/ - lastVotes < max((int) (0.0001 * lastVotes), MASTERNODE_SYNC_TICK_SECONDS)
-                    ) {
+                            0 /* governance.GetVoteCount() */ - lastVotes < max((int) (0.0001 * lastVotes),
+                                    MASTERNODE_SYNC_TICK_SECONDS)) {
                         // We already asked for all objects, waited for MASTERNODE_SYNC_TIMEOUT_SECONDS
                         // after that and less then 0.01% or MASTERNODE_SYNC_TICK_SECONDS
                         // (i.e. 1 per second) votes were recieved during the last tick.
                         // We can be pretty sure that we are done syncing.
-                        log.info("processTick -- tick {}  currentAsset {} -- asked for all objects, nothing to do", tick, currentAsset);
+                        log.info("processTick -- tick {}  currentAsset {} -- asked for all objects, nothing to do",
+                                tick, currentAsset);
                         // reset timeNoObjectsLeft to be able to use the same condition on resync
                         timeNoObjectsLeft = 0;
                         switchToNextAsset();
@@ -430,7 +462,7 @@ public class MasternodeSync {
                     }
                     lastTick = tick;
                     // TODO - this 0 must have been to fix a bug
-                    lastVotes = 0; //governance.GetVoteCount();
+                    lastVotes = 0; // governance.GetVoteCount();
                 }
             }
         } finally {
@@ -444,19 +476,21 @@ public class MasternodeSync {
 
     /******************************************************************************************************************/
 
-    //region Event listeners
-    private transient CopyOnWriteArrayList<ListenerRegistration<MasternodeSyncListener>> eventListeners  =
-            new CopyOnWriteArrayList<ListenerRegistration<MasternodeSyncListener>>();
+    // region Event listeners
+    private transient CopyOnWriteArrayList<ListenerRegistration<MasternodeSyncListener>> eventListeners = new CopyOnWriteArrayList<ListenerRegistration<MasternodeSyncListener>>();
+
     /**
-     * Adds an event listener object. Methods on this object are called when something interesting happens,
+     * Adds an event listener object. Methods on this object are called when
+     * something interesting happens,
      * like receiving money. Runs the listener methods in the user thread.
      */
     public void addEventListener(MasternodeSyncListener listener) {
         addEventListener(listener, Threading.USER_THREAD);
-}
+    }
 
     /**
-     * Adds an event listener object. Methods on this object are called when the sync status changes.
+     * Adds an event listener object. Methods on this object are called when the
+     * sync status changes.
      * The listener is executed by the given executor.
      */
     public void addEventListener(MasternodeSyncListener listener, Executor executor) {
@@ -465,7 +499,8 @@ public class MasternodeSync {
     }
 
     /**
-     * Removes the given event listener object. Returns true if the listener was removed, false if that listener
+     * Removes the given event listener object. Returns true if the listener was
+     * removed, false if that listener
      * was never added.
      */
     public boolean removeEventListener(MasternodeSyncListener listener) {
@@ -476,7 +511,7 @@ public class MasternodeSync {
      * Notifies all listeners of the new sync status and progress
      */
     public void queueOnSyncStatusChanged(final int newStatus, final double syncStatus) {
-        //checkState(lock.isHeldByCurrentThread());
+        // checkState(lock.isHeldByCurrentThread());
         for (final ListenerRegistration<MasternodeSyncListener> registration : eventListeners) {
             if (registration.executor == Threading.SAME_THREAD) {
                 registration.listener.onSyncStatusChanged(newStatus, syncStatus);
@@ -491,31 +526,30 @@ public class MasternodeSync {
         }
     }
 
-    void acceptedBlockHeader(StoredBlock block)
-    {
+    void acceptedBlockHeader(StoredBlock block) {
         log.info("acceptedBlockHeader -- height: {}", block.getHeight());
 
         if (!isBlockchainSynced()) {
-            // Postpone timeout each time new block header arrives while we are still syncing blockchain
+            // Postpone timeout each time new block header arrives while we are still
+            // syncing blockchain
             bumpAssetLastTime("acceptedBlockHeader");
         }
     }
 
-    void notifyHeaderTip(StoredBlock blockHeader, boolean initialDownload)
-    {
+    void notifyHeaderTip(StoredBlock blockHeader, boolean initialDownload) {
         log.info("notifyHeaderTip -- height: {} initialDownload={}", blockHeader.getHeight(), initialDownload);
 
         if (isSynced())
             return;
 
         if (!isBlockchainSynced()) {
-            // Postpone timeout each time new block arrives while we are still syncing blockchain
+            // Postpone timeout each time new block arrives while we are still syncing
+            // blockchain
             bumpAssetLastTime("notifyHeaderTip");
         }
     }
 
-    void updateBlockTip(StoredBlock storedBlock, boolean initialDownload)
-    {
+    void updateBlockTip(StoredBlock storedBlock, boolean initialDownload) {
         if (!initialDownload && storedBlock.getHeight() % 100 == 0)
             log.info("updateBlockTip: height:  {} initialDownload={}", storedBlock.getHeight(), initialDownload);
 
@@ -523,7 +557,8 @@ public class MasternodeSync {
             return;
 
         if (!isBlockchainSynced()) {
-            // Postpone timeout each time new block arrives while we are still syncing blockchain
+            // Postpone timeout each time new block arrives while we are still syncing
+            // blockchain
             bumpAssetLastTime("updateBlockTip", false);
         }
 
@@ -543,7 +578,8 @@ public class MasternodeSync {
         boolean reachedBestHeaderNew = storedBlock.getHeader().getHash().equals(bestHeader.getHeader().getHash());
 
         if (reachedBestHeader.get() && !reachedBestHeaderNew) {
-            // Switching from true to false means that we previousely stuck syncing headers for some reason,
+            // Switching from true to false means that we previousely stuck syncing headers
+            // for some reason,
             // probably initial timeout was not enough,
             // because there is no way we can update tip not having best header
             reset();
@@ -553,7 +589,7 @@ public class MasternodeSync {
 
         if (storedBlock.getHeight() % 100 == 0)
             log.info("updatedBlockTip -- height: {} chain height: {} initialDownload={} reachedBestHeader={}",
-                storedBlock.getHeight(), bestHeader.getHeight(), initialDownload, reachedBestHeader);
+                    storedBlock.getHeight(), bestHeader.getHeight(), initialDownload, reachedBestHeader);
 
     }
 
@@ -583,6 +619,6 @@ public class MasternodeSync {
 
     @Override
     public String toString() {
-        return "MasternodeSync{"+ getAssetName()+ "}";
+        return "MasternodeSync{" + getAssetName() + "}";
     }
 }

@@ -69,4 +69,61 @@
 		android:summary="@string/preferences_enable_payment_request_summary"
 		android:title="@string/preferences_enable_payment_request_title" />
 
+    <PreferenceCategory
+        android:title="@string/preferences_category_developer">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="developer_mode"
+            android:summary="@string/preferences_developer_mode_summary"
+            android:title="@string/preferences_developer_mode_title" />
+
+        <ListPreference
+            android:defaultValue="FAST_API_10POW"
+            android:entries="@array/preferences_sync_mode_labels"
+            android:entryValues="@array/preferences_sync_mode_values"
+            android:key="sync_mode"
+            android:summary="@string/preferences_sync_mode_summary"
+            android:title="@string/preferences_sync_mode_title" />
+
+        <Preference
+            android:key="developer_debug_dashboard"
+            android:summary="@string/preferences_debug_dashboard_summary"
+            android:title="@string/preferences_debug_dashboard_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="developer_api_section"
+        android:title="@string/preferences_api_category_title">
+
+        <Preference
+            android:key="developer_api_sync_mode"
+            android:summary="@string/preferences_api_sync_mode_summary"
+            android:title="@string/preferences_api_sync_mode_title" />
+
+        <Preference
+            android:key="developer_api_base_url"
+            android:summary="@string/preferences_api_base_url_summary"
+            android:title="@string/preferences_api_base_url_title" />
+
+        <Preference
+            android:key="developer_api_health"
+            android:summary="@string/preferences_api_health_summary"
+            android:title="@string/preferences_api_health_title" />
+
+        <Preference
+            android:key="developer_api_last_check"
+            android:summary="@string/preferences_api_last_check_summary"
+            android:title="@string/preferences_api_last_check_title" />
+
+        <Preference
+            android:key="developer_api_checkpoint"
+            android:summary="@string/preferences_api_checkpoint_summary"
+            android:title="@string/preferences_api_checkpoint_title" />
+
+        <Preference
+            android:key="developer_api_error"
+            android:summary="@string/preferences_api_error_summary"
+            android:title="@string/preferences_api_error_title" />
+    </PreferenceCategory>
+
 </PreferenceScreen>

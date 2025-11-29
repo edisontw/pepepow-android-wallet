@@ -16,16 +16,14 @@
 
 package de.schildbach.wallet.ui
 
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.net.Uri
 import android.os.Bundle
-import de.schildbach.wallet.WalletApplication
-import org.pepepow.wallet.BuildConfig
-import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_about.*
 import org.bitcoinj.core.VersionMessage
+import org.pepepow.wallet.BuildConfig
+import org.pepepow.wallet.R
 
 
 class AboutActivity : BaseMenuActivity() {
@@ -47,8 +45,8 @@ class AboutActivity : BaseMenuActivity() {
             i.data = Uri.parse(github_link.text.toString())
             startActivity(i)
         }
-        review_and_rate.setOnClickListener { openReviewAppIntent() }
-        contact_support.setOnClickListener { handleReportIssue() }
+        review_and_rate.setOnClickListener { openDiscordInvite() }
+        contact_support.setOnClickListener { openInfoSite() }
     }
 
     override fun finish() {
@@ -56,24 +54,17 @@ class AboutActivity : BaseMenuActivity() {
         overridePendingTransition(R.anim.activity_stay, R.anim.slide_out_left)
     }
 
-    private fun openReviewAppIntent() {
-        val uri = Uri.parse("market://details?id=$packageName")
-        val goToMarket = Intent(ACTION_VIEW, uri)
-        // To count with Play market backstack, After pressing back button,
-        // and go back to our application, we need to add following flags to intent.
-        goToMarket.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY or
-                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
-        try {
-            startActivity(goToMarket)
-        } catch (e: ActivityNotFoundException) {
-            startActivity(Intent(ACTION_VIEW,
-                    Uri.parse("http://play.google.com/store/apps/details?id=$packageName")))
-        }
+    private fun openDiscordInvite() {
+        val intent = Intent(ACTION_VIEW, Uri.parse(DISCORD_INVITE_URL))
+        startActivity(intent)
     }
 
-    private fun handleReportIssue() {
-        ReportIssueDialogBuilder.createReportIssueDialog(this,
-                WalletApplication.getInstance()).show()
+    private fun openInfoSite() {
+        startActivity(Intent(ACTION_VIEW, Uri.parse(INFO_URL)))
     }
 
+    companion object {
+        private const val DISCORD_INVITE_URL = "https://discord.gg/sJgDVRkBcq"
+        private const val INFO_URL = "https://pepepow.org"
+    }
 }

@@ -3,6 +3,13 @@ plugins {
     id 'kotlin-android'
     id 'kotlin-android-extensions'
 }
+def hardcodedPeerOverride = (project.hasProperty("hardcodedPeer") ? project.getProperty("hardcodedPeer") : System.getenv("PEPEPOW_HARDCODED_NODE"))
+if (hardcodedPeerOverride == null) {
+    hardcodedPeerOverride = ""
+} else {
+    hardcodedPeerOverride = hardcodedPeerOverride.toString().trim()
+}
+def escapedHardcodedPeer = hardcodedPeerOverride.replace("\\", "\\\\").replace("\"", "\\\"")
 
 ext {
     archivesBaseName = 'pepepow-wallet'
@@ -117,6 +124,7 @@ android {
         ndk {
             abiFilters 'armeabi-v7a', 'x86', 'arm64-v8a', 'x86_64'
         }
+        buildConfigField "String", "HARDCODED_NODE", "\"${escapedHardcodedPeer}\""
         externalNativeBuild {
             cmake {
                 cFlags '-DHAVE_CONFIG_H -DWORD=32'

@@ -8,11 +8,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package de.schildbach.wallet.ui;
@@ -74,6 +74,8 @@ import org.dash.wallet.common.ui.DialogBuilder;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Currency;
@@ -104,6 +106,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
         NavigationView.OnNavigationItemSelectedListener,
         UpgradeWalletDisclaimerDialog.OnUpgradeConfirmedListener,
         EncryptNewKeyChainDialogFragment.OnNewKeyChainEncryptedListener {
+
+    private static final Logger log = LoggerFactory.getLogger(WalletActivity.class);
 
     private static final int DIALOG_BACKUP_WALLET_PERMISSION = 0;
     private static final int DIALOG_RESTORE_WALLET_PERMISSION = 1;
@@ -144,6 +148,35 @@ public final class WalletActivity extends AbstractBindServiceActivity
         config = application.getConfiguration();
         wallet = application.getWallet();
 
+        if (wallet == null) {
+            log.info("WalletActivity: wallet null onCreate, waiting for load...");
+            setContentView(R.layout.activity_onboarding); // Show splash/loading
+
+            application.getWalletStateLiveData().observe(this, new Observer<WalletApplication.WalletState>() {
+                @Override
+                public void onChanged(WalletApplication.WalletState state) {
+                    if (state == WalletApplication.WalletState.LOADED) {
+                        log.info("WalletActivity: wallet loaded, initializing UI");
+                        wallet = application.getWallet();
+                        initUi(savedInstanceState);
+                        application.getWalletStateLiveData().removeObserver(this);
+                    } else if (state == WalletApplication.WalletState.FAILED) {
+                        log.error("WalletActivity: wallet load failed");
+                        android.widget.Toast.makeText(WalletActivity.this, R.string.wallet_load_failed_message,
+                                android.widget.Toast.LENGTH_LONG).show();
+                        application.getWalletStateLiveData().removeObserver(this);
+                        finish();
+                    }
+                }
+            });
+            application.loadWallet();
+        } else {
+            initUi(savedInstanceState);
+        }
+    }
+
+    private void initUi(final Bundle savedInstanceState) {
+        log.info("WalletActivity: initUi called");
         setContentViewFooter(R.layout.home_activity);
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
         activateHomeButton();
@@ -160,9 +193,10 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
         initView();
 
-        //Prevent showing dialog twice or more when activity is recreated (e.g: rotating device, etc)
+        // Prevent showing dialog twice or more when activity is recreated (e.g:
+        // rotating device, etc)
         if (savedInstanceState == null) {
-            //Add BIP44 support and PIN if missing
+            // Add BIP44 support and PIN if missing
             upgradeWalletKeyChains(Constants.BIP44_PATH, false);
         }
 
@@ -179,15 +213,14 @@ public final class WalletActivity extends AbstractBindServiceActivity
         behaviour.setDragCallback(new AppBarLayout.Behavior.DragCallback() {
             @Override
             public boolean canDrag(@NonNull AppBarLayout appBarLayout) {
-                WalletTransactionsFragment walletTransactionsFragment = (WalletTransactionsFragment)
-                        getSupportFragmentManager().findFragmentById(R.id.wallet_transactions_fragment);
+                WalletTransactionsFragment walletTransactionsFragment = (WalletTransactionsFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.wallet_transactions_fragment);
                 return walletTransactionsFragment != null && !walletTransactionsFragment.isHistoryEmpty();
             }
         });
     }
 
     private void initFingerprintHelper() {
-        //Init fingerprint helper
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             fingerprintHelper = new FingerprintHelper(this);
             if (!fingerprintHelper.init()) {
@@ -273,6 +306,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
             @Override
             public void run() {
                 // delayed start so that UI has enough time to initialize
+                log.info("WalletActivity: starting BlockchainServiceImpl");
                 getWalletApplication().startBlockchainService(true);
             }
         }, 1000);
@@ -328,7 +362,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
     @Override
     public void onRequestPermissionsResult(final int requestCode, final String[] permissions,
-                                           final int[] grantResults) {
+            final int[] grantResults) {
         if (requestCode == REQUEST_CODE_BACKUP_WALLET) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 showBackupWalletDialog = true;
@@ -352,7 +386,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
         }
     }
 
-    private void handleString(String input, final int errorDialogTitleResId, final int cannotClassifyCustomMessageResId) {
+    private void handleString(String input, final int errorDialogTitleResId,
+            final int cannotClassifyCustomMessageResId) {
         new StringInputParser(input) {
             @Override
             protected void handlePaymentIntent(final PaymentIntent paymentIntent) {
@@ -400,46 +435,47 @@ public final class WalletActivity extends AbstractBindServiceActivity
                 handleSendCoins();
                 return true;
 
-			/*case R.id.wallet_options_scan:
-                handleScan();
-				return true;
-
-			case R.id.wallet_options_address_book:
-				AddressBookActivity.start(this);
-				return true;
-
-			case R.id.wallet_options_exchange_rates:
-				startActivity(new Intent(this, ExchangeRatesActivity.class));
-				return true;
-
-			case R.id.wallet_options_sweep_wallet:
-				SweepWalletActivity.start(this);
-				return true;
-
-			case R.id.wallet_options_network_monitor:
-				startActivity(new Intent(this, NetworkMonitorActivity.class));
-				return true;
-
-			case R.id.wallet_options_restore_wallet:
-				handleRestoreWallet();
-				return true;
-
-			case R.id.wallet_options_backup_wallet:
-				handleBackupWallet();
-				return true;
-
-			case R.id.wallet_options_encrypt_keys:
-				handleEncryptKeys();
-				return true;
-
-			case R.id.wallet_options_preferences:
-				startActivity(new Intent(this, PreferenceActivity.class));
-				return true;
-
-			case R.id.wallet_options_safety:
-				HelpDialogFragment.page(getFragmentManager(), R.string.help_safety);
-				return true;
-*/
+            /*
+             * case R.id.wallet_options_scan:
+             * handleScan();
+             * return true;
+             * 
+             * case R.id.wallet_options_address_book:
+             * AddressBookActivity.start(this);
+             * return true;
+             * 
+             * case R.id.wallet_options_exchange_rates:
+             * startActivity(new Intent(this, ExchangeRatesActivity.class));
+             * return true;
+             * 
+             * case R.id.wallet_options_sweep_wallet:
+             * SweepWalletActivity.start(this);
+             * return true;
+             * 
+             * case R.id.wallet_options_network_monitor:
+             * startActivity(new Intent(this, NetworkMonitorActivity.class));
+             * return true;
+             * 
+             * case R.id.wallet_options_restore_wallet:
+             * handleRestoreWallet();
+             * return true;
+             * 
+             * case R.id.wallet_options_backup_wallet:
+             * handleBackupWallet();
+             * return true;
+             * 
+             * case R.id.wallet_options_encrypt_keys:
+             * handleEncryptKeys();
+             * return true;
+             * 
+             * case R.id.wallet_options_preferences:
+             * startActivity(new Intent(this, PreferenceActivity.class));
+             * return true;
+             * 
+             * case R.id.wallet_options_safety:
+             * HelpDialogFragment.page(getFragmentManager(), R.string.help_safety);
+             * return true;
+             */
             case R.id.wallet_options_report_issue:
                 handleReportIssue();
                 return true;
@@ -470,7 +506,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
             BackupWalletDialogFragment.show(getSupportFragmentManager());
         else
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE },
                     REQUEST_CODE_BACKUP_WALLET);
     }
 
@@ -479,7 +515,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
                 Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
             showDialog(DIALOG_RESTORE_WALLET);
         else
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.READ_EXTERNAL_STORAGE },
                     REQUEST_CODE_RESTORE_WALLET);
     }
 
@@ -547,7 +583,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
         if (input != null) {
             handleString(input, R.string.scan_to_pay_error_dialog_title, R.string.scan_to_pay_error_dialog_message);
         } else {
-            InputParser.dialog(this, null, R.string.scan_to_pay_error_dialog_title, R.string.scan_to_pay_error_dialog_message_no_data);
+            InputParser.dialog(this, null, R.string.scan_to_pay_error_dialog_title,
+                    R.string.scan_to_pay_error_dialog_message_no_data);
         }
     }
 
@@ -593,18 +630,19 @@ public final class WalletActivity extends AbstractBindServiceActivity
     }
 
     private Dialog createRestoreWalletDialog() {
-        return RestoreFromFileHelper.createRestoreWalletDialog(this, new RestoreFromFileHelper.OnRestoreWalletListener() {
-            @Override
-            public void onRestoreWallet(Wallet wallet) {
-                restoreWallet(wallet);
-                application.getConfiguration().setRestoringBackup(true);
-            }
+        return RestoreFromFileHelper.createRestoreWalletDialog(this,
+                new RestoreFromFileHelper.OnRestoreWalletListener() {
+                    @Override
+                    public void onRestoreWallet(Wallet wallet) {
+                        restoreWallet(wallet);
+                        application.getConfiguration().setRestoringBackup(true);
+                    }
 
-            @Override
-            public void onRetryRequest() {
-                showDialog(DIALOG_RESTORE_WALLET);
-            }
-        });
+                    @Override
+                    public void onRetryRequest() {
+                        showDialog(DIALOG_RESTORE_WALLET);
+                    }
+                });
     }
 
     private void prepareRestoreWalletDialog(final Dialog dialog) {
@@ -647,61 +685,69 @@ public final class WalletActivity extends AbstractBindServiceActivity
         url.addEncodedQueryParameter("package", packageInfo.packageName);
         url.addQueryParameter("current", Integer.toString(packageInfo.versionCode));
 
-		/*new HttpGetThread(url.build(), application.httpUserAgent()) {
-			@Override
-			protected void handleLine(final String line, final long serverTime) {
-				final int serverVersionCode = Integer.parseInt(line.split("\\s+")[0]);
-
-				log.info("according to \"" + url + "\", strongly recommended minimum app version is "
-						+ serverVersionCode);
-
-				if (serverTime > 0) {
-					final long diffMinutes = Math
-							.abs((System.currentTimeMillis() - serverTime) / DateUtils.MINUTE_IN_MILLIS);
-
-					if (diffMinutes >= 60) {
-						log.info("according to \"" + url + "\", system clock is off by " + diffMinutes + " minutes");
-
-						runOnUiThread(new Runnable() {
-							@Override
-							public void run() {
-								if (!isFinishing())
-									return;
-								final Bundle args = new Bundle();
-								args.putLong("diff_minutes", diffMinutes);
-								showDialog(DIALOG_TIMESKEW_ALERT, args);
-							}
-						});
-
-						return;
-					}
-				}
-
-				if (serverVersionCode > packageInfo.versionCode) {
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							if (isFinishing())
-								return;
-							showDialog(DIALOG_VERSION_ALERT);
-						}
-					});
-
-					return;
-				}
-			}
-
-			@Override
-			protected void handleException(final Exception x) {
-				if (x instanceof UnknownHostException || x instanceof SocketException
-						|| x instanceof SocketTimeoutException) {
-					// swallow
-					log.debug("problem reading", x);
-				} else {
-					CrashReporter.saveBackgroundTrace(new RuntimeException(url.toString(), x), packageInfo);
-				}
-			}
-		}.start();*/
+        /*
+         * new HttpGetThread(url.build(), application.httpUserAgent()) {
+         * 
+         * @Override
+         * protected void handleLine(final String line, final long serverTime) {
+         * final int serverVersionCode = Integer.parseInt(line.split("\\s+")[0]);
+         * 
+         * log.info("according to \"" + url +
+         * "\", strongly recommended minimum app version is "
+         * + serverVersionCode);
+         * 
+         * if (serverTime > 0) {
+         * final long diffMinutes = Math
+         * .abs((System.currentTimeMillis() - serverTime) / DateUtils.MINUTE_IN_MILLIS);
+         * 
+         * if (diffMinutes >= 60) {
+         * log.info("according to \"" + url + "\", system clock is off by " +
+         * diffMinutes + " minutes");
+         * 
+         * runOnUiThread(new Runnable() {
+         * 
+         * @Override
+         * public void run() {
+         * if (!isFinishing())
+         * return;
+         * final Bundle args = new Bundle();
+         * args.putLong("diff_minutes", diffMinutes);
+         * showDialog(DIALOG_TIMESKEW_ALERT, args);
+         * }
+         * });
+         * 
+         * return;
+         * }
+         * }
+         * 
+         * if (serverVersionCode > packageInfo.versionCode) {
+         * runOnUiThread(new Runnable() {
+         * 
+         * @Override
+         * public void run() {
+         * if (isFinishing())
+         * return;
+         * showDialog(DIALOG_VERSION_ALERT);
+         * }
+         * });
+         * 
+         * return;
+         * }
+         * }
+         * 
+         * @Override
+         * protected void handleException(final Exception x) {
+         * if (x instanceof UnknownHostException || x instanceof SocketException
+         * || x instanceof SocketTimeoutException) {
+         * // swallow
+         * log.debug("problem reading", x);
+         * } else {
+         * CrashReporter.saveBackgroundTrace(new RuntimeException(url.toString(), x),
+         * packageInfo);
+         * }
+         * }
+         * }.start();
+         */
 
         if (CrashReporter.hasSavedCrashTrace()) {
             final StringBuilder stackTrace = new StringBuilder();
@@ -716,7 +762,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
                     R.string.report_issue_dialog_title_crash, R.string.report_issue_dialog_message_crash) {
                 @Override
                 protected CharSequence subject() {
-                    return Constants.REPORT_SUBJECT_BEGIN + packageInfo.versionName + " " + Constants.REPORT_SUBJECT_CRASH;
+                    return Constants.REPORT_SUBJECT_BEGIN + packageInfo.versionName + " "
+                            + Constants.REPORT_SUBJECT_CRASH;
                 }
 
                 @Override
@@ -798,11 +845,13 @@ public final class WalletActivity extends AbstractBindServiceActivity
         if (pm.resolveActivity(binaryIntent, 0) != null) {
             dialog.setNeutralButton(R.string.wallet_version_dialog_button_binary,
                     new DialogInterface.OnClickListener() {
+
                         @Override
                         public void onClick(final DialogInterface dialog, final int id) {
                             startActivity(binaryIntent);
                             finish();
                         }
+
                     });
         }
 
@@ -862,10 +911,13 @@ public final class WalletActivity extends AbstractBindServiceActivity
             final String externalStorageState = Environment.getExternalStorageState();
 
             menu.findItem(R.id.wallet_options_restore_wallet).setEnabled(
-                    Environment.MEDIA_MOUNTED.equals(externalStorageState) || Environment.MEDIA_MOUNTED_READ_ONLY.equals(externalStorageState));
-            menu.findItem(R.id.wallet_options_backup_wallet).setEnabled(Environment.MEDIA_MOUNTED.equals(externalStorageState));
+                    Environment.MEDIA_MOUNTED.equals(externalStorageState)
+                            || Environment.MEDIA_MOUNTED_READ_ONLY.equals(externalStorageState));
+            menu.findItem(R.id.wallet_options_backup_wallet)
+                    .setEnabled(Environment.MEDIA_MOUNTED.equals(externalStorageState));
             menu.findItem(R.id.wallet_options_encrypt_keys).setTitle(
-                    wallet.isEncrypted() ? R.string.wallet_options_encrypt_keys_change : R.string.wallet_options_encrypt_keys_set);
+                    wallet.isEncrypted() ? R.string.wallet_options_encrypt_keys_change
+                            : R.string.wallet_options_encrypt_keys_set);
 
             boolean showFingerprintOption = fingerprintHelper != null && !fingerprintHelper.isFingerprintEnabled();
             menu.findItem(R.id.wallet_options_enable_fingerprint).setVisible(showFingerprintOption);
@@ -941,7 +993,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
         }
     }
 
-    //Dash Specific
+    // Dash Specific
     private void handleDisconnect() {
         getWalletApplication().stopBlockchainService();
         finish();
@@ -973,7 +1025,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
         }
     }
 
-    //BIP44 Wallet Upgrade Dialog Dismissed (Ok button pressed)
+    // BIP44 Wallet Upgrade Dialog Dismissed (Ok button pressed)
     @Override
     public void onUpgradeConfirmed() {
         if (isRestoringBackup) {
@@ -1033,8 +1085,10 @@ public final class WalletActivity extends AbstractBindServiceActivity
     }
 
     /**
-     * Get ISO 3166-1 alpha-2 country code for this device (or null if not available)
-     * If available, call {@link #showFiatCurrencyChangeDetectedDialog(String, String)}
+     * Get ISO 3166-1 alpha-2 country code for this device (or null if not
+     * available)
+     * If available, call
+     * {@link #showFiatCurrencyChangeDetectedDialog(String, String)}
      * passing the country code.
      */
     private void detectUserCountry() {
@@ -1049,23 +1103,24 @@ public final class WalletActivity extends AbstractBindServiceActivity
             if (simCountry != null && simCountry.length() == 2) { // SIM country code is available
                 log.info("Device Sim Country: " + simCountry);
                 updateCurrencyExchange(simCountry.toUpperCase());
-            } else if (tm.getPhoneType() != TelephonyManager.PHONE_TYPE_CDMA) { // device is not 3G (would be unreliable)
+            } else if (tm.getPhoneType() != TelephonyManager.PHONE_TYPE_CDMA) { // device is not 3G (would be
+                                                                                // unreliable)
                 String networkCountry = tm.getNetworkCountryIso();
                 log.info("Network Country: " + simCountry);
                 if (networkCountry != null && networkCountry.length() == 2) { // network country code is available
                     updateCurrencyExchange(networkCountry.toUpperCase());
                 } else {
-                    //Couldn't obtain country code - Use Default
+                    // Couldn't obtain country code - Use Default
                     if (config.getExchangeCurrencyCode() == null)
                         setDefaultCurrency();
                 }
             } else {
-                //No cellular network - Wifi Only
+                // No cellular network - Wifi Only
                 if (config.getExchangeCurrencyCode() == null)
                     setDefaultCurrency();
             }
         } catch (Exception e) {
-            //fail safe
+            // fail safe
             log.info("NMA-243:  Exception thrown obtaining Locale information: ", e);
             if (config.getExchangeCurrencyCode() == null)
                 setDefaultCurrency();
@@ -1075,7 +1130,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private void setDefaultCurrency() {
         String countryCode = getCurrentCountry();
         log.info("Setting default currency:");
-        if(countryCode != null) {
+        if (countryCode != null) {
             try {
                 log.info("Local Country: " + countryCode);
                 Locale l = new Locale("", countryCode);
@@ -1088,7 +1143,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
                 log.info("Setting Local Currency: " + newCurrencyCode);
                 config.setExchangeCurrencyCode(newCurrencyCode);
 
-                //Fallback to default
+                // Fallback to default
                 if (config.getExchangeCurrencyCode() == null) {
                     setDefaultExchangeCurrencyCode();
                 }
@@ -1109,15 +1164,16 @@ public final class WalletActivity extends AbstractBindServiceActivity
     }
 
     private String getCurrentCountry() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             return LocaleList.getDefault().get(0).getCountry();
-        } else{
+        } else {
             return Locale.getDefault().getCountry();
         }
     }
 
     /**
-     * Check whether app was ever updated or if it is an installation that was never updated.
+     * Check whether app was ever updated or if it is an installation that was never
+     * updated.
      * Show dialog to update if it's being updated or change it automatically.
      *
      * @param countryCode countryCode ISO 3166-1 alpha-2 country code.
@@ -1136,7 +1192,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
             if (config.wasUpgraded()) {
                 showFiatCurrencyChangeDetectedDialog(currentCurrencyCode, newCurrencyCode);
             } else {
-                if(CurrencyInfo.hasObsoleteCurrency(newCurrencyCode)) {
+                if (CurrencyInfo.hasObsoleteCurrency(newCurrencyCode)) {
                     log.info("found obsolete currency: " + newCurrencyCode);
                     newCurrencyCode = CurrencyInfo.getUpdatedCurrency(newCurrencyCode);
                 }
@@ -1146,20 +1202,21 @@ public final class WalletActivity extends AbstractBindServiceActivity
             }
         }
 
-        //Fallback to default
+        // Fallback to default
         if (config.getExchangeCurrencyCode() == null) {
             setDefaultExchangeCurrencyCode();
         }
     }
 
     /**
-     * Show a Dialog and if user confirms it, set the default fiat currency exchange rate using
+     * Show a Dialog and if user confirms it, set the default fiat currency exchange
+     * rate using
      * the country code to generate a Locale and get the currency code from it.
      *
      * @param newCurrencyCode currency code.
      */
     private void showFiatCurrencyChangeDetectedDialog(final String currentCurrencyCode,
-                                                      final String newCurrencyCode) {
+            final String newCurrencyCode) {
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
         dialogBuilder.setMessage(getString(R.string.change_exchange_currency_code_message,
                 newCurrencyCode, currentCurrencyCode));

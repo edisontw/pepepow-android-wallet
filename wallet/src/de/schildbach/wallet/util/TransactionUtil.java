@@ -13,14 +13,14 @@ public class TransactionUtil {
 
     /**
      *
-     * @param tx the transaction in question
+     * @param tx     the transaction in question
      * @param wallet the wallet that contains the transaction
      * @return resource id of the string that holds the name of the transaction type
      */
     public static int getTransactionTypeName(Transaction tx, Wallet wallet) {
         int typeId;
-        if(tx.getValue(wallet).signum() <= 0) {
-            switch(tx.getType()) {
+        if (tx.getValue(wallet).signum() <= 0) {
+            switch (tx.getType()) {
                 case TRANSACTION_PROVIDER_REGISTER:
                     typeId = R.string.transaction_row_status_masternode_registration;
                     break;
@@ -41,18 +41,21 @@ public class TransactionUtil {
                         typeId = R.string.transaction_row_status_sent_internally;
                     else if (confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING ||
                             (confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.PENDING &&
-                                (confidence.numBroadcastPeers() >= 1 || confidence.getIXType() == TransactionConfidence.IXType.IX_LOCKED ||
-                                        (confidence.getPeerCount() == 1 && confidence.isSent()))))
+                                    (confidence.numBroadcastPeers() >= 1
+                                            || confidence.getIXType() == TransactionConfidence.IXType.IX_LOCKED ||
+                                            (confidence.getPeerCount() == 1 && confidence.isSent()))))
                         typeId = R.string.transaction_row_status_sent;
-                    else typeId = R.string.transaction_row_status_sending;
+                    else
+                        typeId = R.string.transaction_row_status_sending;
             }
         } else {
             // Not all coinbase transactions are v3 transactions with type 5 (coinbase)
             if (tx.getType() == Transaction.Type.TRANSACTION_COINBASE || tx.isCoinBase()) {
-                //currently, we cannot tell if a coinbase transaction is a masternode mining reward
+                // currently, we cannot tell if a coinbase transaction is a masternode mining
+                // reward
                 typeId = R.string.transaction_row_status_mining_reward;
-            }
-            else typeId = R.string.transaction_row_status_received;
+            } else
+                typeId = R.string.transaction_row_status_received;
         }
         return typeId;
     }
@@ -65,12 +68,12 @@ public class TransactionUtil {
     public static int getErrorName(Transaction tx) {
         TransactionConfidence confidence = tx.getConfidence();
         int errorNameId = -1;
-        if(confidence != null) {
-            if(confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.DEAD) {
+        if (confidence != null) {
+            if (confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.DEAD) {
                 errorNameId = R.string.transaction_row_status_error_dead;
-            } else if(confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.IN_CONFLICT) {
+            } else if (confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.IN_CONFLICT) {
                 errorNameId = R.string.transaction_row_status_error_conflicting;
-            } else if(confidence.getConfidenceType() != TransactionConfidence.ConfidenceType.BUILDING) {
+            } else if (confidence.getConfidenceType() != TransactionConfidence.ConfidenceType.BUILDING) {
                 //
                 // Handle errors from the Dash Network
                 //
@@ -98,7 +101,7 @@ public class TransactionUtil {
                         case OBSOLETE:
                             errorNameId = R.string.transaction_row_status_error_obsolete;
                             break;
-                        case CHECKPOINT: //checkpoint rejections do not apply to transactions
+                        case CHECKPOINT: // checkpoint rejections do not apply to transactions
                         case OTHER:
                         default:
                             errorNameId = R.string.transaction_row_status_error_other;
@@ -122,15 +125,23 @@ public class TransactionUtil {
         int statusId = -1;
         if (confidence.getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING) {
             int confirmations = confidence.getDepthInBlocks();
-            boolean isChainLocked = wallet.getContext().chainLockHandler.getBestChainLockBlockHeight() >= confidence.getDepthInBlocks();
+            boolean isChainLocked = false;
+            if (Constants.NETWORK_PARAMETERS.isLlmqEnabled()) {
+                org.bitcoinj.quorums.ChainLocksHandler handler = wallet.getContext().chainLockHandler;
+                if (handler != null) {
+                    isChainLocked = handler.getBestChainLockBlockHeight() >= confidence.getDepthInBlocks();
+                }
+            }
 
-            // process coinbase transactions (Mining Rewards) before other BUILDING transactions
+            // process coinbase transactions (Mining Rewards) before other BUILDING
+            // transactions
             if (tx.isCoinBase()) {
                 // coinbase transactions are locked if they have less than 100 confirmations
                 if (confidence.getDepthInBlocks() < Constants.NETWORK_PARAMETERS.getSpendableCoinbaseDepth()) {
                     statusId = R.string.transaction_row_status_locked;
                 }
-            } else if (confirmations < 6 && !isChainLocked && confidence.getIXType() != TransactionConfidence.IXType.IX_LOCKED) {
+            } else if (confirmations < 6 && !isChainLocked
+                    && confidence.getIXType() != TransactionConfidence.IXType.IX_LOCKED) {
                 // confirmations < 6
                 // not ChainLocked
                 // not InstantSendLocked
@@ -142,11 +153,11 @@ public class TransactionUtil {
                     // no status string for InstantSendLocked transactions
                     break;
                 case IX_REQUEST:
-                    //received the InstantSendLock, but it has not been processed
+                    // received the InstantSendLock, but it has not been processed
                 case IX_NONE:
-                    //did not receive the InstantSendLock
+                    // did not receive the InstantSendLock
                 case IX_LOCK_FAILED:
-                    //received the InstantSendLock, but verification failed
+                    // received the InstantSendLock, but verification failed
                     statusId = R.string.transaction_row_status_processing;
                     break;
             }
@@ -159,7 +170,7 @@ public class TransactionUtil {
      * but there haven't been any peers announcing it nor does it have a verified
      * InstantSendLock.
      *
-     * @param tx the transaction from which to get the isSending status
+     * @param tx     the transaction from which to get the isSending status
      * @param wallet the wallet to which the transaction belongs
      * @return true if the transaction is in a Sending status
      */
@@ -167,7 +178,8 @@ public class TransactionUtil {
         Coin value = tx.getValue(wallet);
         TransactionConfidence confidence = tx.getConfidence();
         return (value.isNegative() || value.isZero()) && tx.getType() == Transaction.Type.TRANSACTION_NORMAL &&
-                (confidence.getConfidenceType() != TransactionConfidence.ConfidenceType.BUILDING && (confidence.numBroadcastPeers() == 0 ||
-                        confidence.getIXType() != TransactionConfidence.IXType.IX_LOCKED));
+                (confidence.getConfidenceType() != TransactionConfidence.ConfidenceType.BUILDING
+                        && (confidence.numBroadcastPeers() == 0 ||
+                                confidence.getIXType() != TransactionConfidence.IXType.IX_LOCKED));
     }
 }

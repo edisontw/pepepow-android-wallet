@@ -73,4 +73,62 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/rescan_blockchain"
+        style="@style/MenuRow.Internal">
+
+        <TextView
+            style="@style/MontserratMedium.MenuRowTitle.Internal"
+            android:text="@string/menu_rescan_blockchain"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            style="@style/MenuRowArrow"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_menu_row_arrow" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/api_status"
+        style="@style/MenuRow.Internal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/api_status_arrow"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/api_status_title"
+                style="@style/MontserratMedium.MenuRowTitle.Internal"
+                android:text="@string/menu_api_status" />
+
+            <TextView
+                android:id="@+id/api_status_summary"
+                style="@style/MontserratRegular"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/preferences_api_health_summary" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/api_status_arrow"
+            style="@style/MenuRowArrow"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_menu_row_arrow" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </LinearLayout>

@@ -48,16 +48,22 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/rescan_blockchain"
+        android:id="@+id/developer_options"
         style="@style/MenuRow.Internal">
 
         <TextView
             style="@style/MontserratMedium.MenuRowTitle.Internal"
-            android:text="@string/menu_rescan_blockchain"
+            android:text="@string/menu_developer_options"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <ImageView
+            style="@style/MenuRowArrow"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_menu_row_arrow" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout

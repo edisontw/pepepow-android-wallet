@@ -68,15 +68,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * The abstract base class of all Quorum State classes.  This class handles sync of masternode and quorum lists
+ * The abstract base class of all Quorum State classes. This class handles sync
+ * of masternode and quorum lists
  *
- * @param <Request>     A class derived from {@link AbstractQuorumRequest} used as the message to request updates
+ * @param <Request>     A class derived from {@link AbstractQuorumRequest} used
+ *                      as the message to request updates
  *                      to the masternode and quorum lists
- * @param <DiffMessage> A class derived from {@link AbstractDiffMessage} used as the message that contains updates
- *                      *           to the masternode and quorum lists
+ * @param <DiffMessage> A class derived from {@link AbstractDiffMessage} used as
+ *                      the message that contains updates
+ *                      * to the masternode and quorum lists
  */
 
-public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest, DiffMessage extends AbstractDiffMessage> extends Message {
+public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest, DiffMessage extends AbstractDiffMessage>
+        extends Message {
 
     public static final int SNAPSHOT_LIST_PERIOD = 576; // once per day
     public static final int LISTS_CACHE_SIZE = 576;
@@ -91,8 +95,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     Context context;
     DualBlockChain blockChain;
     protected PeerGroup peerGroup;
-    //protected BlockStore headerStore;
-    //protected BlockStore blockStore;
+    // protected BlockStore headerStore;
+    // protected BlockStore blockStore;
 
     QuorumUpdateRequest<Request> lastRequest;
 
@@ -118,7 +122,6 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     public SettableFuture<Boolean> bootStrapLoaded;
 
     boolean isLoadingBootstrap = false;
-
 
     public AbstractQuorumState(Context context) {
         super(context.getParams());
@@ -176,7 +179,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     protected void pushPendingBlock(StoredBlock block) {
         pendingBlocks.add(block);
     }
-//
+
+    //
     public BlockQueue getPendingBlocks() {
         return pendingBlocks;
     }
@@ -206,8 +210,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     abstract boolean needsUpdate(StoredBlock nextBlock);
 
     public abstract void processDiff(@Nullable Peer peer, DiffMessage difference,
-                                     DualBlockChain blockChain,
-                                     boolean isLoadingBootStrap, PeerGroup.SyncStage syncStage)
+            DualBlockChain blockChain,
+            boolean isLoadingBootStrap, PeerGroup.SyncStage syncStage)
             throws VerificationException;
 
     public abstract void requestReset(Peer peer, StoredBlock block);
@@ -271,9 +275,10 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     }
 
     protected void requestAfterMNListReset() throws BlockStoreException {
-        if (blockChain == null) //not initialized
+        if (blockChain == null) // not initialized
             return;
-        int rewindBlockCount = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_LIST_PERIOD : MAX_CACHE_SIZE;
+        int rewindBlockCount = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_LIST_PERIOD
+                : MAX_CACHE_SIZE;
         int height = blockChain.getBestChainHeight() - rewindBlockCount;
         if (height < params.getDIP0008BlockHeight())
             height = params.getDIP0008BlockHeight();
@@ -306,10 +311,13 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
         }
 
         if (!pendingBlocks.contains(block)) {
-            log.info("adding 1 block to the {} pending queue of size: {} : {}/{}", lastRequest.request.getClass().getSimpleName(), pendingBlocks.size(), block.getHeight(), block.getHeader().getHash());
+            log.info("adding 1 block to the {} pending queue of size: {} : {}/{}",
+                    lastRequest.request.getClass().getSimpleName(), pendingBlocks.size(), block.getHeight(),
+                    block.getHeader().getHash());
             pendingBlocks.add(block);
         } else {
-            log.info("block {} at {} is already in the pendingBlocksMap", block.getHeader().getHash(), block.getHeight());
+            log.info("block {} at {} is already in the pendingBlocksMap", block.getHeader().getHash(),
+                    block.getHeight());
         }
 
         if (!waitingForMNListDiff) {
@@ -345,17 +353,19 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
 
             log.info("handling next mnlistdiff: " + pendingBlocks.size());
 
-            //fill up the pending list with recent blocks
+            // fill up the pending list with recent blocks
             if (syncOptions != MasternodeListSyncOptions.SYNC_MINIMUM) {
                 // TODO: update based on headers first sync
                 Sha256Hash tipHash = blockChain.getChainHead().getHeader().getHash();
                 ArrayList<StoredBlock> blocksToAdd = new ArrayList<>();
-                if (!getMasternodeListCache().containsKey(tipHash) && !pendingBlocks.contains(blockChain.getChainHead())) {
+                if (!getMasternodeListCache().containsKey(tipHash)
+                        && !pendingBlocks.contains(blockChain.getChainHead())) {
                     StoredBlock cursor = blockChain.getChainHead();
                     do {
                         if (!pendingBlocks.contains(cursor)) {
                             blocksToAdd.add(0, cursor);
-                        } else break;
+                        } else
+                            break;
                         try {
                             cursor = cursor.getPrev(blockChain.getBlockChain().getBlockStore());
                         } catch (BlockStoreException x) {
@@ -384,24 +394,31 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
                     nextBlock = blockIterator.next();
                     if (nextBlock.getHeight() <= getMasternodeListAtTip().getHeight()) {
                         blockIterator.remove();
-                        log.debug("removing {}/{} from pending blocks", nextBlock.getHeight(), nextBlock.getHeader().getHash());
-                    } else break;
+                        log.debug("removing {}/{} from pending blocks", nextBlock.getHeight(),
+                                nextBlock.getHeader().getHash());
+                    } else
+                        break;
                 }
 
                 if (!pendingBlocks.isEmpty()) {
                     nextBlock = pendingBlocks.peek();
-                    if (syncInterval > 1 && nextBlock.getHeader().getTimeSeconds() < Utils.currentTimeSeconds() - 60 * 60 && pendingBlocks.size() > syncInterval) {
+                    if (syncInterval > 1
+                            && nextBlock.getHeader().getTimeSeconds() < Utils.currentTimeSeconds() - 60 * 60
+                            && pendingBlocks.size() > syncInterval) {
                         // let's skip up to the next syncInterval blocks
                         while (blockIterator.hasNext()) {
                             nextBlock = blockIterator.next();
-                            if (nextBlock.getHeight() % syncInterval == 0) break;
+                            if (nextBlock.getHeight() % syncInterval == 0)
+                                break;
                             blockIterator.remove();
                         }
                         log.info("skipping up to the next syncInterval");
                     }
 
-                    log.info("sending {} from {} to {}; \n  From {}\n To {}", lastRequest.request.getClass().getSimpleName(),
-                            getMasternodeListAtTip().getHeight(), nextBlock.getHeight(), getMasternodeListAtTip().getBlockHash(), nextBlock.getHeader().getHash());
+                    log.info("sending {} from {} to {}; \n  From {}\n To {}",
+                            lastRequest.request.getClass().getSimpleName(),
+                            getMasternodeListAtTip().getHeight(), nextBlock.getHeight(),
+                            getMasternodeListAtTip().getBlockHash(), nextBlock.getHeader().getHash());
                     requestUpdate(downloadPeer, nextBlock);
                     log.info("message = {}", lastRequest.getRequestMessage().toString(blockChain));
                     waitingForMNListDiff = true;
@@ -429,7 +446,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
 
         lock.lock();
         try {
-            long timePeriod = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_TIME_PERIOD : MAX_CACHE_SIZE * 3 * 60;
+            long timePeriod = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_TIME_PERIOD
+                    : MAX_CACHE_SIZE * 3 * 60;
             if (!pendingBlocks.isEmpty()) {
                 if (!waitingForMNListDiff) {
                     requestNextMNListDiff();
@@ -446,8 +464,9 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
                 return;
             }
 
-            //Should we reset our masternode/quorum list
-            if (getMasternodeListAtTip().size() == 0 || getMasternodeListAtTip().getBlockHash().equals(params.getGenesisBlock().getHash())) {
+            // Should we reset our masternode/quorum list
+            if (getMasternodeListAtTip().size() == 0
+                    || getMasternodeListAtTip().getBlockHash().equals(params.getGenesisBlock().getHash())) {
                 clearState();
             } else {
                 // this may be out of date
@@ -455,11 +474,10 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
                     return;
             }
 
-
-
             StoredBlock block = blockChain.getChainHead();
             SimplifiedMasternodeList mnList = getMasternodeListAtTip();
-            log.info("maybe requesting {} from {} to {}; \n  From {}\n  To {}", lastRequest.request.getClass().getSimpleName(),
+            log.info("maybe requesting {} from {} to {}; \n  From {}\n  To {}",
+                    lastRequest.request.getClass().getSimpleName(),
                     mnList.getHeight(), block.getHeight(), mnList.getBlockHash(), block.getHeader().getHash());
 
             if (mnList.getBlockHash().equals(params.getGenesisBlock().getHash())) {
@@ -544,7 +562,7 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
             blockChain.removeNewBestBlockListener(newBestBlockListener);
             blockChain.removeReorganizeListener(reorganizeListener);
         }
-         if (peerGroup != null) {
+        if (peerGroup != null) {
             peerGroup.removeConnectedEventListener(peerConnectedEventListener);
             peerGroup.removeChainDownloadStartedEventListener(chainDownloadStartedEventListener);
             peerGroup.removeHeadersDownloadStartedEventListener(headersDownloadStartedEventListener);
@@ -555,14 +573,19 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     public final NewBestBlockListener newBestBlockListener = new NewBestBlockListener() {
         @Override
         public void notifyNewBestBlock(StoredBlock block) throws VerificationException {
-            boolean value = initChainTipSyncComplete || !context.masternodeSync.hasSyncFlag(MasternodeSync.SYNC_FLAGS.SYNC_HEADERS_MN_LIST_FIRST);
+            boolean value = initChainTipSyncComplete
+                    || !context.masternodeSync.hasSyncFlag(MasternodeSync.SYNC_FLAGS.SYNC_HEADERS_MN_LIST_FIRST);
             boolean needsUpdate = needsUpdate(block);
-            if (needsUpdate && value && getMasternodeListAtTip().getHeight() < block.getHeight() && isDeterministicMNsSporkActive() && stateManager.isLoadedFromFile()) {
-                long timePeriod = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_TIME_PERIOD : MAX_CACHE_SIZE * 3 * 600L;
+            if (needsUpdate && value && getMasternodeListAtTip().getHeight() < block.getHeight()
+                    && isDeterministicMNsSporkActive() && stateManager.isLoadedFromFile()) {
+                long timePeriod = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_TIME_PERIOD
+                        : MAX_CACHE_SIZE * 3 * 600L;
                 if (Utils.currentTimeSeconds() - block.getHeader().getTimeSeconds() < timePeriod) {
                     if (syncOptions == MasternodeListSyncOptions.SYNC_MINIMUM) {
                         try {
-                            StoredBlock requestBlock = getBlockHeightOffset() > 0 ? blockChain.getBlock(block.getHeight() - getBlockHeightOffset()) : block;
+                            StoredBlock requestBlock = getBlockHeightOffset() > 0
+                                    ? blockChain.getBlock(block.getHeight() - getBlockHeightOffset())
+                                    : block;
                             if (getMasternodeListAtTip().getHeight() > requestBlock.getHeight())
                                 requestBlock = blockChain.getBlock((int) getMasternodeListAtTip().getHeight() + 1);
                             if (requestBlock != null) {
@@ -572,14 +595,27 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
                             log.info("null pointer exception", x);
                         }
                     }
-                    log.debug("new best block: requesting {} as {}", block.getHeight(), lastRequest.getRequestMessage().getClass().getSimpleName());
+                    log.debug("new best block: requesting {} as {}", block.getHeight(),
+                            lastRequest.getRequestMessage().getClass().getSimpleName());
                     requestMNListDiff(block);
                 }
             } else {
-                if (AbstractQuorumState.this instanceof QuorumRotationState && block.getHeight() % params.getLlmqs().get(params.getLlmqDIP0024InstantSend()).getDkgMiningWindowEnd() != 0) {
+                boolean shouldProcess = true;
+                // Only check quorum rotation if LLMQ is enabled on this network
+                if (params.isLlmqEnabled() && AbstractQuorumState.this instanceof QuorumRotationState) {
+                    LLMQParameters.LLMQType llmqType = params.getLlmqDIP0024InstantSend();
+                    if (llmqType != null && params.getLlmqs().containsKey(llmqType)) {
+                        if (block.getHeight() % params.getLlmqs().get(llmqType).getDkgMiningWindowEnd() != 0) {
+                            shouldProcess = false;
+                        }
+                    }
+                }
+
+                if (!shouldProcess) {
                     return;
                 }
-                log.debug("new best block: not requesting {} (value={}, update={}) as {}", block.getHeight(), value, needsUpdate,lastRequest.getRequestMessage().getClass().getSimpleName());
+                log.debug("new best block: not requesting {} (value={}, update={}) as {}", block.getHeight(), value,
+                        needsUpdate, lastRequest.getRequestMessage().getClass().getSimpleName());
             }
         }
     };
@@ -607,22 +643,25 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
             if (peer.getAddress().equals(lastRequest.getPeerAddress())) {
                 log.warn("Disconnecting from peer {} before processing mnlistdiff", peer.getAddress());
                 // TODO: what else should we do?
-                //   request again?
+                // request again?
             }
         }
     };
 
     final ReorganizeListener reorganizeListener = new ReorganizeListener() {
         @Override
-        public void reorganize(StoredBlock splitPoint, List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) throws VerificationException {
+        public void reorganize(StoredBlock splitPoint, List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks)
+                throws VerificationException {
             if (!shouldProcessMNListDiff()) {
                 return;
             }
             lock.lock();
             try {
-                SimplifiedMasternodeList mnlistAtSplitPoint = getMasternodeListCache().get(splitPoint.getHeader().getHash());
+                SimplifiedMasternodeList mnlistAtSplitPoint = getMasternodeListCache()
+                        .get(splitPoint.getHeader().getHash());
                 if (mnlistAtSplitPoint != null) {
-                    Iterator<Map.Entry<Sha256Hash, SimplifiedMasternodeList>> iterator = getMasternodeListCache().entrySet().iterator();
+                    Iterator<Map.Entry<Sha256Hash, SimplifiedMasternodeList>> iterator = getMasternodeListCache()
+                            .entrySet().iterator();
                     boolean foundSplitPoint = false;
                     while (iterator.hasNext()) {
                         Map.Entry<Sha256Hash, SimplifiedMasternodeList> entry = iterator.next();
@@ -687,7 +726,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
             if (blockChain == null || blockChain.getBestChainHeight() >= getMasternodeListAtTip().getHeight())
                 return;
             StoredBlock block = blockChain.getChainHead();
-            long timePeriod = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_TIME_PERIOD : MAX_CACHE_SIZE * 3 * 60L;
+            long timePeriod = syncOptions == MasternodeListSyncOptions.SYNC_SNAPSHOT_PERIOD ? SNAPSHOT_TIME_PERIOD
+                    : MAX_CACHE_SIZE * 3 * 60L;
             if (Utils.currentTimeSeconds() - block.getHeader().getTimeSeconds() < timePeriod) {
                 if (syncOptions == MasternodeListSyncOptions.SYNC_MINIMUM) {
                     StoredBlock requestBlock = blockChain.getBlock(block.getHeight() - getBlockHeightOffset());
@@ -715,7 +755,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
                 } catch (ExecutionException e) {
                     // send the message again
                     try {
-                        log.info("Exception when sending {}", lastRequest.getRequestMessage().getClass().getSimpleName(), e);
+                        log.info("Exception when sending {}",
+                                lastRequest.getRequestMessage().getClass().getSimpleName(), e);
 
                         // use tryLock to avoid deadlocks
                         boolean isLocked = context.peerGroup.getLock().tryLock(500, TimeUnit.MILLISECONDS);
@@ -753,7 +794,7 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
         return bootstrapFilePath == null && bootstrapStream == null;
     }
 
-    abstract DiffMessage loadDiffMessageFromBuffer(byte [] buffer, int protocolVersion);
+    abstract DiffMessage loadDiffMessageFromBuffer(byte[] buffer, int protocolVersion);
 
     public void setLoadingBootstrap() {
         isLoadingBootstrap = true;
@@ -761,8 +802,10 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
     }
 
     protected void loadBootstrapAndSync() {
-        Preconditions.checkState(!notUsingBootstrapFileAndStream(), "there must be a bootstrap file or stream specified");
-        Preconditions.checkState(getMasternodeList().size() == 0, "masternode list is not empty: " + getMasternodeList());
+        Preconditions.checkState(!notUsingBootstrapFileAndStream(),
+                "there must be a bootstrap file or stream specified");
+        Preconditions.checkState(getMasternodeList().size() == 0,
+                "masternode list is not empty: " + getMasternodeList());
         Preconditions.checkState(getQuorumListAtTip().size() == 0);
         Preconditions.checkState(getMasternodeListCache().size() == 1);
         Preconditions.checkState(getQuorumsCache().size() == 1);
@@ -784,7 +827,7 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
 
             if (stream != null) {
                 buffer = new byte[(int) stream.available()];
-                //noinspection ResultOfMethodCallIgnored
+                // noinspection ResultOfMethodCallIgnored
                 stream.read(buffer);
             }
 
@@ -807,7 +850,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
             }
             bootStrapLoaded.set(true);
             log.info("finished loading bootstrap files");
-        } catch (VerificationException | IOException | IllegalStateException | NullPointerException | InterruptedException | ExecutionException x) {
+        } catch (VerificationException | IOException | IllegalStateException | NullPointerException
+                | InterruptedException | ExecutionException x) {
             bootStrapLoaded.setException(x);
             log.info("failed loading bootstrap files: ", x);
         } finally {
@@ -828,7 +872,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
         ChainLockSignature clsig = chainLocksHandler.getCoinbaseChainLock(block.getHeader().getHash());
         if (clsig != null)
             return clsig.getSignature();
-        else return null;
+        else
+            return null;
     }
 
     // DIP29 Random Beacon for LLMQ selection is activated with v20
@@ -838,7 +883,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
         if (params.isV20Active(workBlock.getHeight())) {
             // v20 is active: calculate modifier using the new way.
             BLSSignature bestCLSignature = getCoinbaseChainlock(workBlock);
-            log.info("getHashModifier(..., {})\n  work: {}\n  sig: {}", quorumBaseBlock.getHeader().getHash(), workBlock.getHeader().getHash(), bestCLSignature);
+            log.info("getHashModifier(..., {})\n  work: {}\n  sig: {}", quorumBaseBlock.getHeader().getHash(),
+                    workBlock.getHeader().getHash(), bestCLSignature);
             if (bestCLSignature != null) {
                 // We have a non-null CL signature: calculate modifier using this CL signature
 
@@ -846,7 +892,8 @@ public abstract class AbstractQuorumState<Request extends AbstractQuorumRequest,
             } else {
                 log.info("cannot find CL for block {}", workBlock.getHeader().getHash());
             }
-            // No non-null CL signature found in coinbase: calculate modifier using block hash only
+            // No non-null CL signature found in coinbase: calculate modifier using block
+            // hash only
             return LLMQUtils.buildLLMQBlockHash(llmqParams.getType(), workBlock.getHeader().getHash());
         }
 

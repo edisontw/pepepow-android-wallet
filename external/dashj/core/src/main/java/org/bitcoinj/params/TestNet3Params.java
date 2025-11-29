@@ -44,6 +44,9 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
 
         // 00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
         maxTarget = Utils.decodeCompactBits(0x1e0fffffL);
+        maxTargetAfterSwitch = maxTarget;
+        newHashHeight = 4;
+        newHashBits = 0x2000ffffL;
         port = 18833;
         addressHeader = 140;
         p2shHeader = 19;

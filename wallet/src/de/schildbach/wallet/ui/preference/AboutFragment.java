@@ -61,8 +61,11 @@ public final class AboutFragment extends PreferenceFragment {
 
         addPreferencesFromResource(R.xml.preference_about);
 
-        findPreference(KEY_ABOUT_VERSION)
-                .setSummary(application.packageInfo().versionName + (BuildConfig.DEBUG ? " (debuggable)" : ""));
+        String versionSummary = getString(R.string.about_version_name, application.packageInfo().versionName);
+        if (BuildConfig.DEBUG) {
+            versionSummary = versionSummary + " (debuggable)";
+        }
+        findPreference(KEY_ABOUT_VERSION).setSummary(versionSummary);
         Intent marketIntent = new Intent(Intent.ACTION_VIEW,
                 Uri.parse(String.format(Constants.MARKET_APP_URL, activity.getPackageName())));
         if (packageManager.resolveActivity(marketIntent, 0) == null)

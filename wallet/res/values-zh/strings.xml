@@ -308,7 +308,7 @@
     <string name="about_license_title">许可协议</string>
     <string name="about_source_title">源代码</string>
     <string name="about_category_credits">此应用正在使用...</string>
-    <string name="about_credits_bitcoinj_title">dashj %s, 佩佩矿工币实现协议</string>
+    <string name="about_credits_bitcoinj_title">PePe-core %s, 佩佩矿工币实现协议</string>
     <string name="about_credits_zxing_title">ZXing, 二维码处理函数库</string>
     <string name="about_credits_icon_title">此app使用的是‘bitboy’的图标</string>
     <string name="about_credits_scrypt_title">脚本, 由Will Glozer 和 Colin Percival制作</string>

@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2019 Dash Core Group
  *
@@ -80,6 +81,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
         INVALID_PIN,
         LOCKED,
         USE_FINGERPRINT,
+        LOADING,
     }
 
     private var fingerprintHelper: FingerprintHelper? = null
@@ -88,6 +90,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        org.slf4j.LoggerFactory.getLogger(LockScreenActivity::class.java).info("LockScreenActivity: onCreate()")
         setContentView(R.layout.activity_lock_screen)
         setupKeyboardBottomMargin()
 
@@ -112,10 +115,44 @@ class LockScreenActivity : SendCoinsQrActivity() {
         return id > 0 && resources.getBoolean(id)
     }
 
+    override fun finishIfNotInitialized(): Boolean {
+        // We handle initialization state ourselves to avoid loops
+        return false
+    }
+
     override fun onStart() {
         super.onStart()
-        setupInitState()
+        val logger = org.slf4j.LoggerFactory.getLogger(LockScreenActivity::class.java)
+        logger.info("LockScreenActivity: onStart()")
+        
+        val hasWallet = walletApplication.walletFileExists()
+        // We can't easily check for PIN without wallet loaded, but if we are here, 
+        // it's likely because OnboardingActivity sent us here or user launched it.
+        // If wallet file exists, we should show the UI.
+        
+        logger.info("LockScreenActivity: deciding initial state (hasWallet=$hasWallet)")
+
+        if (!hasWallet) {
+            logger.info("LockScreenActivity: no wallet present, going back to onboarding")
+            startActivity(OnboardingActivity.createIntent(this))
+            finish()
+            return
+        }
+
+        // If wallet exists, we proceed to show UI.
+        // Even if wallet is null (loading), we show PIN UI.
+        // If it turns out there is no PIN later (after wallet loads), we might handle it then,
+        // but for now, preventing the loop is priority.
+
         walletApplication.startBlockchainService(true)
+        
+        // Removed: walletApplication.loadWallet() - let WalletActivity handle this or keep it if it's non-blocking
+        // We can keep loadWallet() if it just triggers background loading, but we must NOT wait for it.
+        walletApplication.loadWallet()
+
+        // Removed: Observer on walletStateLiveData
+        // We now initialize the PIN UI immediately, regardless of wallet state.
+        setupInitState()
     }
 
     private fun initView() {
@@ -196,6 +233,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
     }
 
     private fun onCorrectPin(pin: String) {
+        org.slf4j.LoggerFactory.getLogger(LockScreenActivity::class.java).info("LockScreenActivity: PIN verified, launching WalletActivity")
         pinRetryController.clearPinFailPrefs()
         walletApplication.maybeStartAutoLogoutTimer()
         val intent: Intent
@@ -250,7 +288,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
 
                 numeric_keyboard.visibility = View.GONE
             }
-            State.DECRYPTING -> {
+            State.DECRYPTING, State.LOADING -> {
                 view_flipper.displayedChild = 2
 
                 numeric_keyboard.isEnabled = false
@@ -274,7 +312,9 @@ class LockScreenActivity : SendCoinsQrActivity() {
     }
 
     private fun setupInitState() {
+        val logger = org.slf4j.LoggerFactory.getLogger(LockScreenActivity::class.java)
         if (pinRetryController.isLocked) {
+            logger.info("LockScreenActivity: PIN locked")
             setState(State.LOCKED)
             return
         }
@@ -282,6 +322,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
             fingerprintHelper = FingerprintHelper(this)
             fingerprintHelper?.run {
                 if (init() && isFingerprintEnabled) {
+                    logger.info("LockScreenActivity: showing fingerprint UI")
                     setState(State.USE_FINGERPRINT)
                     startFingerprintListener()
                     return
@@ -292,6 +333,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
                 }
             }
         }
+        logger.info("LockScreenActivity: showing PIN UI")
         setState(State.ENTER_PIN)
     }
 

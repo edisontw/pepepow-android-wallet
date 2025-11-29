@@ -28,7 +28,8 @@ import java.util.HashMap;
 import static com.google.common.base.Preconditions.*;
 
 /**
- * Parameters for the main production network on which people trade goods and services.
+ * Parameters for the main production network on which people trade goods and
+ * services.
  */
 public class MainNetParams extends AbstractBitcoinNetParams {
     private static final Logger log = LoggerFactory.getLogger(MainNetParams.class);
@@ -74,15 +75,18 @@ public class MainNetParams extends AbstractBitcoinNetParams {
                 "dnsseed.pepepow.foztor.net"
         };
 
-        // This contains (at a minimum) the blocks which are not BIP30 compliant. BIP30 changed how duplicate
-        // transactions are handled. Duplicated transactions could occur in the case where a coinbase had the same
-        // extraNonce and the same outputs but appeared at different heights, and greatly complicated re-org handling.
+        // This contains (at a minimum) the blocks which are not BIP30 compliant. BIP30
+        // changed how duplicate
+        // transactions are handled. Duplicated transactions could occur in the case
+        // where a coinbase had the same
+        // extraNonce and the same outputs but appeared at different heights, and
+        // greatly complicated re-org handling.
         // Having these here simplifies block connection logic considerably.
         checkpoints.put(0, Sha256Hash.wrap("00000a308cc3b469703a3bc1aa55bc251a71c9287d7b413242592c0ab0a31f13"));
         checkpoints.put(1920000, Sha256Hash.wrap("000000000018cef21f56b393e0fbb3c5b28c77f0a6134ea2c0424fc4fe937fdc"));
 
         // Dash does not have a Http Seeder
-        // If an Http Seeder is set up, add it here.  References: HttpDiscovery
+        // If an Http Seeder is set up, add it here. References: HttpDiscovery
         httpSeeds = null;
 
         addrSeeds = new int[] {
@@ -128,7 +132,7 @@ public class MainNetParams extends AbstractBitcoinNetParams {
 
         DIP0001BlockHeight = 782208;
 
-        fulfilledRequestExpireTime = 60*60;
+        fulfilledRequestExpireTime = 60 * 60;
         masternodeMinimumConfirmations = 15;
         superblockStartBlock = 120000;
         superblockCycle = 16616;
@@ -168,16 +172,25 @@ public class MainNetParams extends AbstractBitcoinNetParams {
     }
 
     private static MainNetParams instance;
+
     public static synchronized MainNetParams get() {
-        if (instance == null) {
-            instance = new MainNetParams();
-        }
-        return instance;
+        // For Pepepow wallet, we ALWAYS want the Pepepow parameters for MainNet.
+        // This ensures a single instance is used throughout the app.
+        return PepepowMainNetParams.get();
     }
 
     @Override
     public String getPaymentProtocolId() {
         return PAYMENT_PROTOCOL_ID_MAINNET;
+    }
+
+    /**
+     * PEPEPOW does not support LLMQ/Evolution features.
+     * Returning false prevents NPEs in quorum logic.
+     */
+    @Override
+    public boolean isLlmqEnabled() {
+        return false;
     }
 
     @Override
@@ -188,14 +201,15 @@ public class MainNetParams extends AbstractBitcoinNetParams {
         int height = storedPrev.getHeight() + 1;
 
         // On mainnet before block 68589: incorrect proof of work (DGW pre-fork)
-        // see ContextualCheckBlockHeader in src/validation.cpp in Core repo (dashpay/dash)
+        // see ContextualCheckBlockHeader in src/validation.cpp in Core repo
+        // (dashpay/dash)
         String msg = "Network provided difficulty bits do not match what was calculated: " +
                 Long.toHexString(newTargetCompact) + " vs " + Long.toHexString(receivedTargetCompact);
         if (height <= 68589) {
             double n1 = convertBitsToDouble(receivedTargetCompact);
             double n2 = convertBitsToDouble(newTargetCompact);
 
-            if (java.lang.Math.abs(n1 - n2) > n1 * 0.5 )
+            if (java.lang.Math.abs(n1 - n2) > n1 * 0.5)
                 throw new VerificationException(msg);
         } else {
             if (newTargetCompact != receivedTargetCompact)
@@ -206,16 +220,13 @@ public class MainNetParams extends AbstractBitcoinNetParams {
     static double convertBitsToDouble(long nBits) {
         long nShift = (nBits >> 24) & 0xff;
 
-        double dDiff =
-                (double)0x0000ffff / (double)(nBits & 0x00ffffff);
+        double dDiff = (double) 0x0000ffff / (double) (nBits & 0x00ffffff);
 
-        while (nShift < 29)
-        {
+        while (nShift < 29) {
             dDiff *= 256.0;
             nShift++;
         }
-        while (nShift > 29)
-        {
+        while (nShift > 29) {
             dDiff /= 256.0;
             nShift--;
         }

@@ -22,11 +22,11 @@
 		<item>@string/preferences_precision_labels_0_6</item>
 	</string-array>
 	<string-array name="preferences_block_explorer_values">
-		<item>https://explorer.pepepow.org/</item>
-		<item>https://explorer.pepepow.foztor.net/</item>
+		<item>https://pepepow.org/</item>
+		<item>https://pepepow.net/</item>
 	</string-array>
 	<string-array name="preferences_block_explorer_labels">
-		<item>PEPEPOW Block Explorer</item>
-		<item>FOZTOR Explorer</item>
+		<item>pepepow.org</item>
+		<item>pepepow.net</item>
 	</string-array>
 </resources>

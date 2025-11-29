@@ -150,7 +150,7 @@ public class WalletUtils {
         return result;
     }
 
-    public static List<Address> getToAddressOfReceived(final Transaction tx, final  Wallet wallet) {
+    public static List<Address> getToAddressOfReceived(final Transaction tx, final Wallet wallet) {
         List<Address> result = new ArrayList<>();
 
         for (TransactionOutput output : tx.getOutputs()) {
@@ -184,7 +184,6 @@ public class WalletUtils {
         return result;
     }
 
-
     public static boolean isEntirelySelf(final Transaction tx, final Wallet wallet) {
         for (final TransactionInput input : tx.getInputs()) {
             final TransactionOutput connectedOutput = input.getConnectedOutput();
@@ -210,7 +209,7 @@ public class WalletUtils {
             try {
                 is.reset();
                 Wallet wallet = restorePrivateKeysFromBase58(is, expectedNetworkParameters);
-                wallet.upgradeToDeterministic(null); //this will result in a different HD seed each time
+                wallet.upgradeToDeterministic(null); // this will result in a different HD seed each time
                 return wallet;
             } catch (final IOException x2) {
                 throw new IOException(
@@ -236,9 +235,9 @@ public class WalletUtils {
     }
 
     public static Wallet restoreWalletFromSeed(final List<String> words,
-                                                   final NetworkParameters expectedNetworkParameters) throws IOException {
+            final NetworkParameters expectedNetworkParameters) throws IOException {
         try {
-            DeterministicSeed seed =  new DeterministicSeed(words, null,"", Constants.EARLIEST_HD_SEED_CREATION_TIME);
+            DeterministicSeed seed = new DeterministicSeed(words, null, "", Constants.EARLIEST_HD_SEED_CREATION_TIME);
             KeyChainGroup group = KeyChainGroup.builder(Constants.NETWORK_PARAMETERS)
                     .fromSeed(seed, Script.ScriptType.P2PKH)
                     .addChain(DeterministicKeyChain.builder()
@@ -275,7 +274,8 @@ public class WalletUtils {
     public static void writeKeys(final Writer out, final List<ECKey> keys) throws IOException {
         final DateFormat format = Iso8601Format.newDateTimeFormatT();
 
-        out.write("# KEEP YOUR PRIVATE KEYS SAFE! Anyone who can read this can spend your "+ CoinDefinition.coinName+"s.\n");
+        out.write("# KEEP YOUR PRIVATE KEYS SAFE! Anyone who can read this can spend your " + CoinDefinition.coinName
+                + "s.\n");
 
         for (final ECKey key : keys) {
             out.write(key.getPrivateKeyEncoded(Constants.NETWORK_PARAMETERS).toString());
@@ -406,10 +406,11 @@ public class WalletUtils {
     }
 
     public static void viewOnBlockExplorer(Context context, Transaction.Purpose txPurpose,
-                                           String txHash) {
-        Uri blockExplorer = WalletApplication.getInstance()
-                .getConfiguration()
-                .getBlockExplorer(R.array.preferences_block_explorer_values);
+            String txHash) {
+        // Force PepePoW explorer
+        String explorerUrl = "https://explorer.pepepow.net";
+        Uri blockExplorer = Uri.parse(explorerUrl);
+
         Uri keyRotationUri = Uri.parse("https://bitcoin.org/en/alert/2013-08-11-android");
         boolean txRotation = txPurpose == Transaction.Purpose.KEY_ROTATION;
         if (!txRotation) {

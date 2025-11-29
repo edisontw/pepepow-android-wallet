@@ -51,6 +51,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * @author Andreas Schildbach
@@ -70,9 +71,10 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
 
     private final String textCoinBase;
     private final String textInternal;
+    private long explorerTipHeight;
 
     public BlockListAdapter(final Context context, final Wallet wallet,
-                            final @Nullable OnClickListener onClickListener) {
+            final @Nullable OnClickListener onClickListener) {
         this.context = context;
         inflater = LayoutInflater.from(context);
         this.wallet = wallet;
@@ -115,6 +117,11 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
         notifyDataSetChanged();
     }
 
+    public void setExplorerTipHeight(long explorerTipHeight) {
+        this.explorerTipHeight = explorerTipHeight;
+        notifyDataSetChanged();
+    }
+
     public StoredBlock getItem(final int position) {
         return blocks.get(position);
     }
@@ -140,10 +147,12 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
         final Block header = storedBlock.getHeader();
 
         /*
-        holder.miningRewardAdjustmentView
-                .setVisibility(isMiningRewardHalvingPoint(storedBlock) ? View.VISIBLE : View.GONE);
-        holder.miningDifficultyAdjustmentView
-                .setVisibility(isDifficultyTransitionPoint(storedBlock) ? View.VISIBLE : View.GONE);
+         * holder.miningRewardAdjustmentView
+         * .setVisibility(isMiningRewardHalvingPoint(storedBlock) ? View.VISIBLE :
+         * View.GONE);
+         * holder.miningDifficultyAdjustmentView
+         * .setVisibility(isDifficultyTransitionPoint(storedBlock) ? View.VISIBLE :
+         * View.GONE);
          */
 
         final int height = storedBlock.getHeight();
@@ -157,75 +166,100 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
         } else {
             blockTime = holder.timeView.getContext().getString(R.string.block_row_now);
         }
-        holder.timeView.setText(blockTime);
+        final boolean aheadOfExplorer = explorerTipHeight > 0 && height > explorerTipHeight;
+        final String displayTime;
+        if (aheadOfExplorer) {
+            displayTime = context.getString(R.string.network_monitor_block_not_on_explorer, explorerTipHeight);
+        } else {
+            displayTime = blockTime;
+        }
+        holder.timeView.setText(displayTime);
+        holder.itemView.setAlpha(aheadOfExplorer ? 0.6f : 1f);
 
         /*
-        holder.hashView.setText(WalletUtils.formatHash(null, header.getHashAsString(), 8, 0, ' '));
+         * holder.hashView.setText(WalletUtils.formatHash(null,
+         * header.getHashAsString(), 8, 0, ' '));
          */
 
         /*
-        final int transactionChildCount = holder.transactionsViewGroup.getChildCount();
-        int iTransactionView = 0;
+         * final int transactionChildCount =
+         * holder.transactionsViewGroup.getChildCount();
+         * int iTransactionView = 0;
+         * 
+         * if (transactions != null) {
+         * for (final Transaction tx : transactions) {
+         * if (tx.getAppearsInHashes().containsKey(header.getHash())) {
+         * final View view;
+         * if (iTransactionView < transactionChildCount) {
+         * view = holder.transactionsViewGroup.getChildAt(iTransactionView);
+         * } else {
+         * view = inflater.inflate(R.layout.block_row_transaction, null);
+         * holder.transactionsViewGroup.addView(view, iTransactionView);
+         * }
+         * 
+         * bindView(view, tx);
+         * 
+         * iTransactionView++;
+         * }
+         * }
+         * }
+         * 
+         * final int leftoverTransactionViews = transactionChildCount -
+         * iTransactionView;
+         * if (leftoverTransactionViews > 0)
+         * holder.transactionsViewGroup.removeViews(iTransactionView,
+         * leftoverTransactionViews);
+         * 
+         * if (onClickListener != null) {
+         * holder.menuView.setOnClickListener(new View.OnClickListener() {
+         * 
+         * @Override
+         * public void onClick(final View v) {
+         * onClickListener.onBlockMenuClick(v, storedBlock);
+         * }
+         * });
+         * }
+         */
 
-        if (transactions != null) {
-            for (final Transaction tx : transactions) {
-                if (tx.getAppearsInHashes().containsKey(header.getHash())) {
-                    final View view;
-                    if (iTransactionView < transactionChildCount) {
-                        view = holder.transactionsViewGroup.getChildAt(iTransactionView);
-                    } else {
-                        view = inflater.inflate(R.layout.block_row_transaction, null);
-                        holder.transactionsViewGroup.addView(view, iTransactionView);
-                    }
-
-                    bindView(view, tx);
-
-                    iTransactionView++;
-                }
+        StoredBlock block = null;
+        if (Constants.NETWORK_PARAMETERS.isLlmqEnabled()) {
+            org.bitcoinj.quorums.ChainLocksHandler handler = wallet.getContext().chainLockHandler;
+            if (handler != null) {
+                block = handler.getBestChainLockBlock();
             }
         }
-
-        final int leftoverTransactionViews = transactionChildCount - iTransactionView;
-        if (leftoverTransactionViews > 0)
-            holder.transactionsViewGroup.removeViews(iTransactionView, leftoverTransactionViews);
-
-        if (onClickListener != null) {
-            holder.menuView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View v) {
-                    onClickListener.onBlockMenuClick(v, storedBlock);
-                }
-            });
-        }
-         */
-
-        final StoredBlock block = wallet.getContext().chainLockHandler.getBestChainLockBlock();
         final int chainLockHeight = block != null ? block.getHeight() : 0;
         final int mnListHeight = (int) wallet.getContext().masternodeListManager.getListAtChainTip().getHeight();
 
         /*
-        if(chainLockHeight == storedBlock.getHeight() || mnListHeight == storedBlock.getHeight()) {
-            String text = "";
-            if(chainLockHeight == storedBlock.getHeight())
-                text = "ChainLock";
-            if(mnListHeight == storedBlock.getHeight()) {
-                if(text.length() > 0)
-                    text += " / ";
-                text += "DMN List";
-            }
-
-            holder.chainLockDMNListView.setText(text);
-            holder.chainLockDMNListView.setVisibility(View.VISIBLE);
-        } else {
-            holder.chainLockDMNListView.setVisibility(View.GONE);
-        }
+         * if(chainLockHeight == storedBlock.getHeight() || mnListHeight ==
+         * storedBlock.getHeight()) {
+         * String text = "";
+         * if(chainLockHeight == storedBlock.getHeight())
+         * text = "ChainLock";
+         * if(mnListHeight == storedBlock.getHeight()) {
+         * if(text.length() > 0)
+         * text += " / ";
+         * text += "DMN List";
+         * }
+         * 
+         * holder.chainLockDMNListView.setText(text);
+         * holder.chainLockDMNListView.setVisibility(View.VISIBLE);
+         * } else {
+         * holder.chainLockDMNListView.setVisibility(View.GONE);
+         * }
          */
         if (onClickListener != null) {
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    BlockInfo blockInfo = new BlockInfo(storedBlock.getHeight(), blockTime,
-                            header.getHashAsString());
+                    if (aheadOfExplorer) {
+                        Toast.makeText(context,
+                                context.getString(R.string.network_monitor_block_not_on_explorer_toast),
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    BlockInfo blockInfo = new BlockInfo(storedBlock.getHeight(), blockTime, header.getHashAsString());
                     onClickListener.onBlockClicked(blockInfo);
                 }
             });
@@ -284,17 +318,17 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
     public static class BlockViewHolder extends RecyclerView.ViewHolder {
 
         /*
-        private final ViewGroup transactionsViewGroup;
-        private final View miningRewardAdjustmentView;
-        private final View miningDifficultyAdjustmentView;
+         * private final ViewGroup transactionsViewGroup;
+         * private final View miningRewardAdjustmentView;
+         * private final View miningDifficultyAdjustmentView;
          */
 
         private final TextView heightView;
         private final TextView timeView;
         /*
-        private final TextView hashView;
-        private final ImageButton menuView;
-        private final TextView chainLockDMNListView;
+         * private final TextView hashView;
+         * private final ImageButton menuView;
+         * private final TextView chainLockDMNListView;
          */
 
         private BlockViewHolder(final View itemView) {
@@ -303,14 +337,18 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
             heightView = itemView.findViewById(R.id.block_height);
             timeView = itemView.findViewById(R.id.block_time);
             /*
-            transactionsViewGroup = (ViewGroup) itemView.findViewById(R.id.block_list_row_transactions_group);
-            miningRewardAdjustmentView = itemView.findViewById(R.id.block_list_row_mining_reward_adjustment);
-            miningDifficultyAdjustmentView = itemView.findViewById(R.id.block_list_row_mining_difficulty_adjustment);
-            heightView = (TextView) itemView.findViewById(R.id.block_list_row_height);
-            timeView = (TextView) itemView.findViewById(R.id.block_list_row_time);
-            hashView = (TextView) itemView.findViewById(R.id.block_list_row_hash);
-            menuView = (ImageButton) itemView.findViewById(R.id.block_list_row_menu);
-            chainLockDMNListView = (TextView)itemView.findViewById(R.id.block_list_row_chainlock_mnlist);
+             * transactionsViewGroup = (ViewGroup)
+             * itemView.findViewById(R.id.block_list_row_transactions_group);
+             * miningRewardAdjustmentView =
+             * itemView.findViewById(R.id.block_list_row_mining_reward_adjustment);
+             * miningDifficultyAdjustmentView =
+             * itemView.findViewById(R.id.block_list_row_mining_difficulty_adjustment);
+             * heightView = (TextView) itemView.findViewById(R.id.block_list_row_height);
+             * timeView = (TextView) itemView.findViewById(R.id.block_list_row_time);
+             * hashView = (TextView) itemView.findViewById(R.id.block_list_row_hash);
+             * menuView = (ImageButton) itemView.findViewById(R.id.block_list_row_menu);
+             * chainLockDMNListView =
+             * (TextView)itemView.findViewById(R.id.block_list_row_chainlock_mnlist);
              */
         }
     }
@@ -320,6 +358,8 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
     }
 
     public final boolean isDifficultyTransitionPoint(final StoredBlock storedPrev) {
-        return (storedPrev.getHeight() + 1) < 15200 ? ((storedPrev.getHeight() + 1) % Constants.NETWORK_PARAMETERS.getInterval()) == 0 : false;
+        return (storedPrev.getHeight() + 1) < 15200
+                ? ((storedPrev.getHeight() + 1) % Constants.NETWORK_PARAMETERS.getInterval()) == 0
+                : false;
     }
 }

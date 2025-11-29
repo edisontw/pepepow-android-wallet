@@ -62,6 +62,8 @@ public class Configuration {
     public static final String PREFS_KEY_AUTO_LOGOUT_MINUTES = "auto_logout_minutes";
     private static final String PREFS_KEY_SPENDING_CONFIRMATION_ENABLED = "spending_confirmation_enabled";
     private static final String PREFS_KEY_BIOMETRIC_LIMIT = "biometric_limit";
+    public static final String PREFS_KEY_DEVELOPER_MODE = "developer_mode";
+    public static final String PREFS_KEY_FULL_SYNC = "full_sync";
 
     private static final String PREFS_KEY_LAST_VERSION = "last_version";
     private static final String PREFS_KEY_LAST_USED = "last_used";
@@ -77,10 +79,11 @@ public class Configuration {
     private static final String PREFS_ENABLE_FINGERPRINT = "enable_fingerprint";
     public static final String PREFS_RESTORING_BACKUP = "restoring_backup";
     public static final String PREFS_V7_REDESIGN_TUTORIAL_COMPLETED = "v7_tutorial_completed";
-    public static final String PREFS_PIN_LENGTH = "pin_length";
+    public static final String PREFS_KEY_PIN_LENGTH = "pin_length";
 
     private static final int PREFS_DEFAULT_BTC_SHIFT = 0;
     private static final int PREFS_DEFAULT_BTC_PRECISION = 4;
+    private static final String FORCED_EXCHANGE_CURRENCY = "USDT";
 
     private static final Logger log = LoggerFactory.getLogger(Configuration.class);
 
@@ -165,6 +168,28 @@ public class Configuration {
 
     public boolean getConnectivityNotificationEnabled() {
         return prefs.getBoolean(PREFS_KEY_CONNECTIVITY_NOTIFICATION, false);
+    }
+
+    public boolean isDeveloperModeEnabled() {
+        return prefs.getBoolean(PREFS_KEY_DEVELOPER_MODE, false);
+    }
+
+    public void setDeveloperModeEnabled(final boolean enabled) {
+        prefs.edit().putBoolean(PREFS_KEY_DEVELOPER_MODE, enabled).apply();
+    }
+
+    public boolean isFullSyncEnabled() {
+        return getSyncMode() == org.dash.wallet.common.data.SyncMode.FULL_SPV;
+    }
+
+    public void setFullSyncEnabled(final boolean enabled) {
+        if (enabled) {
+            setSyncMode(org.dash.wallet.common.data.SyncMode.FULL_SPV);
+        } else {
+            if (getSyncMode() == org.dash.wallet.common.data.SyncMode.FULL_SPV) {
+                setSyncMode(org.dash.wallet.common.data.SyncMode.FAST_API_10POW);
+            }
+        }
     }
 
     public String getTrustedPeerHost() {
@@ -260,7 +285,7 @@ public class Configuration {
 
     public void setBackupSeedLastDismissedReminderOnce(boolean forceReset) {
         long value;
-        if (prefs.contains(PREFS_KEY_BACKUP_SEED_LAST_DISMISSED_REMINDER) && !forceReset){
+        if (prefs.contains(PREFS_KEY_BACKUP_SEED_LAST_DISMISSED_REMINDER) && !forceReset) {
             value = -1;
         } else {
             value = System.currentTimeMillis();
@@ -282,69 +307,11 @@ public class Configuration {
     }
 
     public String getExchangeCurrencyCode() {
-        return prefs.getString(PREFS_KEY_EXCHANGE_CURRENCY, null);
-    }
-
-    public void setExchangeCurrencyCode(final String exchangeCurrencyCode) {
-        prefs.edit().putString(PREFS_KEY_EXCHANGE_CURRENCY, exchangeCurrencyCode).apply();
-    }
-
-    public boolean getExchangeCurrencyCodeDetected() {
-        return prefs.getBoolean(PREFS_KEY_EXCHANGE_CURRENCY_DETECTED, false);
-    }
-
-    public void setExchangeCurrencyCodeDetected(boolean detected) {
-        prefs.edit().putBoolean(PREFS_KEY_EXCHANGE_CURRENCY_DETECTED, detected).apply();
-    }
-
-    /**
-     * @return whether the app was ever upgraded of if it's running on the first version in which
-     * it was installed
-     */
-    public boolean wasUpgraded() {
-        return prefs.getInt(PREFS_KEY_PREVIOUS_VERSION, 0) != 0;
-    }
-
-    public boolean getQrPaymentRequestEnabled() {
-        return prefs.getBoolean(PREFS_KEY_LABS_QR_PAYMENT_REQUEST, false);
-    }
-
-    public boolean versionCodeCrossed(final int currentVersionCode, final int triggeringVersionCode) {
-        final boolean wasBelow = lastVersionCode < triggeringVersionCode;
-        final boolean wasUsedBefore = lastVersionCode > 0;
-        final boolean isNowAbove = currentVersionCode >= triggeringVersionCode;
-
-        return wasUsedBefore && wasBelow && isNowAbove;
-    }
-
-    public void updateLastVersionCode(final int currentVersionCode) {
-        Editor editor = prefs.edit();
-        editor.putInt(PREFS_KEY_PREVIOUS_VERSION, prefs.getInt(PREFS_KEY_LAST_VERSION, 0));
-        editor.putInt(PREFS_KEY_LAST_VERSION, currentVersionCode);
-        editor.apply();
-
-        if (currentVersionCode > lastVersionCode)
-            log.info("detected app upgrade: " + lastVersionCode + " -> " + currentVersionCode);
-        else if (currentVersionCode < lastVersionCode)
-            log.warn("detected app downgrade: " + lastVersionCode + " -> " + currentVersionCode);
-    }
-
-    public boolean hasBeenUsed() {
-        return prefs.contains(PREFS_KEY_LAST_USED);
-    }
-
-    public long getLastUsedAgo() {
-        final long now = System.currentTimeMillis();
-
-        return now - prefs.getLong(PREFS_KEY_LAST_USED, 0);
-    }
-
-    public void touchLastUsed() {
-        final long prefsLastUsed = prefs.getLong(PREFS_KEY_LAST_USED, 0);
-        final long now = System.currentTimeMillis();
-        prefs.edit().putLong(PREFS_KEY_LAST_USED, now).apply();
-
-        log.info("just being used - last used {} minutes ago", (now - prefsLastUsed) / DateUtils.MINUTE_IN_MILLIS);
+        final String storedCode = prefs.getString(PREFS_KEY_EXCHANGE_CURRENCY, null);
+        if (!FORCED_EXCHANGE_CURRENCY.equalsIgnoreCase(storedCode)) {
+            prefs.edit().putString(PREFS_KEY_EXCHANGE_CURRENCY, FORCED_EXCHANGE_CURRENCY).apply();
+        }
+        return FORCED_EXCHANGE_CURRENCY;
     }
 
     public int getBestChainHeightEver() {
@@ -412,15 +379,104 @@ public class Configuration {
         return prefs.getBoolean(PREFS_ENABLE_FINGERPRINT, false);
     }
 
+    public void setExchangeCurrencyCode(final String exchangeCurrencyCode) {
+        prefs.edit().putString(PREFS_KEY_EXCHANGE_CURRENCY, exchangeCurrencyCode).apply();
+    }
+
+    public boolean getExchangeCurrencyCodeDetected() {
+        return prefs.getBoolean(PREFS_KEY_EXCHANGE_CURRENCY_DETECTED, false);
+    }
+
+    public void setExchangeCurrencyCodeDetected(boolean detected) {
+        prefs.edit().putBoolean(PREFS_KEY_EXCHANGE_CURRENCY_DETECTED, detected).apply();
+    }
+
+    /**
+     * @return whether the app was ever upgraded of if it's running on the first
+     *         version in which
+     *         it was installed
+     */
+    public boolean wasUpgraded() {
+        return prefs.getInt(PREFS_KEY_PREVIOUS_VERSION, 0) != 0;
+    }
+
+    public boolean getQrPaymentRequestEnabled() {
+        return prefs.getBoolean(PREFS_KEY_LABS_QR_PAYMENT_REQUEST, false);
+    }
+
+    public boolean versionCodeCrossed(final int currentVersionCode, final int triggeringVersionCode) {
+        final boolean wasBelow = lastVersionCode < triggeringVersionCode;
+        final boolean wasUsedBefore = lastVersionCode > 0;
+        final boolean isNowAbove = currentVersionCode >= triggeringVersionCode;
+
+        return wasUsedBefore && wasBelow && isNowAbove;
+    }
+
+    public void updateLastVersionCode(final int currentVersionCode) {
+        Editor editor = prefs.edit();
+        editor.putInt(PREFS_KEY_PREVIOUS_VERSION, prefs.getInt(PREFS_KEY_LAST_VERSION, 0));
+        editor.putInt(PREFS_KEY_LAST_VERSION, currentVersionCode);
+        editor.apply();
+
+        if (currentVersionCode > lastVersionCode)
+            log.info("detected app upgrade: " + lastVersionCode + " -> " + currentVersionCode);
+        else if (currentVersionCode < lastVersionCode)
+            log.warn("detected app downgrade: " + lastVersionCode + " -> " + currentVersionCode);
+    }
+
+    public boolean hasBeenUsed() {
+        return prefs.contains(PREFS_KEY_LAST_USED);
+    }
+
+    public long getLastUsedAgo() {
+        final long now = System.currentTimeMillis();
+
+        return now - prefs.getLong(PREFS_KEY_LAST_USED, 0);
+    }
+
+    public void touchLastUsed() {
+        final long prefsLastUsed = prefs.getLong(PREFS_KEY_LAST_USED, 0);
+        final long now = System.currentTimeMillis();
+        prefs.edit().putLong(PREFS_KEY_LAST_USED, now).apply();
+
+        log.info("just being used - last used {} minutes ago", (now - prefsLastUsed) / DateUtils.MINUTE_IN_MILLIS);
+    }
+
     public void setEnableFingerprint(boolean remind) {
         prefs.edit().putBoolean(PREFS_ENABLE_FINGERPRINT, remind).apply();
     }
 
     public int getPinLength() {
-        return prefs.getInt(PREFS_PIN_LENGTH, 4);
+        return prefs.getInt(PREFS_KEY_PIN_LENGTH, 4);
     }
 
     public void setPinLength(int pinLength) {
-        prefs.edit().putInt(PREFS_PIN_LENGTH, pinLength).apply();
+        prefs.edit().putInt(PREFS_KEY_PIN_LENGTH, pinLength).apply();
+    }
+
+    public static final String PREFS_KEY_SYNC_MODE = "sync_mode";
+    public static final String PREFS_KEY_API_BASE_URL = "api_base_url";
+    private static final String DEFAULT_API_BASE_URL = "https://explorer.pepepow.net";
+
+    public org.dash.wallet.common.data.SyncMode getSyncMode() {
+        String modeName = prefs.getString(PREFS_KEY_SYNC_MODE,
+                org.dash.wallet.common.data.SyncMode.FAST_API_10POW.name());
+        try {
+            return org.dash.wallet.common.data.SyncMode.valueOf(modeName);
+        } catch (IllegalArgumentException e) {
+            return org.dash.wallet.common.data.SyncMode.FAST_API_10POW;
+        }
+    }
+
+    public void setSyncMode(org.dash.wallet.common.data.SyncMode mode) {
+        prefs.edit().putString(PREFS_KEY_SYNC_MODE, mode.name()).apply();
+    }
+
+    public String getApiBaseUrl() {
+        return prefs.getString(PREFS_KEY_API_BASE_URL, DEFAULT_API_BASE_URL);
+    }
+
+    public void setApiBaseUrl(String url) {
+        prefs.edit().putString(PREFS_KEY_API_BASE_URL, url).apply();
     }
 }

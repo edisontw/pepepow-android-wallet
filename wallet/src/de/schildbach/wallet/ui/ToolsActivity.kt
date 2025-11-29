@@ -18,9 +18,17 @@ package de.schildbach.wallet.ui
 
 import android.content.Intent
 import android.os.Bundle
+import de.schildbach.wallet.WalletApplication
+import de.schildbach.wallet.ui.debug.DebugStatusActivity
 import de.schildbach.wallet.ui.send.SweepWalletActivity
-import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_tools.*
+import androidx.lifecycle.Observer
+import de.schildbach.wallet.data.api.ApiStatus
+import org.dash.wallet.common.ui.DialogBuilder
+import org.pepepow.wallet.R
+import java.text.DateFormat
+import java.util.Date
+import java.util.Locale
 
 class ToolsActivity : BaseMenuActivity() {
 
@@ -32,6 +40,11 @@ class ToolsActivity : BaseMenuActivity() {
         super.onCreate(savedInstanceState)
 
         setTitle(R.string.tools_title)
+        val walletApp = WalletApplication.getInstance()
+        walletApp.apiStatusLiveData.observe(this, Observer { status ->
+            updateApiStatusSummary(status)
+        })
+        updateApiStatusSummary(walletApp.apiStatusLiveData.value)
         address_book.setOnClickListener {
             startActivity(Intent(this, AddressBookActivity::class.java))
         }
@@ -41,6 +54,45 @@ class ToolsActivity : BaseMenuActivity() {
         network_monitor.setOnClickListener {
             startActivity(Intent(this, NetworkMonitorActivity::class.java))
         }
+        rescan_blockchain.setOnClickListener { resetBlockchain() }
+        api_status.setOnClickListener {
+            startActivity(Intent(this, DebugStatusActivity::class.java))
+        }
+        walletApp.refreshExplorerStats(true)
     }
 
+    private fun resetBlockchain() {
+        val dialog = DialogBuilder(this)
+        dialog.setTitle(R.string.preferences_initiate_reset_title)
+        dialog.setMessage(R.string.preferences_initiate_reset_dialog_message)
+        dialog.setPositiveButton(R.string.preferences_initiate_reset_dialog_positive) { _, _ ->
+            WalletApplication.getInstance().resetBlockchain()
+            startActivity(WalletActivity.createIntent(this))
+        }
+        dialog.setNegativeButton(R.string.button_dismiss, null)
+        dialog.show()
+    }
+
+    private fun updateApiStatusSummary(status: ApiStatus?) {
+        status ?: run {
+            api_status_summary.text = getString(R.string.preferences_api_health_summary)
+            return
+        }
+        val label = when (status.state) {
+            ApiStatus.State.HEALTHY -> getString(R.string.api_status_healthy)
+            ApiStatus.State.DEGRADED -> getString(R.string.api_status_degraded)
+            ApiStatus.State.OFFLINE -> getString(R.string.api_status_offline)
+        }
+        val detail = when {
+            status.state != ApiStatus.State.HEALTHY && !status.lastErrorMessage.isNullOrEmpty() -> {
+                " - ${status.lastErrorMessage}"
+            }
+            status.lastCheckedMillis > 0 -> {
+                val formatter = DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault())
+                " - ${formatter.format(Date(status.lastCheckedMillis))}"
+            }
+            else -> ""
+        }
+        api_status_summary.text = label + detail
+    }
 }

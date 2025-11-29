@@ -52,6 +52,12 @@ class OnboardingActivity : RestoreFromFileActivity() {
 
     private lateinit var walletApplication: WalletApplication
 
+    private var hasRoutedFromLauncher = false
+
+    private fun Intent.isLauncherIntent(): Boolean {
+        return action == Intent.ACTION_MAIN && categories?.contains(Intent.CATEGORY_LAUNCHER) == true
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -75,7 +81,11 @@ class OnboardingActivity : RestoreFromFileActivity() {
 
         walletApplication = (application as WalletApplication)
         if (walletApplication.walletFileExists()) {
-            regularFlow()
+            if (intent.isLauncherIntent()) {
+                routeFromLauncherIfNeeded()
+            } else {
+                regularFlow()
+            }
         } else {
             if (walletApplication.wallet == null) {
                 onboarding()
@@ -88,6 +98,15 @@ class OnboardingActivity : RestoreFromFileActivity() {
                 }
             }
         }
+    }
+
+    private fun routeFromLauncherIfNeeded() {
+        if (hasRoutedFromLauncher) return
+        if (!isTaskRoot) return
+        if (!intent.isLauncherIntent()) return
+
+        hasRoutedFromLauncher = true
+        regularFlow()
     }
 
     private fun regularFlow() {
@@ -109,13 +128,22 @@ class OnboardingActivity : RestoreFromFileActivity() {
     }
 
     private fun startMainActivity() {
+        val logger = org.slf4j.LoggerFactory.getLogger(OnboardingActivity::class.java)
         val intent = if (walletApplication.configuration.autoLogoutEnabled) {
+            logger.info("Launcher: decided to open LockScreenActivity")
             LockScreenActivity.createIntent(this)
         } else {
+            logger.info("Launcher: decided to open WalletActivity directly")
             WalletActivity.createIntent(this)
         }
         startActivity(intent)
-        finish()
+        if (hasRoutedFromLauncher) {
+            finish()
+        } else {
+            // If not routed from launcher (e.g. manual start?), do we finish?
+            // Original code always finished.
+            finish()
+        }
     }
 
     private fun onboarding() {

@@ -58,6 +58,9 @@ public class RegTestParams extends AbstractBitcoinNetParams {
         // changes.
         interval = Integer.MAX_VALUE;
         maxTarget = MAX_TARGET;
+        maxTargetAfterSwitch = maxTarget;
+        newHashHeight = 4;
+        newHashBits = 0x2000ffffL;
         subsidyDecreaseBlockCount = 150;
         port = 18844;
         id = ID_REGTEST;

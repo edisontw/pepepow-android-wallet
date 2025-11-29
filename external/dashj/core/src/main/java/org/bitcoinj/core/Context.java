@@ -51,15 +51,27 @@ import static com.google.common.base.Preconditions.*;
 // TODO: Stash anything else that resembles global library configuration in here and use it to clean up the rest of the API without breaking people.
 
 /**
- * <p>The Context object holds various objects and pieces of configuration that are scoped to a specific instantiation of
- * bitcoinj for a specific network. You can get an instance of this class through calling {@link #get()}.</p>
+ * <p>
+ * The Context object holds various objects and pieces of configuration that are
+ * scoped to a specific instantiation of
+ * bitcoinj for a specific network. You can get an instance of this class
+ * through calling {@link #get()}.
+ * </p>
  *
- * <p>Context is new in 0.13 and the library is currently in a transitional period: you should create a Context that
- * wraps your chosen network parameters before using the rest of the library. However if you don't, things will still
- * work as a Context will be created for you and stashed in thread local storage. The context is then propagated between
- * library created threads as needed. This automagical propagation and creation is a temporary mechanism: one day it
- * will be removed to avoid confusing edge cases that could occur if the developer does not fully understand it e.g.
- * in the case where multiple instances of the library are in use simultaneously.</p>
+ * <p>
+ * Context is new in 0.13 and the library is currently in a transitional period:
+ * you should create a Context that
+ * wraps your chosen network parameters before using the rest of the library.
+ * However if you don't, things will still
+ * work as a Context will be created for you and stashed in thread local
+ * storage. The context is then propagated between
+ * library created threads as needed. This automagical propagation and creation
+ * is a temporary mechanism: one day it
+ * will be removed to avoid confusing edge cases that could occur if the
+ * developer does not fully understand it e.g.
+ * in the case where multiple instances of the library are in use
+ * simultaneously.
+ * </p>
  */
 public class Context {
     private static final Logger log = LoggerFactory.getLogger(Context.class);
@@ -72,13 +84,14 @@ public class Context {
     final private boolean ensureMinRequiredFee;
     final private Coin feePerKb;
 
-    //Dash Specific
+    // Dash Specific
     private boolean liteMode = true;
-    private boolean allowInstantX = true; //allow InstantX in litemode
+    private boolean allowInstantX = true; // allow InstantX in litemode
     private boolean debugMode = false;
     public PeerGroup peerGroup;
     public AbstractBlockChain blockChain;
-    @Nullable public AbstractBlockChain headerChain;
+    @Nullable
+    public AbstractBlockChain headerChain;
     public SporkManager sporkManager;
     public MasternodePayments masternodePayments;
     public MasternodeSync masternodeSync;
@@ -102,27 +115,39 @@ public class Context {
     private ScheduledFuture<?> scheduledNetFulfilled;
     private ScheduledFuture<?> scheduledGovernance;
 
-
     /**
-     * Creates a new context object. For now, this will be done for you by the framework. Eventually you will be
-     * expected to do this yourself in the same manner as fetching a NetworkParameters object (at the start of your app).
+     * Creates a new context object. For now, this will be done for you by the
+     * framework. Eventually you will be
+     * expected to do this yourself in the same manner as fetching a
+     * NetworkParameters object (at the start of your app).
      *
-     * @param params The network parameters that will be associated with this context.
+     * @param params The network parameters that will be associated with this
+     *               context.
      */
     public Context(NetworkParameters params) {
         this(params, DEFAULT_EVENT_HORIZON, Transaction.DEFAULT_TX_FEE, true);
     }
 
     /**
-     * Creates a new custom context object. This is mainly meant for unit tests for now.
+     * Creates a new custom context object. This is mainly meant for unit tests for
+     * now.
      *
-     * @param params The network parameters that will be associated with this context.
-     * @param eventHorizon Number of blocks after which the library will delete data and be unable to always process reorgs. See {@link #getEventHorizon()}.
-     * @param feePerKb The default fee per 1000 bytes of transaction data to pay when completing transactions. For details, see {@link SendRequest#feePerKb}.
-     * @param ensureMinRequiredFee Whether to ensure the minimum required fee by default when completing transactions. For details, see {@link SendRequest#ensureMinRequiredFee}.
+     * @param params               The network parameters that will be associated
+     *                             with this context.
+     * @param eventHorizon         Number of blocks after which the library will
+     *                             delete data and be unable to always process
+     *                             reorgs. See {@link #getEventHorizon()}.
+     * @param feePerKb             The default fee per 1000 bytes of transaction
+     *                             data to pay when completing transactions. For
+     *                             details, see {@link SendRequest#feePerKb}.
+     * @param ensureMinRequiredFee Whether to ensure the minimum required fee by
+     *                             default when completing transactions. For
+     *                             details, see
+     *                             {@link SendRequest#ensureMinRequiredFee}.
      */
     public Context(NetworkParameters params, int eventHorizon, Coin feePerKb, boolean ensureMinRequiredFee) {
-        log.info("Creating dashj {} context using dashj-bls {}.", VersionMessage.BITCOINJ_VERSION, BLSJniLibrary.VERSION);
+        log.info("Creating dashj {} context using dashj-bls {}.", VersionMessage.BITCOINJ_VERSION,
+                BLSJniLibrary.VERSION);
         this.confidenceTable = new TxConfidenceTable();
         this.voteConfidenceTable = new VoteConfidenceTable();
         this.params = params;
@@ -140,14 +165,22 @@ public class Context {
     private static final ThreadLocal<Context> slot = new ThreadLocal<>();
 
     /**
-     * Returns the current context that is associated with the <b>calling thread</b>. BitcoinJ is an API that has thread
-     * affinity: much like OpenGL it expects each thread that accesses it to have been configured with a global Context
-     * object. This method returns that. Note that to help you develop, this method will <i>also</i> propagate whichever
-     * context was created last onto the current thread, if it's missing. However it will print an error when doing so
-     * because propagation of contexts is meant to be done manually: this is so two libraries or subsystems that
-     * independently use bitcoinj (or possibly alt coin forks of it) can operate correctly.
+     * Returns the current context that is associated with the <b>calling
+     * thread</b>. BitcoinJ is an API that has thread
+     * affinity: much like OpenGL it expects each thread that accesses it to have
+     * been configured with a global Context
+     * object. This method returns that. Note that to help you develop, this method
+     * will <i>also</i> propagate whichever
+     * context was created last onto the current thread, if it's missing. However it
+     * will print an error when doing so
+     * because propagation of contexts is meant to be done manually: this is so two
+     * libraries or subsystems that
+     * independently use bitcoinj (or possibly alt coin forks of it) can operate
+     * correctly.
      *
-     * @throws java.lang.IllegalStateException if no context exists at all or if we are in strict mode and there is no context.
+     * @throws java.lang.IllegalStateException if no context exists at all or if we
+     *                                         are in strict mode and there is no
+     *                                         context.
      */
     public static Context get() {
         Context tls = slot.get();
@@ -160,13 +193,15 @@ public class Context {
             if (lastConstructed == null)
                 throw new IllegalStateException("You must construct a Context object before using dashj!");
             slot.set(lastConstructed);
-            log.error("Performing thread fixup: you are accessing dashj via a thread that has not had any context set on it.");
+            log.error(
+                    "Performing thread fixup: you are accessing dashj via a thread that has not had any context set on it.");
             log.error("This error has been corrected for, but doing this makes your app less robust.");
             log.error("You should use Context.propagate() or a ContextPropagatingThreadFactory.");
             log.error("Please refer to the user guide for more information about this.");
             log.error("Thread name is {}.", Thread.currentThread().getName());
             // TODO: Actually write the user guide section about this.
-            // TODO: If the above TODO makes it past the 0.13 release, kick Mike and tell him he sucks.
+            // TODO: If the above TODO makes it past the 0.13 release, kick Mike and tell
+            // him he sucks.
             return lastConstructed;
         } else {
             return tls;
@@ -174,14 +209,16 @@ public class Context {
     }
 
     /**
-     * Require that new threads use {@link #propagate(Context)} or {@link ContextPropagatingThreadFactory},
+     * Require that new threads use {@link #propagate(Context)} or
+     * {@link ContextPropagatingThreadFactory},
      * rather than using a heuristic for the desired context.
      */
     public static void enableStrictMode() {
         isStrictMode = true;
     }
 
-    // A temporary internal shim designed to help us migrate internally in a way that doesn't wreck source compatibility.
+    // A temporary internal shim designed to help us migrate internally in a way
+    // that doesn't wreck source compatibility.
     public static Context getOrCreate(NetworkParameters params) {
         Context context;
         try {
@@ -191,15 +228,19 @@ public class Context {
             context = new Context(params);
             return context;
         }
-        if (context.getParams() != params)
-            throw new IllegalStateException("Context does not match implicit network context: " + context.getParams() + " vs " + params);
+        if (context.getParams() != params && !context.getParams().getId().equals(params.getId()))
+            throw new IllegalStateException(
+                    "Context does not match implicit network context: " + context.getParams() + " vs " + params);
         return context;
     }
 
     /**
-     * Sets the given context as the current thread context. You should use this if you create your own threads that
-     * want to create core BitcoinJ objects. Generally, if a class can accept a Context in its constructor and might
-     * be used (even indirectly) by a thread, you will want to call this first. Your task may be simplified by using
+     * Sets the given context as the current thread context. You should use this if
+     * you create your own threads that
+     * want to create core BitcoinJ objects. Generally, if a class can accept a
+     * Context in its constructor and might
+     * be used (even indirectly) by a thread, you will want to call this first. Your
+     * task may be simplified by using
      * a {@link ContextPropagatingThreadFactory}.
      */
     public static void propagate(Context context) {
@@ -208,9 +249,12 @@ public class Context {
     }
 
     /**
-     * Returns the {@link TxConfidenceTable} created by this context. The pool tracks advertised
-     * and downloaded transactions so their confidence can be measured as a proportion of how many peers announced it.
-     * With an un-tampered with internet connection, the more peers announce a transaction the more confidence you can
+     * Returns the {@link TxConfidenceTable} created by this context. The pool
+     * tracks advertised
+     * and downloaded transactions so their confidence can be measured as a
+     * proportion of how many peers announced it.
+     * With an un-tampered with internet connection, the more peers announce a
+     * transaction the more confidence you can
      * have that it's really valid.
      */
     public TxConfidenceTable getConfidenceTable() {
@@ -218,8 +262,10 @@ public class Context {
     }
 
     /**
-     * Returns the {@link NetworkParameters} specified when this context was (auto) created. The
-     * network parameters defines various hard coded constants for a specific instance of a Bitcoin network, such as
+     * Returns the {@link NetworkParameters} specified when this context was (auto)
+     * created. The
+     * network parameters defines various hard coded constants for a specific
+     * instance of a Bitcoin network, such as
      * main net, testnet, etc.
      */
     public NetworkParameters getParams() {
@@ -227,8 +273,10 @@ public class Context {
     }
 
     /**
-     * The event horizon is the number of blocks after which various bits of the library consider a transaction to be
-     * so confirmed that it's safe to delete data. Re-orgs larger than the event horizon will not be correctly
+     * The event horizon is the number of blocks after which various bits of the
+     * library consider a transaction to be
+     * so confirmed that it's safe to delete data. Re-orgs larger than the event
+     * horizon will not be correctly
      * processed, so the default value is high (100).
      */
     public int getEventHorizon() {
@@ -240,6 +288,7 @@ public class Context {
     //
     private boolean initializedObjects = false;
     private boolean initializedFiles = false;
+
     @Deprecated
     public boolean isInitializedDash() {
         return initializedObjects;
@@ -249,34 +298,50 @@ public class Context {
         initDash(liteMode, allowInstantX, null);
     }
 
-    public void initDash(boolean liteMode, boolean allowInstantX, @Nullable EnumSet<MasternodeSync.SYNC_FLAGS> syncFlags) {
+    public void initDash(boolean liteMode, boolean allowInstantX,
+            @Nullable EnumSet<MasternodeSync.SYNC_FLAGS> syncFlags) {
         initDash(liteMode, allowInstantX, syncFlags, null);
     }
-    public void initDash(boolean liteMode, boolean allowInstantX, @Nullable EnumSet<MasternodeSync.SYNC_FLAGS> syncFlags,
-        @Nullable EnumSet<MasternodeSync.VERIFY_FLAGS> verifyFlags) {
+
+    public void initDash(boolean liteMode, boolean allowInstantX,
+            @Nullable EnumSet<MasternodeSync.SYNC_FLAGS> syncFlags,
+            @Nullable EnumSet<MasternodeSync.VERIFY_FLAGS> verifyFlags) {
 
         this.liteMode = liteMode;
         this.allowInstantX = allowInstantX;
 
-        //Dash Specific
+        // Dash Specific
         sporkManager = new SporkManager(this);
 
         masternodePayments = new MasternodePayments(this);
-        masternodeSync = syncFlags != null ? new MasternodeSync(this, syncFlags, verifyFlags) : new MasternodeSync(this);
+        masternodeSync = syncFlags != null ? new MasternodeSync(this, syncFlags, verifyFlags)
+                : new MasternodeSync(this);
         governanceManager = new GovernanceManager(this);
         triggerManager = new GovernanceTriggerManager(this);
 
         netFullfilledRequestManager = new NetFullfilledRequestManager(this);
         masternodeListManager = new SimplifiedMasternodeListManager(this);
         recoveredSigsDB = new SPVRecoveredSignaturesDatabase(this);
-        quorumManager = new SPVQuorumManager(this, masternodeListManager);
-        quorumSnapshotManager = new QuorumSnapshotManager(this);
-        signingManager = new SigningManager(this, recoveredSigsDB);
 
-        instantSendDB = new SPVInstantSendDatabase(this);
-        instantSendManager = new InstantSendManager(this, instantSendDB);
-        chainLockHandler = new ChainLocksHandler(this);
-        llmqBackgroundThread = new LLMQBackgroundThread(this);
+        if (params.isLlmqEnabled()) {
+            quorumManager = new SPVQuorumManager(this, masternodeListManager);
+            quorumSnapshotManager = new QuorumSnapshotManager(this);
+            signingManager = new SigningManager(this, recoveredSigsDB);
+
+            instantSendDB = new SPVInstantSendDatabase(this);
+            instantSendManager = new InstantSendManager(this, instantSendDB);
+            chainLockHandler = new ChainLocksHandler(this);
+            llmqBackgroundThread = new LLMQBackgroundThread(this);
+        } else {
+            quorumManager = null;
+            quorumSnapshotManager = null;
+            signingManager = null;
+            instantSendDB = null;
+            instantSendManager = null;
+            chainLockHandler = null;
+            llmqBackgroundThread = null;
+        }
+
         masternodeMetaDataManager = new MasternodeMetaDataManager(this);
 
         initializedObjects = true;
@@ -285,11 +350,12 @@ public class Context {
     public void setMasternodeListManager(SimplifiedMasternodeListManager masternodeListManager) {
         this.masternodeListManager = masternodeListManager;
         DualBlockChain dualBlockChain = new DualBlockChain(headerChain, blockChain);
-        masternodeListManager.setBlockChain(dualBlockChain, peerGroup, quorumManager, quorumSnapshotManager, chainLockHandler);
+        masternodeListManager.setBlockChain(dualBlockChain, peerGroup, quorumManager, quorumSnapshotManager,
+                chainLockHandler);
     }
 
     public void closeDash() {
-        //Dash Specific
+        // Dash Specific
         close();
         sporkManager = null;
 
@@ -307,11 +373,15 @@ public class Context {
     /**
      * Initializes objects by loading files from the specified directory
      *
-     * @param directory location of the files
+     * @param directory  location of the files
      * @param filePrefix file prefix of the files, typically the network name
-     * @return true if the files are loaded.  false if the files were already loaded
+     * @return true if the files are loaded. false if the files were already loaded
      */
     public boolean initDashSync(final String directory, @Nullable String filePrefix) {
+        if (!params.isLlmqEnabled()) {
+            log.info("DashSync is disabled for this network (no LLMQ). Skipping DashSync initialization.");
+            return false;
+        }
         if (!initializedFiles) {
             // remove mncache.dat if it exists
             File oldMnCacheFile = new File(directory, "mncache.dat");
@@ -341,7 +411,6 @@ public class Context {
             smnl.load(masternodeListManager);
             masternodeListManager.setLoadedFromFile(true);
             masternodeListManager.onFirstSaveComplete();
-
 
             // Load chainlocks
             FlatDB<ChainLocksHandler> clh;
@@ -383,7 +452,7 @@ public class Context {
             signingManager.close();
             chainLockHandler.close();
             quorumManager.close();
-            if(masternodeSync.hasSyncFlag(MasternodeSync.SYNC_FLAGS.SYNC_INSTANTSENDLOCKS))
+            if (masternodeSync.hasSyncFlag(MasternodeSync.SYNC_FLAGS.SYNC_INSTANTSENDLOCKS))
                 llmqBackgroundThread.interrupt();
             blockChain.removeNewBestBlockListener(newBestBlockListener);
             if (scheduledMasternodeSync != null)
@@ -395,8 +464,8 @@ public class Context {
         }
     }
 
-    public void setPeerGroupAndBlockChain(PeerGroup peerGroup, AbstractBlockChain blockChain, @Nullable AbstractBlockChain headerChain)
-    {
+    public void setPeerGroupAndBlockChain(PeerGroup peerGroup, AbstractBlockChain blockChain,
+            @Nullable AbstractBlockChain headerChain) {
         this.peerGroup = peerGroup;
         this.blockChain = blockChain;
         this.headerChain = headerChain;
@@ -407,24 +476,42 @@ public class Context {
         if (initializedObjects) {
             sporkManager.setBlockChain(blockChain, peerGroup);
             masternodeSync.setBlockChain(blockChain, netFullfilledRequestManager);
-            masternodeListManager.setBlockChain(
-                    dualBlockChain,
-                    peerGroup,
-                    quorumManager,
-                    quorumSnapshotManager,
-                    chainLockHandler
-            );
-            instantSendManager.setBlockChain(blockChain, peerGroup);
-            signingManager.setBlockChain(blockChain, headerChain);
-            chainLockHandler.setBlockChain(blockChain, headerChain);
-            blockChain.setChainLocksHandler(chainLockHandler);
-            quorumManager.setBlockChain(blockChain);
+
+            if (params.isLlmqEnabled()) {
+                masternodeListManager.setBlockChain(
+                        dualBlockChain,
+                        peerGroup,
+                        quorumManager,
+                        quorumSnapshotManager,
+                        chainLockHandler);
+                instantSendManager.setBlockChain(blockChain, peerGroup);
+                signingManager.setBlockChain(blockChain, headerChain);
+                chainLockHandler.setBlockChain(blockChain, headerChain);
+                blockChain.setChainLocksHandler(chainLockHandler);
+                quorumManager.setBlockChain(blockChain);
+
+                chainLockHandler.resume();
+            } else {
+                // For non-LLMQ, we might still need to set blockchain for masternodeListManager
+                // if it's used for other things
+                // But looking at the signature, it takes quorumManager etc which are null.
+                // Let's check SimplifiedMasternodeListManager.setBlockChain signature.
+                // It seems it needs these managers. If LLMQ is disabled, maybe we don't use
+                // MasternodeListManager fully?
+                // For now, let's assume we skip it or pass nulls if possible, but passing nulls
+                // might crash it.
+                // Given the previous change where we set managers to null, we must skip this
+                // call or handle it.
+                // However, MasternodeListManager might be needed for legacy masternodes?
+                // SimplifiedMasternodeListManager seems tied to DIP3/Evolution.
+                // If Pepepow doesn't use Evolution, maybe we don't need this.
+            }
+
             updatedChainHead(blockChain.getChainHead());
 
             // trigger saving mechanisms
             governanceManager.resume();
             masternodeListManager.resume();
-            chainLockHandler.resume();
         }
         params.setDIPActiveAtTip(blockChain.getBestChainHeight() >= params.getDIP0001BlockHeight());
     }
@@ -433,10 +520,9 @@ public class Context {
         return liteMode;
     }
 
-    public void setLiteMode(boolean liteMode)
-    {
+    public void setLiteMode(boolean liteMode) {
         boolean current = this.liteMode;
-        if(current == liteMode)
+        if (current == liteMode)
             return;
 
         this.liteMode = liteMode;
@@ -454,8 +540,11 @@ public class Context {
         @Override
         public void notifyNewBestBlock(StoredBlock block) throws VerificationException {
             handleActivations(block);
-            boolean fInitialDownload = blockChain.getChainHead().getHeader().getTimeSeconds() < (Utils.currentTimeSeconds() - 6 * 60 * 60); // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
-            if(masternodeSync != null)
+            boolean fInitialDownload = blockChain.getChainHead().getHeader()
+                    .getTimeSeconds() < (Utils.currentTimeSeconds() - 6 * 60 * 60); // ~144 blocks behind -> 2 x fork
+                                                                                    // detection time, was 24 * 60 * 60
+                                                                                    // in bitcoin
+            if (masternodeSync != null)
                 masternodeSync.updateBlockTip(block, fInitialDownload);
         }
     };
@@ -468,24 +557,25 @@ public class Context {
     }
 
     /**
-     * The default fee per 1000 bytes of transaction data to pay when completing transactions. For details, see {@link SendRequest#feePerKb}.
+     * The default fee per 1000 bytes of transaction data to pay when completing
+     * transactions. For details, see {@link SendRequest#feePerKb}.
      */
     public Coin getFeePerKb() {
         return feePerKb;
     }
 
     /**
-     * Whether to ensure the minimum required fee by default when completing transactions. For details, see {@link SendRequest#ensureMinRequiredFee}.
+     * Whether to ensure the minimum required fee by default when completing
+     * transactions. For details, see {@link SendRequest#ensureMinRequiredFee}.
      */
     public boolean isEnsureMinRequiredFee() {
         return ensureMinRequiredFee;
     }
 
     @Deprecated
-    public void updatedChainHead(StoredBlock chainHead)
-    {
+    public void updatedChainHead(StoredBlock chainHead) {
         params.setDIPActiveAtTip(chainHead.getHeight() >= params.getDIP0001BlockHeight());
-        if(initializedObjects) {
+        if (initializedObjects) {
             masternodeListManager.updatedBlockTip(chainHead);
         }
     }
@@ -502,8 +592,8 @@ public class Context {
         }
     }
 
-    public void start()  {
-        if(getSyncFlags().contains(MasternodeSync.SYNC_FLAGS.SYNC_INSTANTSENDLOCKS)) {
+    public void start() {
+        if (getSyncFlags().contains(MasternodeSync.SYNC_FLAGS.SYNC_INSTANTSENDLOCKS)) {
             startLLMQThread();
         }
 
@@ -519,7 +609,7 @@ public class Context {
     }
 
     public void shutdown() {
-        if(getSyncFlags().contains(MasternodeSync.SYNC_FLAGS.SYNC_INSTANTSENDLOCKS)) {
+        if (getSyncFlags().contains(MasternodeSync.SYNC_FLAGS.SYNC_INSTANTSENDLOCKS)) {
             stopLLMQThread();
         }
 

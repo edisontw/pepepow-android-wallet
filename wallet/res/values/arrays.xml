@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sync Mode Options -->
+    <string-array name="preferences_sync_mode_labels">
+        <item>@string/sync_mode_fast_api_10pow</item>
+        <item>@string/sync_mode_secure_api_1000pow</item>
+        <item>@string/sync_mode_full_spv</item>
+    </string-array>
+
+    <string-array name="preferences_sync_mode_values">
+        <item>FAST_API_10POW</item>
+        <item>API_1000POW</item>
+        <item>FULL_SPV</item>
+    </string-array>
+</resources>

@@ -36,6 +36,16 @@
             android:layout_marginBottom="8dp"
             android:paddingRight="8dp"
             android:textColor="@color/white" />
+
+        <TextView
+            android:id="@+id/wallet_balance_data_source"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/wallet_balance_source_pending"
+            android:textColor="@color/fg_less_significant"
+            android:textSize="@dimen/font_size_tiny"
+            android:visibility="gone"
+            style="@style/MontserratMedium" />
     </LinearLayout>
 
     <TextView

@@ -24,14 +24,21 @@ import java.util.Collection;
 import java.util.Set;
 
 /**
- * Utility class that holds all the registered {@link NetworkParameters} types used for address auto discovery.
- * By default only {@link MainNetParams} and {@link TestNet3Params} are used. If you want to use {@link RegTestParams}
- * or {@link UnitTestParams} use {@code register} and then {@code unregister} the {@code TestNet3Params} as they don't
+ * Utility class that holds all the registered {@link NetworkParameters} types
+ * used for address auto discovery.
+ * By default only {@link MainNetParams} and {@link TestNet3Params} are used. If
+ * you want to use {@link RegTestParams}
+ * or {@link UnitTestParams} use {@code register} and then {@code unregister}
+ * the {@code TestNet3Params} as they don't
  * have their own Base58 version/type code.
  */
 public class Networks {
+    /** When true, skip PoW hash checks and operate in header-only mode. */
+    public static boolean HEADER_ONLY_MODE = true;
+
     /** Registered networks */
-    private static Set<? extends NetworkParameters> networks = ImmutableSet.of(TestNet3Params.get(), MainNetParams.get());
+    private static Set<? extends NetworkParameters> networks = ImmutableSet.of(TestNet3Params.get(),
+            PepepowMainNetParams.get());
 
     public static Set<? extends NetworkParameters> get() {
         return networks;

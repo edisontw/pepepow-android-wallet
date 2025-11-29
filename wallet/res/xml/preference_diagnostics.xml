@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <ListPreference
+        android:key="sync_mode"
+        android:title="@string/preferences_sync_mode_title"
+        android:summary="@string/preferences_sync_mode_summary"
+        android:entries="@array/preferences_sync_mode_labels"
+        android:entryValues="@array/preferences_sync_mode_values"
+        android:defaultValue="FAST_API_10POW" />
     <Preference
         android:key="report_issue"
         android:summary="@string/preferences_report_issue_summary"

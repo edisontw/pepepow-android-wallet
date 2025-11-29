@@ -22,30 +22,32 @@ import javax.annotation.Nullable;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
 import org.bitcoinj.wallet.Wallet;
+import org.dash.wallet.common.Configuration;
 import org.dash.wallet.common.ui.CurrencyTextView;
 
-import org.dash.wallet.common.Configuration;
 import de.schildbach.wallet.Constants;
 import de.schildbach.wallet.WalletApplication;
+import de.schildbach.wallet.data.ExplorerDataState;
+import de.schildbach.wallet.data.ExplorerDataViewModel;
 import de.schildbach.wallet.rates.ExchangeRatesViewModel;
 import de.schildbach.wallet.service.BlockchainState;
 import de.schildbach.wallet.service.BlockchainStateLoader;
 import org.pepepow.wallet.R;
 
 import android.app.Activity;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.os.Bundle;
-import androidx.fragment.app.Fragment;
-import androidx.loader.app.LoaderManager;
-import androidx.loader.content.Loader;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.Loader;
 
 import static org.dash.wallet.common.Constants.PREFIX_ALMOST_EQUAL_TO;
 
@@ -65,6 +67,7 @@ public final class WalletBalanceFragment extends Fragment {
     private View viewBalanceTooMuch;
     private CurrencyTextView viewBalanceLocal;
     private TextView viewProgress;
+    private TextView viewDataSource;
 
     private boolean showLocalBalance;
     private boolean installedFromGooglePlay;
@@ -75,10 +78,13 @@ public final class WalletBalanceFragment extends Fragment {
     private de.schildbach.wallet.rates.ExchangeRate exchangeRate = null;
     @Nullable
     private BlockchainState blockchainState = null;
+    @Nullable
+    private ExplorerDataState explorerDataState = null;
+    private ExplorerDataViewModel explorerDataViewModel;
 
     private static final int ID_BALANCE_LOADER = 0;
-    private static final int ID_RATE_LOADER = 1;
     private static final int ID_BLOCKCHAIN_STATE_LOADER = 2;
+    private static final int EXPLORER_SYNC_THRESHOLD = 6;
 
     private static final long BLOCKCHAIN_UPTODATE_THRESHOLD_MS = DateUtils.HOUR_IN_MILLIS;
     private static final Coin SOME_BALANCE_THRESHOLD = Coin.COIN.divide(20);
@@ -140,6 +146,10 @@ public final class WalletBalanceFragment extends Fragment {
         viewBalanceLocal.setStrikeThru(!Constants.IS_PROD_BUILD);
 
         viewProgress = (TextView) view.findViewById(R.id.wallet_balance_progress);
+        viewDataSource = (TextView) view.findViewById(R.id.wallet_balance_data_source);
+        if (viewDataSource != null) {
+            viewDataSource.setVisibility(View.GONE);
+        }
         exchangeRatesViewModel = ViewModelProviders.of(this).get(ExchangeRatesViewModel.class);
     }
 
@@ -149,6 +159,16 @@ public final class WalletBalanceFragment extends Fragment {
 
         loaderManager.initLoader(ID_BALANCE_LOADER, null, balanceLoaderCallbacks);
         loaderManager.initLoader(ID_BLOCKCHAIN_STATE_LOADER, null, blockchainStateLoaderCallbacks);
+
+        explorerDataViewModel = ViewModelProviders.of(this).get(ExplorerDataViewModel.class);
+        explorerDataViewModel.getState().observe(this, new Observer<ExplorerDataState>() {
+            @Override
+            public void onChanged(ExplorerDataState explorerDataState) {
+                WalletBalanceFragment.this.explorerDataState = explorerDataState;
+                updateView();
+            }
+        });
+        refreshExplorerData();
 
 
         exchangeRatesViewModel.getRate(config.getExchangeCurrencyCode()).observe(this,
@@ -169,7 +189,6 @@ public final class WalletBalanceFragment extends Fragment {
     @Override
     public void onPause() {
         loaderManager.destroyLoader(ID_BLOCKCHAIN_STATE_LOADER);
-        loaderManager.destroyLoader(ID_RATE_LOADER);
         loaderManager.destroyLoader(ID_BALANCE_LOADER);
 
         super.onPause();
@@ -214,12 +233,13 @@ public final class WalletBalanceFragment extends Fragment {
             if (!showLocalBalance)
                 viewBalanceLocal.setVisibility(View.GONE);
 
-            if (balance != null) {
+            final Coin displayBalance = determineDisplayBalance();
+            if (displayBalance != null) {
                 viewBalanceBtc.setVisibility(View.VISIBLE);
                 viewBalanceBtc.setFormat(config.getFormat());
-                viewBalanceBtc.setAmount(balance);
+                viewBalanceBtc.setAmount(displayBalance);
 
-                final boolean tooMuch = balance.isGreaterThan(TOO_MUCH_BALANCE_THRESHOLD);
+                final boolean tooMuch = displayBalance.isGreaterThan(TOO_MUCH_BALANCE_THRESHOLD);
 
                 viewBalanceTooMuch.setVisibility(tooMuch ? View.VISIBLE : View.GONE);
 
@@ -227,7 +247,7 @@ public final class WalletBalanceFragment extends Fragment {
                     if (exchangeRate != null) {
                         org.bitcoinj.utils.ExchangeRate rate = new org.bitcoinj.utils.ExchangeRate(Coin.COIN,
                                 exchangeRate.getFiat());
-                        final Fiat localValue = rate.coinToFiat(balance);
+                        final Fiat localValue = rate.coinToFiat(displayBalance);
                         viewBalanceLocal.setVisibility(View.VISIBLE);
                         viewBalanceLocal.setFormat(Constants.LOCAL_FORMAT.code(0,
                                 PREFIX_ALMOST_EQUAL_TO + exchangeRate.getCurrencyCode()));
@@ -242,9 +262,13 @@ public final class WalletBalanceFragment extends Fragment {
             }
 
             viewProgress.setVisibility(View.GONE);
+            updateDataSourceLabel();
         } else {
             viewProgress.setVisibility(View.VISIBLE);
             viewBalance.setVisibility(View.INVISIBLE);
+            if (viewDataSource != null) {
+                viewDataSource.setVisibility(View.GONE);
+            }
         }
     }
 
@@ -284,4 +308,58 @@ public final class WalletBalanceFragment extends Fragment {
         public void onLoaderReset(final Loader<Coin> loader) {
         }
     };
+
+    private void refreshExplorerData() {
+        if (explorerDataViewModel == null || wallet == null)
+            return;
+        explorerDataViewModel.refresh(wallet.currentReceiveAddress().toString());
+    }
+
+    @Nullable
+    private Coin determineDisplayBalance() {
+        if (shouldUseExplorerData() && explorerDataState != null && explorerDataState.getBalance() != null)
+            return explorerDataState.getBalance();
+        return balance;
+    }
+
+    private boolean shouldUseExplorerData() {
+        if (explorerDataState == null || !explorerDataState.isSuccessful())
+            return false;
+        if (blockchainState == null)
+            return true;
+        final Long explorerHeight = explorerDataState.getExplorerHeight();
+        if (explorerHeight == null)
+            return false;
+        return explorerHeight - getDisplayChainHeight() > EXPLORER_SYNC_THRESHOLD;
+    }
+
+    private int getDisplayChainHeight() {
+        if (blockchainState == null)
+            return Constants.FAST_SYNC_BASE_HEIGHT;
+        return adjustHeight(blockchainState.bestChainHeight);
+    }
+
+    private int adjustHeight(int rawHeight) {
+        if (rawHeight <= 0)
+            return Constants.FAST_SYNC_BASE_HEIGHT;
+        if (rawHeight < Constants.FAST_SYNC_BASE_HEIGHT)
+            return rawHeight + Constants.FAST_SYNC_BASE_HEIGHT;
+        return rawHeight;
+    }
+
+    private void updateDataSourceLabel() {
+        if (viewDataSource == null)
+            return;
+        if (shouldUseExplorerData() && explorerDataState != null && explorerDataState.getExplorerHeight() != null) {
+            viewDataSource.setVisibility(View.VISIBLE);
+            viewDataSource.setText(getString(R.string.wallet_balance_source_explorer,
+                    explorerDataState.getExplorerHeight(), String.valueOf(getDisplayChainHeight())));
+        } else if (blockchainState != null) {
+            viewDataSource.setVisibility(View.VISIBLE);
+            viewDataSource.setText(getString(R.string.wallet_balance_source_local, getDisplayChainHeight()));
+        } else {
+            viewDataSource.setVisibility(View.VISIBLE);
+            viewDataSource.setText(R.string.wallet_balance_source_pending);
+        }
+    }
 }

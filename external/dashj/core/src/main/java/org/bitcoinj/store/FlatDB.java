@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @author by Hash Engineering on 6/21/2016.
- *   Generic Dumping and Loading
- *   ---------------------------
+ *         Generic Dumping and Loading
+ *         ---------------------------
  */
 public class FlatDB<Type extends AbstractManager> {
     private static final Logger log = LoggerFactory.getLogger(FlatDB.class);
@@ -24,6 +24,7 @@ public class FlatDB<Type extends AbstractManager> {
     private String fileName;
     private String directory;
     private String magicMessage;
+
     public enum ReadResult {
         Ok,
         FileError,
@@ -41,7 +42,7 @@ public class FlatDB<Type extends AbstractManager> {
 
     public FlatDB(Context context, String fileOrDirectory, boolean isFileName) {
         this.context = context;
-        if(isFileName) {
+        if (isFileName) {
             this.pathDB = fileOrDirectory;
             this.directory = new File(pathDB).getParentFile().getAbsolutePath();
             try {
@@ -58,7 +59,7 @@ public class FlatDB<Type extends AbstractManager> {
     public FlatDB(Context context, String fileOrDirectory, boolean isFileName, String magicMessage, int version) {
         this.context = context;
         this.magicMessage = magicMessage + ((version > 1) ? "-" + version : "");
-        if(isFileName) {
+        if (isFileName) {
             this.pathDB = fileOrDirectory;
             this.directory = new File(pathDB).getParentFile().getAbsolutePath();
             try {
@@ -79,14 +80,12 @@ public class FlatDB<Type extends AbstractManager> {
         setPath(directory, fileName);
     }
 
-    void setPath(String directory, String file)
-    {
+    void setPath(String directory, String file) {
         this.directory = directory;
-        pathDB = directory + File.separator +file;
+        pathDB = directory + File.separator + file;
     }
 
-    public String getDirectory()
-    {
+    public String getDirectory() {
         return directory;
     }
 
@@ -107,7 +106,8 @@ public class FlatDB<Type extends AbstractManager> {
                 magicMessage = object.getMagicMessage();
 
             // serialize, checksum data up to that point, then append checksum
-            UnsafeByteArrayOutputStream stream = new UnsafeByteArrayOutputStream(object.calculateMessageSizeInBytes()+4+magicMessage.getBytes().length);
+            UnsafeByteArrayOutputStream stream = new UnsafeByteArrayOutputStream(
+                    object.calculateMessageSizeInBytes() + 4 + magicMessage.getBytes().length);
             stream.write(magicMessage.getBytes());
             Utils.uint32ToByteStreamLE(object.getParams().getPacketMagic(), stream);
             object.bitcoinSerialize(stream);
@@ -164,13 +164,13 @@ public class FlatDB<Type extends AbstractManager> {
             // Don't try to resize to a negative number if file is small
             if (dataSize < 0)
                 dataSize = 0;
-            if(dataSize == 0) {
+            if (dataSize == 0) {
                 fileStream.close();
                 return ReadResult.FileError;
             }
 
-            byte [] hashIn = new byte[32];
-            byte [] vchData = new byte[(int)dataSize];
+            byte[] hashIn = new byte[32];
+            byte[] vchData = new byte[(int) dataSize];
 
             try {
                 fileStream.read(vchData);
@@ -190,18 +190,18 @@ public class FlatDB<Type extends AbstractManager> {
             long pchMsgTmp;
             String magicMessageTmp;
             try {
-                // de-serialize file header (masternode cache file specific magic message) and ..
+                // de-serialize file header (masternode cache file specific magic message) and
+                // ..
                 magicMessageTmp = new String(vchData, 0, magicMessage.length());
 
-                log.info("file magic message: {}",magicMessageTmp);
+                log.info("file magic message: {}", magicMessageTmp);
                 int fileVersion = 1;
                 try {
                     String fileVersionString = magicMessageTmp.substring(magicMessageTmp.lastIndexOf('-') + 1);
                     fileVersion = Integer.parseInt(fileVersionString);
                 } catch (NumberFormatException x) {
-                    //swallow
+                    // swallow
                 }
-
 
                 // ... verify the message matches predefined one
                 if (!magicMessage.equals(magicMessageTmp)) {
@@ -209,7 +209,7 @@ public class FlatDB<Type extends AbstractManager> {
 
                     String startMagicMessage = magicMessageTmp.substring(0, magicMessage.lastIndexOf('-'));
 
-                    if(!startMagicMessage.equals(startStrMagicMessageTmp)) {
+                    if (!startMagicMessage.equals(startStrMagicMessageTmp)) {
                         log.error("Invalid cache magic message");
                         return ReadResult.IncorrectMagicMessage;
                     }
@@ -225,7 +225,7 @@ public class FlatDB<Type extends AbstractManager> {
                         }
 
                     } catch (IndexOutOfBoundsException | NumberFormatException x) {
-                        //swallow
+                        // swallow
                     }
                 }
 
@@ -239,13 +239,13 @@ public class FlatDB<Type extends AbstractManager> {
                 }
                 // de-serialize data into CMasternodeMan object
 
-                object.load(vchData, magicMessageTmp.length()+ 4, fileVersion);
+                object.load(vchData, magicMessageTmp.length() + 4, fileVersion);
 
-            } catch (Exception e){
+            } catch (Exception e) {
                 object.clear();
                 e.printStackTrace();
-                log.error("Deserialize or I/O error - {}",  e.getMessage());
-                return  ReadResult.IncorrectFormat;
+                log.error("Deserialize or I/O error - {}", e.getMessage());
+                return ReadResult.IncorrectFormat;
             }
 
             log.info("Loaded info from {} {}ms", file.getCanonicalFile(), watch.elapsed(TimeUnit.MILLISECONDS));
@@ -258,7 +258,7 @@ public class FlatDB<Type extends AbstractManager> {
             }
 
             return ReadResult.Ok;
-        } catch(IOException x) {
+        } catch (IOException x) {
             return ReadResult.FileError;
         }
     }
@@ -269,15 +269,18 @@ public class FlatDB<Type extends AbstractManager> {
     }
 
     public boolean load(Type objToLoad) {
+        if (objToLoad == null) {
+            log.warn("FlatDB.load() called with null manager. Skipping load.");
+            return false;
+        }
         String fileName = this.fileName != null ? this.fileName : objToLoad.getDefaultFileName();
         log.info("Reading info from {}...", fileName);
         ReadResult readResult = read(objToLoad);
         if (readResult == ReadResult.FileError)
             log.warn("Missing file - {}, will try to recreate", fileName);
-        else if (readResult != ReadResult.Ok)
-        {
+        else if (readResult != ReadResult.Ok) {
             log.error("Error reading {}: ", fileName);
-            if(readResult == ReadResult.IncorrectFormat) {
+            if (readResult == ReadResult.IncorrectFormat) {
                 log.error("magic is ok but data has invalid format, will try to recreate");
             } else {
                 log.error("file format is unknown or invalid, please fix it manually");
@@ -299,4 +302,3 @@ public class FlatDB<Type extends AbstractManager> {
         return true;
     }
 }
-

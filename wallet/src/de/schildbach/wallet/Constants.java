@@ -21,6 +21,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.text.format.DateUtils;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.BaseEncoding;
 
@@ -29,7 +30,7 @@ import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.params.DevNetParams;
-import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.PepepowMainNetParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.utils.MonetaryFormat;
 import org.bitcoinj.wallet.DeterministicKeyChain;
@@ -37,12 +38,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import org.pepepow.wallet.BuildConfig;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
+import javax.annotation.Nullable;
 
 /**
  * @author Andreas Schildbach
@@ -60,21 +63,24 @@ public final class Constants {
     public static final String[] DNS_SEED;
 
     public static final boolean IS_PROD_BUILD;
+    public static final int FAST_SYNC_BASE_HEIGHT = 3700000;
+    public static final InetSocketAddress HARDCODED_PEER;
+    public static boolean FAST_API_10POW_ENABLED_FOR_CORE = false;
 
     static {
         switch (BuildConfig.FLAVOR) {
             case "prod":
             case "beta": {
-                DNS_SEED = new String[]{"dnsseed.pepepow.org", "dnsseed.pepepow.foztor.net"};
+                DNS_SEED = new String[] { "dnsseed.pepepow.org", "dnsseed.pepepow.foztor.net" };
                 BIP44_PATH = DeterministicKeyChain.BIP44_ACCOUNT_ZERO_PATH;
-                NETWORK_PARAMETERS = MainNetParams.get();
+                NETWORK_PARAMETERS = PepepowMainNetParams.get();
                 IS_PROD_BUILD = true;
                 FILENAME_NETWORK_SUFFIX = "";
                 WALLET_NAME_CURRENCY_CODE = "pepew";
                 break;
             }
             case "_testNet3": {
-                DNS_SEED = new String[]{"82.163.79.208", "141.147.71.107", "132.145.54.241"};
+                DNS_SEED = new String[] { "82.163.79.208", "141.147.71.107", "132.145.54.241" };
                 BIP44_PATH = DeterministicKeyChain.BIP44_ACCOUNT_ZERO_PATH_TESTNET;
                 NETWORK_PARAMETERS = TestNet3Params.get();
                 IS_PROD_BUILD = false;
@@ -83,7 +89,7 @@ public final class Constants {
                 break;
             }
             case "devNet": {
-                DNS_SEED = new String[]{
+                DNS_SEED = new String[] {
                         "devnet-maithai.thephez.com",
                         "54.187.113.35", "54.200.201.200", "34.216.233.163",
                         "34.221.188.185", "54.189.63.67", "52.40.117.135",
@@ -103,6 +109,7 @@ public final class Constants {
             }
         }
         org.dash.wallet.common.Constants.MAX_MONEY = NETWORK_PARAMETERS.getMaxMoney();
+        HARDCODED_PEER = parseHardcodedPeer(BuildConfig.HARDCODED_NODE);
     }
 
     /** Bitcoinj global context. */
@@ -146,7 +153,7 @@ public final class Constants {
                 final File cache = Environment.getDownloadCacheDirectory();
                 backupDir = new File(cache, "downloads");
                 if (!backupDir.exists()) {
-                    //noinspection ResultOfMethodCallIgnored
+                    // noinspection ResultOfMethodCallIgnored
                     backupDir.mkdirs();
                 }
             }
@@ -154,10 +161,12 @@ public final class Constants {
         }
 
         /** Filename of the manual key backup (old format, can only be read). */
-        public static final String EXTERNAL_WALLET_KEY_BACKUP = CoinDefinition.coinName.toLowerCase()+"-wallet-keys" + FILENAME_NETWORK_SUFFIX;
+        public static final String EXTERNAL_WALLET_KEY_BACKUP = CoinDefinition.coinName.toLowerCase() + "-wallet-keys"
+                + FILENAME_NETWORK_SUFFIX;
 
         /** Filename of the manual wallet backup. */
-        public static final String EXTERNAL_WALLET_BACKUP = CoinDefinition.coinName +"-wallet-backup" + FILENAME_NETWORK_SUFFIX;
+        public static final String EXTERNAL_WALLET_BACKUP = CoinDefinition.coinName + "-wallet-backup"
+                + FILENAME_NETWORK_SUFFIX;
 
         /** Filename of the block store for storing the chain. */
         public static final String BLOCKCHAIN_FILENAME = "blockchain" + FILENAME_NETWORK_SUFFIX;
@@ -181,36 +190,42 @@ public final class Constants {
     private static final String EXPLORE_BASE_URL_TEST = CoinDefinition.BLOCKEXPLORER_BASE_URL_TEST;
 
     /** Base URL for browsing transactions, blocks or addresses. */
-    public static final String EXPLORE_BASE_URL = NETWORK_PARAMETERS.getId().equals(NetworkParameters.ID_MAINNET) ? EXPLORE_BASE_URL_PROD
+    public static final String EXPLORE_BASE_URL = NETWORK_PARAMETERS.getId().equals(NetworkParameters.ID_MAINNET)
+            ? EXPLORE_BASE_URL_PROD
             : EXPLORE_BASE_URL_TEST;
-    public static final String EXPLORE_ADDRESS_PATH  = CoinDefinition.BLOCKEXPLORER_ADDRESS_PATH;
-    public static final String EXPLORE_TRANSACTION_PATH  = CoinDefinition.BLOCKEXPLORER_TRANSACTION_PATH;
-    public static final String EXPLORE_BLOCK_PATH  = CoinDefinition.BLOCKEXPLORER_BLOCK_PATH;
+    public static final String EXPLORE_ADDRESS_PATH = CoinDefinition.BLOCKEXPLORER_ADDRESS_PATH;
+    public static final String EXPLORE_TRANSACTION_PATH = CoinDefinition.BLOCKEXPLORER_TRANSACTION_PATH;
+    public static final String EXPLORE_BLOCK_PATH = CoinDefinition.BLOCKEXPLORER_BLOCK_PATH;
 
-    public static final String MIMETYPE_BACKUP_PRIVATE_KEYS = "x-"+CoinDefinition.coinName.toLowerCase()+"/private-keys";
+    public static final String MIMETYPE_BACKUP_PRIVATE_KEYS = "x-" + CoinDefinition.coinName.toLowerCase()
+            + "/private-keys";
 
     private static final String BITEASY_API_URL_PROD = CoinDefinition.UNSPENT_API_URL;
     private static final String BITEASY_API_URL_TEST = CoinDefinition.UNSPENT_API_URL;
     /** Base URL for blockchain API. */
-    public static final String BITEASY_API_URL = NETWORK_PARAMETERS.getId().equals(NetworkParameters.ID_MAINNET) ? BITEASY_API_URL_PROD
+    public static final String BITEASY_API_URL = NETWORK_PARAMETERS.getId().equals(NetworkParameters.ID_MAINNET)
+            ? BITEASY_API_URL_PROD
             : BITEASY_API_URL_TEST;
 
     /** URL to fetch version alerts from. */
-    public static final HttpUrl VERSION_URL = HttpUrl.parse("https://raw.githubusercontent.com/MattF42/pepepow-wallet/main/android/version.json");
+    public static final HttpUrl VERSION_URL = HttpUrl
+            .parse("https://raw.githubusercontent.com/MattF42/pepepow-wallet/main/android/version.json");
     /** URL to fetch dynamic fees from. */
-    public static final HttpUrl DYNAMIC_FEES_URL = HttpUrl.parse("https://raw.githubusercontent.com/MattF42/pepepow-wallet/main/android/fees.json");
+    public static final HttpUrl DYNAMIC_FEES_URL = HttpUrl
+            .parse("https://raw.githubusercontent.com/MattF42/pepepow-wallet/main/android/fees.json");
 
     /** MIME type used for transmitting single transactions. */
     public static final String MIMETYPE_TRANSACTION = "application/x-" + CoinDefinition.coinTicker.toLowerCase() + "tx";
 
     /** MIME type used for transmitting wallet backups. */
-    public static final String MIMETYPE_WALLET_BACKUP = "application/x-"+CoinDefinition.coinName.toLowerCase()+"-wallet-backup";
+    public static final String MIMETYPE_WALLET_BACKUP = "application/x-" + CoinDefinition.coinName.toLowerCase()
+            + "-wallet-backup";
 
     /** Number of confirmations until a transaction is fully confirmed. */
     public static final int MAX_NUM_CONFIRMATIONS = 6;
 
     /** User-agent to use for network access. */
-    public static final String USER_AGENT = CoinDefinition.coinName +" Wallet";
+    public static final String USER_AGENT = CoinDefinition.coinName + " Wallet";
 
     /** Default currency to use if all default mechanisms fail. */
     public static final String DEFAULT_EXCHANGE_CURRENCY = "USD";
@@ -268,7 +283,7 @@ public final class Constants {
 
     /** Desired number of scrypt iterations for deriving the spending PIN */
     public static final int SCRYPT_ITERATIONS_TARGET = 65536;
-    public static final int SCRYPT_ITERATIONS_TARGET_LOWRAM = 32768/2;
+    public static final int SCRYPT_ITERATIONS_TARGET_LOWRAM = 32768 / 2;
 
     /** Default ports for Electrum servers */
     public static final int ELECTRUM_SERVER_DEFAULT_PORT_TCP = NETWORK_PARAMETERS.getId()
@@ -292,21 +307,56 @@ public final class Constants {
                     }).setLevel(HttpLoggingInterceptor.Level.BASIC))
             .build();
 
+    @Nullable
+    private static InetSocketAddress parseHardcodedPeer(final String value) {
+        final String trimmed = Strings.isNullOrEmpty(value) ? "" : value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        String host = trimmed;
+        int port = NETWORK_PARAMETERS.getPort();
+        try {
+            if (trimmed.startsWith("[")) {
+                final int closingBracket = trimmed.indexOf(']');
+                if (closingBracket > 0) {
+                    host = trimmed.substring(1, closingBracket);
+                    if (trimmed.length() > closingBracket + 2 && trimmed.charAt(closingBracket + 1) == ':') {
+                        port = Integer.parseInt(trimmed.substring(closingBracket + 2));
+                    }
+                } else {
+                    log.warn("Invalid HARDCODED_NODE '{}': missing closing bracket", value);
+                    return null;
+                }
+            } else {
+                final int colonPos = trimmed.lastIndexOf(':');
+                if (colonPos > 0 && trimmed.indexOf(':') == colonPos) {
+                    host = trimmed.substring(0, colonPos);
+                    port = Integer.parseInt(trimmed.substring(colonPos + 1));
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Invalid HARDCODED_NODE '{}': {}", value, e.getMessage());
+            return null;
+        }
+        return InetSocketAddress.createUnresolved(host, port);
+    }
+
     private static final Logger log = LoggerFactory.getLogger(Constants.class);
 
-    //Dash Specific
+    // Dash Specific
     public static long EARLIEST_HD_SEED_CREATION_TIME = 1427610960l;
 
     public static String WALLET_URI_SCHEME = "dashwallet";
 
-    public static boolean ENABLE_ZERO_FEES = false; //Enable Zero Fee's on TestNet only.
+    public static boolean ENABLE_ZERO_FEES = false; // Enable Zero Fee's on TestNet only.
 
-    //Wallet Lock Preferences
+    // Wallet Lock Preferences
     public static final String WALLET_LOCK_PREFS_NAME = "wallet_lock_prefs";
 
-    //BIP44 Support
+    // BIP44 Support
     public static final ImmutableList<ChildNumber> BIP44_PATH;
 
-    //Backup Warnings (true = both seed and backup file, false = seed only)
+    // Backup Warnings (true = both seed and backup file, false = seed only)
     public static final boolean SUPPORT_BOTH_BACKUP_WARNINGS = false;
 }

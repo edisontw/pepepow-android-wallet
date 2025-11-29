@@ -165,4 +165,9 @@
         <item name="android:background">@color/bg_list_selected</item>
     </style>
 
+    <!-- Material-compatible lock screen button wrapper -->
+    <style name="LockScreenButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAppearance">@style/TextAppearance.MaterialComponents.Button</item>
+    </style>
+
 </resources>

@@ -87,6 +87,12 @@
             android:screenOrientation="portrait"/>
 
         <activity
+            android:name="de.schildbach.wallet.ui.debug.DebugStatusActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/My.Theme.ChildActivity"
+            android:label="@string/debug_dashboard_title"/>
+
+        <activity
             android:name="de.schildbach.wallet.ui.WalletActivity"
             android:configChanges="keyboard|keyboardHidden"
             android:windowSoftInputMode="stateAlwaysHidden"

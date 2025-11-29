@@ -26,6 +26,7 @@ public class ExchangeRatesRepository {
     private AppDatabase appDatabase;
     private Executor executor;
     private Deque<ExchangeRatesClient> exchangeRatesClients = new ArrayDeque<>();
+    private static final String PRIMARY_FIAT_CURRENCY = "USDT";
 
     private static final long UPDATE_FREQ_MS = TimeUnit.SECONDS.toMillis(30);
     private long lastUpdated;
@@ -50,14 +51,9 @@ public class ExchangeRatesRepository {
     }
 
     private void populateExchangeRatesStack() {
-        if (!exchangeRatesClients.isEmpty()) {
-            exchangeRatesClients.clear();
-        }
+        exchangeRatesClients.clear();
 
-        exchangeRatesClients.push(DashRatesSecondFallback.getInstance());
-        exchangeRatesClients.push(DashRatesFirstFallback.getInstance());
-        exchangeRatesClients.push(DashRatesClient.getInstance());
-        exchangeRatesClients.push(DashRetailClient.getInstance());
+        exchangeRatesClients.addLast(ExplorerPriceClient.getInstance());
     }
 
     private void refreshRates() {
@@ -75,7 +71,12 @@ public class ExchangeRatesRepository {
             return;
         }
         isRefreshing = true;
-        final ExchangeRatesClient exchangeRatesClient = exchangeRatesClients.pop();
+        final ExchangeRatesClient exchangeRatesClient = exchangeRatesClients.pollFirst();
+        if (exchangeRatesClient == null) {
+            isRefreshing = false;
+            isLoading.postValue(false);
+            return;
+        }
         isLoading.postValue(true);
         executor.execute(new Runnable() {
             @Override
@@ -84,6 +85,7 @@ public class ExchangeRatesRepository {
                 try {
                     rates = exchangeRatesClient.getRates();
                     if (rates != null && !rates.isEmpty()) {
+                        appDatabase.exchangeRatesDao().deleteAllExcept(PRIMARY_FIAT_CURRENCY);
                         appDatabase.exchangeRatesDao().insertAll(rates);
                         lastUpdated = System.currentTimeMillis();
                         populateExchangeRatesStack();

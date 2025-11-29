@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 
 import de.schildbach.wallet.service.BlockchainService;
 import de.schildbach.wallet.service.BlockchainServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -33,6 +35,8 @@ import android.os.IBinder;
  */
 public abstract class AbstractBindServiceActivity extends AbstractWalletActivity {
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractBindServiceActivity.class);
+
     @Nullable
     private BlockchainService blockchainService;
 
@@ -40,11 +44,13 @@ public abstract class AbstractBindServiceActivity extends AbstractWalletActivity
         @Override
         public void onServiceConnected(final ComponentName name, final IBinder binder) {
             blockchainService = ((BlockchainServiceImpl.LocalBinder) binder).getService();
+            log.info("Service bound to {} (thread={})", name, Thread.currentThread().getName());
         }
 
         @Override
         public void onServiceDisconnected(final ComponentName name) {
             blockchainService = null;
+            log.info("Service disconnected from {} (thread={})", name, Thread.currentThread().getName());
         }
     };
 

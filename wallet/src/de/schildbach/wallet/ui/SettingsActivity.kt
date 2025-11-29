@@ -18,17 +18,13 @@ package de.schildbach.wallet.ui
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.widget.Toolbar
 import de.schildbach.wallet.WalletApplication
-import org.pepepow.wallet.R
-import kotlinx.android.synthetic.main.activity_more.*
+import de.schildbach.wallet.ui.preference.PreferenceActivity
+import de.schildbach.wallet.ui.preference.SettingsFragment
 import kotlinx.android.synthetic.main.activity_settings.*
-import org.dash.wallet.common.ui.DialogBuilder
-import org.slf4j.LoggerFactory
+import org.pepepow.wallet.R
 
 class SettingsActivity : BaseMenuActivity() {
-
-    private val log = LoggerFactory.getLogger(SettingsActivity::class.java)
 
     override fun getLayoutId(): Int {
         return R.layout.activity_settings
@@ -44,7 +40,14 @@ class SettingsActivity : BaseMenuActivity() {
         local_currency.setOnClickListener {
             startActivity(Intent(this, ExchangeRatesActivity::class.java))
         }
-        rescan_blockchain.setOnClickListener { resetBlockchain() }
+        developer_options.setOnClickListener {
+            val intent = Intent(this, PreferenceActivity::class.java)
+            intent.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT,
+                SettingsFragment::class.java.name)
+            intent.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT_TITLE,
+                getString(R.string.preferences_activity_title))
+            startActivity(intent)
+        }
     }
 
     override fun onStart() {
@@ -52,19 +55,4 @@ class SettingsActivity : BaseMenuActivity() {
         local_currency_symbol.text = WalletApplication.getInstance()
                 .configuration.exchangeCurrencyCode
     }
-
-    private fun resetBlockchain() {
-        val dialog = DialogBuilder(this)
-        dialog.setTitle(R.string.preferences_initiate_reset_title)
-        dialog.setMessage(R.string.preferences_initiate_reset_dialog_message)
-        dialog.setPositiveButton(R.string.preferences_initiate_reset_dialog_positive) { dialog, which ->
-            log.info("manually initiated blockchain reset")
-
-            WalletApplication.getInstance().resetBlockchain()
-            startActivity(WalletActivity.createIntent(this))
-        }
-        dialog.setNegativeButton(R.string.button_dismiss, null)
-        dialog.show()
-    }
-
 }

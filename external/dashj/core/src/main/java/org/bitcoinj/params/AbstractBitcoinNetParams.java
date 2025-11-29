@@ -52,6 +52,10 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
         super();
     }
 
+    protected BigInteger getPowLimitForHeight(long height) {
+        return height >= getNewHashHeight() ? getMaxTargetAfterSwitch() : getMaxTarget();
+    }
+
 
     /**
      * Checks if we are at a difficulty transition point.
@@ -71,7 +75,16 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     @Override
     public void checkDifficultyTransitions(final StoredBlock storedPrev, final Block nextBlock,
                                            final BlockStore blockStore) throws VerificationException, BlockStoreException {
-        int height = storedPrev.getHeight() + 1;
+        long height = storedPrev.getHeight() + 1L;
+        if (height == getNewHashHeight() && getNewHashBits() != 0) {
+            long expected = getNewHashBits();
+            long received = nextBlock.getDifficultyTarget();
+            if (expected != received) {
+                throw new VerificationException("Unexpected difficulty bits at PoW switch height " + height + ": " +
+                        Long.toHexString(received) + " vs " + Long.toHexString(expected));
+            }
+            return;
+        }
         if(height >= powDGWHeight) {
             DarkGravityWave(storedPrev, nextBlock, blockStore);
         } else if(height >= powKGWHeight) {
@@ -88,6 +101,8 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
             return;
 
         Block prev = storedPrev.getHeader();
+        int nextHeight = storedPrev.getHeight() + 1;
+        BigInteger powLimitForNext = getPowLimitForHeight(nextHeight);
 
         // Is this supposed to be a difficulty transition point?
         if (!isDifficultyTransitionPoint(storedPrev)) {
@@ -105,7 +120,7 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
                     StoredBlock cursor = storedPrev;
                     while (!cursor.getHeader().equals(getGenesisBlock()) &&
                             cursor.getHeight() % getInterval() != 0 &&
-                            cursor.getHeader().getDifficultyTargetAsInteger().equals(getMaxTarget()))
+                            cursor.getHeader().getDifficultyTargetAsInteger().equals(getPowLimitForHeight(cursor.getHeight())))
                         cursor = cursor.getPrev(blockStore);
                     BigInteger cursorTarget = cursor.getHeader().getDifficultyTargetAsInteger();
                     BigInteger newTarget = nextBlock.getDifficultyTargetAsInteger();
@@ -114,9 +129,9 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
                                 Long.toHexString(cursor.getHeader().getDifficultyTarget()) + " vs " +
                                 Long.toHexString(nextBlock.getDifficultyTarget()));
                 } else {
-                    if(nextBlock.getDifficultyTarget() != Utils.encodeCompactBits(maxTarget))
+                    if(nextBlock.getDifficultyTarget() != Utils.encodeCompactBits(powLimitForNext))
                         throw new VerificationException("Unexpected change in difficulty at height " + storedPrev.getHeight() +
-                                ": " + Long.toHexString(Utils.encodeCompactBits(maxTarget)) + " vs " +
+                                ": " + Long.toHexString(Utils.encodeCompactBits(powLimitForNext)) + " vs " +
                                 Long.toHexString(nextBlock.getDifficultyTarget()));
                 }
                 return;
@@ -166,34 +181,51 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     }
 
     protected long calculateNextDifficulty(StoredBlock storedBlock, Block nextBlock, BigInteger newTarget) {
-        if (newTarget.compareTo(this.getMaxTarget()) > 0) {
-            newTarget = this.getMaxTarget();
+        long nextHeight = storedBlock != null ? storedBlock.getHeight() + 1L : -1L;
+        BigInteger allowedTarget = getPowLimitForHeight(nextHeight);
+        if (newTarget.compareTo(allowedTarget) > 0) {
+            newTarget = allowedTarget;
         }
 
-        int accuracyBytes = (int) (nextBlock.getDifficultyTarget() >>> 24) - 3;
-
-        // The calculated difficulty is to a higher precision than received, so reduce here.
-        BigInteger mask = BigInteger.valueOf(0xFFFFFFL).shiftLeft(accuracyBytes * 8);
-        newTarget = newTarget.and(mask);
+        // Encode directly from the computed target (mirrors Core's GetNextWorkRequired/GetCompact path).
         return Utils.encodeCompactBits(newTarget);
+    }
+
+    protected void logDifficultyMismatch(StoredBlock storedPrev, Block nextBlock, long calculated, long received) {
+        int height = storedPrev != null ? storedPrev.getHeight() + 1 : -1;
+        Sha256Hash prevHash = storedPrev != null ? storedPrev.getHeader().getHash() : Sha256Hash.ZERO_HASH;
+        log.error("Difficulty mismatch at height {} (prev {}): calculated {} vs header {}", height, prevHash,
+                Long.toHexString(calculated), Long.toHexString(received));
     }
 
     protected void verifyDifficulty(StoredBlock storedPrev, Block nextBlock, BigInteger newTarget) throws VerificationException {
         long newTargetCompact = calculateNextDifficulty(storedPrev, nextBlock, newTarget);
         long receivedTargetCompact = nextBlock.getDifficultyTarget();
 
-        if (newTargetCompact != receivedTargetCompact)
+        if (newTargetCompact != receivedTargetCompact) {
+            logDifficultyMismatch(storedPrev, nextBlock, newTargetCompact, receivedTargetCompact);
             throw new VerificationException("Network provided difficulty bits do not match what was calculated: " +
                     Long.toHexString(newTargetCompact) + " vs " + Long.toHexString(receivedTargetCompact));
+        }
     }
 
     public void DarkGravityWave(StoredBlock storedPrev, Block nextBlock,
                                   final BlockStore blockStore) throws VerificationException {
         /* current difficulty formula, darkcoin - DarkGravity v3, written by Evan Duffield - evan@darkcoin.io */
         long pastBlocks = 24;
+        int lastHeight = storedPrev != null ? storedPrev.getHeight() : -1;
+        long nextHeight = lastHeight + 1L;
+        BigInteger powLimitToUse = getPowLimitForHeight(nextHeight);
 
         if (storedPrev == null || storedPrev.getHeight() == 0 || storedPrev.getHeight() < pastBlocks) {
-            verifyDifficulty(storedPrev, nextBlock, getMaxTarget());
+            verifyDifficulty(storedPrev, nextBlock, powLimitToUse);
+            return;
+        }
+
+        // Temporary relaxation window to prevent stalls (Core heights 129887..130858 using prev height).
+        if (NetworkParameters.ID_MAINNET.equals(getId()) &&
+                lastHeight > 129886 && lastHeight < 130858) {
+            verifyDifficulty(storedPrev, nextBlock, powLimitToUse);
             return;
         }
 
@@ -201,7 +233,7 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
         {
             // recent block is more than 2 hours old
             if (nextBlock.getTimeSeconds() > storedPrev.getHeader().getTimeSeconds() + 2 * 60 * 60) {
-                verifyDifficulty(storedPrev, nextBlock, getMaxTarget());
+                verifyDifficulty(storedPrev, nextBlock, powLimitToUse);
                 return;
             }
             // recent block is more than 10 minutes old
@@ -248,6 +280,9 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
         // Retarget
         newTarget = newTarget.multiply(BigInteger.valueOf(timespan));
         newTarget = newTarget.divide(BigInteger.valueOf(targetTimespan));
+        if (newTarget.compareTo(powLimitToUse) > 0) {
+            newTarget = powLimitToUse;
+        }
         verifyDifficulty(storedPrev, nextBlock, newTarget);
 
     }
@@ -259,6 +294,8 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
         StoredBlock         BlockLastSolved             = storedPrev;
         StoredBlock         BlockReading                = storedPrev;
         Block               BlockCreating               = nextBlock;
+        long                nextHeight                  = storedPrev != null ? storedPrev.getHeight() + 1L : 0L;
+        BigInteger          powLimitForNext             = getPowLimitForHeight(nextHeight);
 
         long				PastBlocksMass				= 0;
         long				PastRateActualSeconds		= 0;
@@ -277,7 +314,7 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
 
         if (BlockLastSolved == null || BlockLastSolved.getHeight() == 0 || (long)BlockLastSolved.getHeight() < PastBlocksMin)
         {
-            verifyDifficulty(storedPrev, nextBlock, getMaxTarget());
+            verifyDifficulty(storedPrev, nextBlock, powLimitForNext);
         }
 
         for (int i = 1; BlockReading != null && BlockReading.getHeight() > 0; i++) {
@@ -322,9 +359,9 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
             newDifficulty = newDifficulty.divide(BigInteger.valueOf(PastRateTargetSeconds));
         }
 
-        if (newDifficulty.compareTo(getMaxTarget()) > 0) {
+        if (newDifficulty.compareTo(powLimitForNext) > 0) {
             log.info("Difficulty hit proof of work limit: {}", newDifficulty.toString(16));
-            newDifficulty = getMaxTarget();
+            newDifficulty = powLimitForNext;
         }
 
         verifyDifficulty(storedPrev, nextBlock, newDifficulty);

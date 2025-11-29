@@ -24,6 +24,7 @@ import com.hashengineering.crypto.PepeHash;
 import com.hashengineering.crypto.X11;
 import com.hashengineering.crypto.XelisV2;
 import org.bitcoinj.script.*;
+import org.bitcoinj.params.Networks;
 import org.slf4j.*;
 
 import javax.annotation.*;
@@ -603,7 +604,8 @@ public class Block extends Message {
      */
     public BigInteger getDifficultyTargetAsInteger() throws VerificationException {
         BigInteger target = Utils.decodeCompactBits(difficultyTarget);
-        if (target.signum() <= 0 || target.compareTo(params.maxTarget) > 0)
+        BigInteger allowedTarget = params.getMaxTargetAfterSwitch();
+        if (target.signum() <= 0 || target.compareTo(allowedTarget) > 0)
             throw new VerificationException("Difficulty target is bad: " + target.toString());
         return target;
     }
@@ -618,7 +620,24 @@ public class Block extends Message {
         //
         // To prevent this attack from being possible, elsewhere we check that the difficultyTarget
         // field is of the right value. This requires us to have the preceding blocks.
-        BigInteger target = getDifficultyTargetAsInteger();
+        BigInteger target = Utils.decodeCompactBits(difficultyTarget);
+        long blockTime = getTimeSeconds();
+        BigInteger powLimitBefore = params != null ? params.getMaxTarget() : BigInteger.ZERO;
+        BigInteger powLimitAfter = params != null ? params.getMaxTargetAfterSwitch() : BigInteger.ZERO;
+
+        if (blockTime >= 1724905600L) {
+            if (target.signum() <= 0 || target.compareTo(powLimitAfter) > 0) {
+                throw new VerificationException("nBits below minimum work2");
+            }
+        } else {
+            if (target.signum() <= 0 || target.compareTo(powLimitBefore) > 0) {
+                throw new VerificationException("nBits below minimum work");
+            }
+        }
+
+        if (params != null && params.shouldSkipProofOfWorkValidation())
+            return true;
+
         BigInteger h = getHash().toBigInteger();
 
         if (h.compareTo(target) > 0) {
@@ -754,7 +773,9 @@ public class Block extends Message {
         //
         // Firstly we need to ensure this block does in fact represent real work done. If the difficulty is high
         // enough, it's probably been done by the network.
-        checkProofOfWork(true);
+        if (!Networks.HEADER_ONLY_MODE) {
+            checkProofOfWork(true);
+        }
         checkTimestamp();
 
         // Check DevNet
