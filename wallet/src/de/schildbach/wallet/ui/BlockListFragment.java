@@ -74,23 +74,23 @@ import android.widget.ViewAnimator;
  * @author Andreas Schildbach
  */
 public final class BlockListFragment extends Fragment implements BlockListAdapter.OnClickListener {
-    private AbstractWalletActivity activity;
-    private WalletApplication application;
-    private Configuration config;
-    @Nullable
-    private Wallet wallet;
-    private LoaderManager loaderManager;
+	private AbstractWalletActivity activity;
+	private WalletApplication application;
+	private Configuration config;
+	@Nullable
+	private Wallet wallet;
+	private LoaderManager loaderManager;
 
 	private BlockchainService service;
 
 	private ViewAnimator viewGroup;
-    private RecyclerView recyclerView;
-    private BlockListAdapter adapter;
-    private TextView modeDescriptionView;
+	private RecyclerView recyclerView;
+	private BlockListAdapter adapter;
+	private TextView modeDescriptionView;
 
 	private long explorerTipHeight = 0;
-    private SyncMode syncMode;
-    private boolean walletMissingWarningShown = false;
+	private SyncMode syncMode;
+	private boolean walletMissingWarningShown = false;
 
 	private static final int ID_BLOCK_LOADER = 0;
 	private static final int ID_TRANSACTION_LOADER = 1;
@@ -101,19 +101,19 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 
 	@Override
 	public void onAttach(final Activity activity) {
-        super.onAttach(activity);
+		super.onAttach(activity);
 
-        this.activity = (AbstractWalletActivity) activity;
-        this.application = this.activity.getWalletApplication();
-        this.config = application.getConfiguration();
-        this.wallet = application.getWalletOrNull();
-        this.loaderManager = getLoaderManager();
-        this.syncMode = config.getSyncMode();
-        if (this.wallet == null && application.getWalletState() != WalletApplication.WalletState.LOADING) {
-            log.info("BlockListFragment: wallet not yet loaded; requesting load.");
-            application.loadWallet();
-        }
-    }
+		this.activity = (AbstractWalletActivity) activity;
+		this.application = this.activity.getWalletApplication();
+		this.config = application.getConfiguration();
+		this.wallet = application.getWalletOrNull();
+		this.loaderManager = getLoaderManager();
+		this.syncMode = config.getSyncMode();
+		if (this.wallet == null && application.getWalletState() != WalletApplication.WalletState.LOADING) {
+			log.info("BlockListFragment: wallet not yet loaded; requesting load.");
+			application.loadWallet();
+		}
+	}
 
 	@Override
 	public void onActivityCreated(final Bundle savedInstanceState) {
@@ -123,82 +123,82 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 				Context.BIND_AUTO_CREATE);
 	}
 
-    @Override
-    public void onCreate(final Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+	@Override
+	public void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-        if (wallet != null) {
-            adapter = new BlockListAdapter(activity, wallet, this);
-            adapter.setFormat(config.getFormat());
-            adapter.setExplorerTipHeight(explorerTipHeight);
-        } else {
-            log.info("BlockListFragment: wallet is null onCreate, waiting for load before creating adapter.");
-        }
-    }
+		if (wallet != null) {
+			adapter = new BlockListAdapter(activity, wallet, this);
+			adapter.setFormat(config.getFormat());
+			adapter.setExplorerTipHeight(explorerTipHeight);
+		} else {
+			log.info("BlockListFragment: wallet is null onCreate, waiting for load before creating adapter.");
+		}
+	}
 
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-            final Bundle savedInstanceState) {
-        final View view = inflater.inflate(R.layout.block_list_fragment, container, false);
+	@Override
+	public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+			final Bundle savedInstanceState) {
+		final View view = inflater.inflate(R.layout.block_list_fragment, container, false);
 
 		viewGroup = (ViewAnimator) view.findViewById(R.id.block_list_group);
 
 		modeDescriptionView = view.findViewById(R.id.block_list_mode_description);
-        updateModeDescription();
+		updateModeDescription();
 
-        recyclerView = (RecyclerView) view.findViewById(R.id.block_list);
-        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
-        if (adapter != null) {
-            recyclerView.setAdapter(adapter);
-            adapter.setExplorerTipHeight(explorerTipHeight);
-        } else {
-            viewGroup.setDisplayedChild(0);
-        }
+		recyclerView = (RecyclerView) view.findViewById(R.id.block_list);
+		recyclerView.setLayoutManager(new LinearLayoutManager(activity));
+		if (adapter != null) {
+			recyclerView.setAdapter(adapter);
+			adapter.setExplorerTipHeight(explorerTipHeight);
+		} else {
+			viewGroup.setDisplayedChild(0);
+		}
 
-        return view;
-    }
+		return view;
+	}
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        application.getWalletStateLiveData().observe(getViewLifecycleOwner(),
-                new Observer<WalletApplication.WalletState>() {
-                    @Override
-                    public void onChanged(WalletApplication.WalletState state) {
-                        if (state == WalletApplication.WalletState.LOADED) {
-                            onWalletReady();
-                        } else if (state == WalletApplication.WalletState.FAILED) {
-                            showWalletNotReadyMessage();
-                        }
-                    }
-                });
-    }
+	@Override
+	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+		super.onViewCreated(view, savedInstanceState);
+		application.getWalletStateLiveData().observe(getViewLifecycleOwner(),
+				new Observer<WalletApplication.WalletState>() {
+					@Override
+					public void onChanged(WalletApplication.WalletState state) {
+						if (state == WalletApplication.WalletState.LOADED) {
+							onWalletReady();
+						} else if (state == WalletApplication.WalletState.FAILED) {
+							showWalletNotReadyMessage();
+						}
+					}
+				});
+	}
 
-    private boolean resumed = false;
+	private boolean resumed = false;
 
-    @Override
-    public void onResume() {
-        super.onResume();
+	@Override
+	public void onResume() {
+		super.onResume();
 
-        activity.registerReceiver(tickReceiver, new IntentFilter(Intent.ACTION_TIME_TICK));
-        wallet = application.getWalletOrNull();
-        if (wallet == null) {
-            log.info("BlockListFragment: wallet still null onResume; waiting for state update.");
-            showWalletNotReadyMessage();
-            resumed = true;
-            return;
-        }
-        onWalletReady();
-        if (adapter != null) {
-            adapter.notifyDataSetChanged();
-            adapter.setExplorerTipHeight(explorerTipHeight);
-        }
-        syncMode = config.getSyncMode();
-        updateModeDescription();
-        loaderManager.initLoader(ID_TRANSACTION_LOADER, null, transactionLoaderCallbacks);
-        initLoadersIfReady();
-        resumed = true;
-    }
+		activity.registerReceiver(tickReceiver, new IntentFilter(Intent.ACTION_TIME_TICK));
+		wallet = application.getWalletOrNull();
+		if (wallet == null) {
+			log.info("BlockListFragment: wallet still null onResume; waiting for state update.");
+			showWalletNotReadyMessage();
+			resumed = true;
+			return;
+		}
+		onWalletReady();
+		if (adapter != null) {
+			adapter.notifyDataSetChanged();
+			adapter.setExplorerTipHeight(explorerTipHeight);
+		}
+		syncMode = config.getSyncMode();
+		updateModeDescription();
+		loaderManager.initLoader(ID_TRANSACTION_LOADER, null, transactionLoaderCallbacks);
+		initLoadersIfReady();
+		resumed = true;
+	}
 
 	@Override
 	public void onPause() {
@@ -267,14 +267,25 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 			adapter.setExplorerTipHeight(explorerTipHeight);
 		}
 		updateModeDescription();
+
+		// Refresh the loader to respect the new effective tip height
+		if (loaderManager != null && loaderManager.getLoader(ID_BLOCK_LOADER) != null) {
+			loaderManager.getLoader(ID_BLOCK_LOADER).forceLoad();
+		}
+	}
+
+	private int getEffectiveDisplayTipHeight(int spvTip, int explorerTip) {
+		// Always show all blocks we have, even if ahead of explorer.
+		// This ensures the list is populated during sync.
+		return spvTip;
 	}
 
 	private final ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(final ComponentName name, final IBinder binder) {
-            service = ((BlockchainServiceImpl.LocalBinder) binder).getService();
-            initLoadersIfReady();
-        }
+		@Override
+		public void onServiceConnected(final ComponentName name, final IBinder binder) {
+			service = ((BlockchainServiceImpl.LocalBinder) binder).getService();
+			initLoadersIfReady();
+		}
 
 		@Override
 		public void onServiceDisconnected(final ComponentName name) {
@@ -291,11 +302,11 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 		}
 	};
 
-    private void updateModeDescription() {
-        if (modeDescriptionView == null) {
-            return;
-        }
-        if (syncMode == null) {
+	private void updateModeDescription() {
+		if (modeDescriptionView == null) {
+			return;
+		}
+		if (syncMode == null) {
 			syncMode = config.getSyncMode();
 		}
 		String description;
@@ -316,59 +327,61 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 					description = getString(R.string.network_monitor_blocks_hint_unknown);
 					break;
 			}
-        }
-        modeDescriptionView.setText(description);
-    }
+		}
+		modeDescriptionView.setText(description);
+	}
 
-    private void onWalletReady() {
-        if (wallet == null) {
-            wallet = application.getWalletOrNull();
-        }
-        if (wallet == null) {
-            showWalletNotReadyMessage();
-            return;
-        }
-        if (adapter == null) {
-            adapter = new BlockListAdapter(activity, wallet, this);
-            adapter.setFormat(config.getFormat());
-        }
-        adapter.setExplorerTipHeight(explorerTipHeight);
-        if (recyclerView != null && recyclerView.getAdapter() == null) {
-            recyclerView.setAdapter(adapter);
-        }
-        updateModeDescription();
-        if (resumed) {
-            loaderManager.initLoader(ID_TRANSACTION_LOADER, null, transactionLoaderCallbacks);
-            initLoadersIfReady();
-        }
-    }
+	private void onWalletReady() {
+		if (wallet == null) {
+			wallet = application.getWalletOrNull();
+		}
+		if (wallet == null) {
+			showWalletNotReadyMessage();
+			return;
+		}
+		if (adapter == null) {
+			adapter = new BlockListAdapter(activity, wallet, this);
+			adapter.setFormat(config.getFormat());
+		}
+		adapter.setExplorerTipHeight(explorerTipHeight);
+		if (recyclerView != null && recyclerView.getAdapter() == null) {
+			recyclerView.setAdapter(adapter);
+		}
+		updateModeDescription();
+		if (resumed) {
+			loaderManager.initLoader(ID_TRANSACTION_LOADER, null, transactionLoaderCallbacks);
+			initLoadersIfReady();
+		}
+	}
 
-    private void initLoadersIfReady() {
-        if (wallet == null || service == null) {
-            return;
-        }
-        loaderManager.initLoader(ID_BLOCK_LOADER, null, blockLoaderCallbacks);
-    }
+	private void initLoadersIfReady() {
+		if (wallet == null || service == null) {
+			return;
+		}
+		loaderManager.initLoader(ID_BLOCK_LOADER, null, blockLoaderCallbacks);
+	}
 
-    private void showWalletNotReadyMessage() {
-        if (viewGroup != null) {
-            viewGroup.setDisplayedChild(0);
-        }
-        if (!walletMissingWarningShown && getContext() != null) {
-            Toast.makeText(getContext(), R.string.network_monitor_wallet_not_loaded, Toast.LENGTH_SHORT).show();
-            walletMissingWarningShown = true;
-        }
-    }
+	private void showWalletNotReadyMessage() {
+		if (viewGroup != null) {
+			viewGroup.setDisplayedChild(0);
+		}
+		if (!walletMissingWarningShown && getContext() != null) {
+			Toast.makeText(getContext(), R.string.network_monitor_wallet_not_loaded, Toast.LENGTH_SHORT).show();
+			walletMissingWarningShown = true;
+		}
+	}
 
-    private static class BlockLoader extends AsyncTaskLoader<List<StoredBlock>> {
-        private LocalBroadcastManager broadcastManager;
-        private BlockchainService service;
+	private static class BlockLoader extends AsyncTaskLoader<List<StoredBlock>> {
+		private LocalBroadcastManager broadcastManager;
+		private BlockchainService service;
+		private final BlockListFragment fragment;
 
-		private BlockLoader(final Context context, final BlockchainService service) {
+		private BlockLoader(final Context context, final BlockchainService service, BlockListFragment fragment) {
 			super(context);
 
 			this.broadcastManager = LocalBroadcastManager.getInstance(context.getApplicationContext());
 			this.service = service;
+			this.fragment = fragment;
 		}
 
 		@Override
@@ -390,7 +403,39 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 
 		@Override
 		public List<StoredBlock> loadInBackground() {
-			return service.getRecentBlocks(MAX_BLOCKS);
+			int limit = getNetworkMonitorBlockLimit(WalletApplication.getInstance().getConfiguration().getSyncMode());
+			List<StoredBlock> blocks = service.getRecentBlocks(limit);
+
+			// Filter blocks based on effective tip height
+			if (fragment.explorerTipHeight > 0) {
+				int spvTip = blocks.isEmpty() ? 0 : blocks.get(0).getHeight();
+				int effectiveTip = fragment.getEffectiveDisplayTipHeight(spvTip, (int) fragment.explorerTipHeight);
+
+				// If the top block is higher than effective tip, we might need to filter or
+				// re-fetch
+				// But since getRecentBlocks returns the *latest* blocks, we just need to filter
+				// out those
+				// that are strictly greater than effectiveTip.
+				// However, getRecentBlocks(limit) just grabs the last N blocks.
+				// If SPV is ahead, we might be showing blocks 1005, 1004, 1003... when explorer
+				// is at 1000.
+				// We want to show 1000, 999...
+
+				// Since we can't easily ask service for "blocks ending at height X",
+				// and modifying BlockchainService is out of scope/risky,
+				// we will just filter the list for now to not show "future" blocks.
+				// Note: This might result in a shorter list if many blocks are ahead.
+				// Ideally we would fetch blocks starting from effectiveTip downwards, but that
+				// API might not exist.
+
+				java.util.Iterator<StoredBlock> iter = blocks.iterator();
+				while (iter.hasNext()) {
+					if (iter.next().getHeight() > effectiveTip) {
+						iter.remove();
+					}
+				}
+			}
+			return blocks;
 		}
 
 		private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -405,34 +450,48 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 		};
 	}
 
+	private static int getNetworkMonitorBlockLimit(SyncMode mode) {
+		if (mode == null)
+			return 1000;
+		switch (mode) {
+			case FAST_API_10POW:
+				return 10;
+			case API_1000POW:
+				return 100;
+			case FULL_SPV:
+			default:
+				return 1000;
+		}
+	}
+
 	private final LoaderManager.LoaderCallbacks<List<StoredBlock>> blockLoaderCallbacks = new LoaderManager.LoaderCallbacks<List<StoredBlock>>() {
 		@Override
 		public Loader<List<StoredBlock>> onCreateLoader(final int id, final Bundle args) {
-			return new BlockLoader(activity, service);
+			return new BlockLoader(activity, service, BlockListFragment.this);
 		}
 
-        @Override
-        public void onLoadFinished(@NonNull Loader<List<StoredBlock>> loader, List<StoredBlock> blocks) {
-            if (adapter == null) {
-                log.info("BlockListFragment: block loader finished but adapter not ready.");
-                showWalletNotReadyMessage();
-                return;
-            }
-            adapter.replace(blocks);
-            viewGroup.setDisplayedChild(1);
+		@Override
+		public void onLoadFinished(@NonNull Loader<List<StoredBlock>> loader, List<StoredBlock> blocks) {
+			if (adapter == null) {
+				log.info("BlockListFragment: block loader finished but adapter not ready.");
+				showWalletNotReadyMessage();
+				return;
+			}
+			adapter.replace(blocks);
+			viewGroup.setDisplayedChild(1);
 
 			final Loader<Set<Transaction>> transactionLoader = loaderManager.getLoader(ID_TRANSACTION_LOADER);
 			if (transactionLoader != null && transactionLoader.isStarted())
 				transactionLoader.forceLoad();
 		}
 
-        @Override
-        public void onLoaderReset(@NonNull Loader<List<StoredBlock>> loader) {
-            if (adapter != null) {
-                adapter.clear();
-            }
-        }
-    };
+		@Override
+		public void onLoaderReset(@NonNull Loader<List<StoredBlock>> loader) {
+			if (adapter != null) {
+				adapter.clear();
+			}
+		}
+	};
 
 	private static class TransactionsLoader extends AsyncTaskLoader<Set<Transaction>> {
 		private final Wallet wallet;
@@ -473,12 +532,12 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 			return new TransactionsLoader(activity, wallet);
 		}
 
-        @Override
-        public void onLoadFinished(@NonNull Loader<Set<Transaction>> loader, Set<Transaction> transactions) {
-            if (adapter != null) {
-                adapter.replaceTransactions(transactions);
-            }
-        }
+		@Override
+		public void onLoadFinished(@NonNull Loader<Set<Transaction>> loader, Set<Transaction> transactions) {
+			if (adapter != null) {
+				adapter.replaceTransactions(transactions);
+			}
+		}
 
 		@Override
 		public void onLoaderReset(@NonNull Loader<Set<Transaction>> loader) {

@@ -124,9 +124,9 @@ class ReceiveInfoView(context: Context, attrs: AttributeSet?) : ConstraintLayout
             if (amount != null) {
                 clipboardManager.primaryClip = ClipData.newPlainText("Dash payment request", paymentRequestUri)
             } else {
-                clipboardManager.primaryClip = ClipData.newPlainText("Dash address", address.toBase58())
+            clipboardManager.primaryClip = ClipData.newPlainText("Dash address", address.toBase58())
             }
-            Toast(context).toast(R.string.receive_copied)
+            android.widget.Toast.makeText(context, R.string.address_copied, android.widget.Toast.LENGTH_SHORT).show()
             log.info("address copied to clipboard: {}", address)
         } catch (ignore: BitcoinURIParseException) {
 

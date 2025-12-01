@@ -50,12 +50,17 @@ public class ExplorerPriceClient extends RetrofitClient implements ExchangeRates
             throw new IllegalStateException("Failed to fetch explorer price data");
         }
 
-        if (response.lastPriceUsdt == null) {
-            throw new IllegalStateException("Explorer price response did not include the USDT rate");
+        BigDecimal price = response.lastPriceUsdt;
+        if (price == null) {
+            price = response.lastPriceUsd;
+        }
+
+        if (price == null) {
+            throw new IllegalStateException("Explorer price response did not include the USDT or USD rate");
         }
 
         List<ExchangeRate> rates = new ArrayList<>(1);
-        rates.add(new ExchangeRate("USDT", response.lastPriceUsdt.toPlainString()));
+        rates.add(new ExchangeRate("USDT", price.setScale(8, java.math.RoundingMode.HALF_UP).toPlainString()));
         return rates;
     }
 

@@ -68,6 +68,7 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.wallet.Wallet;
+import org.bitcoinj.wallet.DeterministicSeed;
 import org.dash.wallet.common.Configuration;
 import org.dash.wallet.common.data.CurrencyInfo;
 import org.dash.wallet.common.ui.DialogBuilder;
@@ -115,6 +116,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private static final int DIALOG_TIMESKEW_ALERT = 3;
     private static final int DIALOG_VERSION_ALERT = 4;
     private static final int DIALOG_LOW_STORAGE_ALERT = 5;
+    private static final int AUTH_REQUEST_CODE_VIEW_RECOVERYPHRASE = 100;
 
     public static Intent createIntent(Context context) {
         return new Intent(context, WalletActivity.class);
@@ -173,12 +175,28 @@ public final class WalletActivity extends AbstractBindServiceActivity
         } else {
             initUi(savedInstanceState);
         }
+
+        DecryptSeedSharedModel decryptSeedSharedModel = ViewModelProviders.of(this).get(DecryptSeedSharedModel.class);
+        decryptSeedSharedModel.getOnDecryptSeedCallback().observe(this,
+                new Observer<Pair<Integer, DeterministicSeed>>() {
+                    @Override
+                    public void onChanged(Pair<Integer, DeterministicSeed> data) {
+                        if (data.getFirst() == AUTH_REQUEST_CODE_VIEW_RECOVERYPHRASE) {
+                            startViewSeedActivity(data.getSecond());
+                        }
+                    }
+                });
     }
 
     private void initUi(final Bundle savedInstanceState) {
         log.info("WalletActivity: initUi called");
         setContentViewFooter(R.layout.home_activity);
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setLogo(R.drawable.ic_pepepow_logo);
+            getSupportActionBar().setDisplayUseLogoEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
         activateHomeButton();
 
         if (savedInstanceState == null) {
@@ -235,7 +253,12 @@ public final class WalletActivity extends AbstractBindServiceActivity
         findViewById(R.id.pay_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(PaymentsActivity.createIntent(WalletActivity.this, PaymentsActivity.ACTIVE_TAB_PAY));
+                if (org.pepepow.wallet.BuildConfig.DEBUG) {
+                    log.info("NAV: Home Send clicked -> navigating to PaymentsActivity");
+                }
+                if (canOpenSendScreen()) {
+                    startActivity(PaymentsActivity.createIntent(WalletActivity.this, PaymentsActivity.ACTIVE_TAB_PAY));
+                }
             }
         });
         findViewById(R.id.receive_btn).setOnClickListener(new View.OnClickListener() {
@@ -261,19 +284,19 @@ public final class WalletActivity extends AbstractBindServiceActivity
         findViewById(R.id.scan_to_pay_action).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleScan(v);
+                startActivity(new Intent(WalletActivity.this, NetworkMonitorActivity.class));
             }
         });
         findViewById(R.id.pay_to_address_action).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handlePaste();
+                AddressBookActivity.start(WalletActivity.this);
             }
         });
         findViewById(R.id.import_key_action).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SweepWalletActivity.start(WalletActivity.this, true);
+                DecryptSeedWithPinDialog.show(WalletActivity.this, AUTH_REQUEST_CODE_VIEW_RECOVERYPHRASE, true);
             }
         });
     }
@@ -314,7 +337,27 @@ public final class WalletActivity extends AbstractBindServiceActivity
         checkLowStorageAlert();
         detectUserCountry();
         showBackupWalletDialogIfNeeded();
+        showBackupWalletDialogIfNeeded();
         showHideSecureAction();
+        updateSendButtonState();
+    }
+
+    private void updateSendButtonState() {
+        View payBtn = findViewById(R.id.pay_btn);
+        if (payBtn != null) {
+            boolean enabled = canOpenSendScreen();
+            payBtn.setEnabled(enabled);
+            payBtn.setAlpha(enabled ? 1.0f : 0.5f);
+        }
+    }
+
+    private boolean canOpenSendScreen() {
+        if (Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+            // In FAST_API_10POW we allow opening Send even if SPV is behind.
+            return !config.isRestoringBackup();
+        }
+        // Existing behaviour for other modes (always enabled in WalletActivity)
+        return true;
     }
 
     private void showBackupWalletDialogIfNeeded() {
@@ -406,7 +449,11 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
             @Override
             protected void error(final int messageResId, final Object... messageArgs) {
-                dialog(WalletActivity.this, null, errorDialogTitleResId, messageResId, messageArgs);
+                if (Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+                    SendCoinsActivity.start(WalletActivity.this, null, true);
+                } else {
+                    dialog(WalletActivity.this, null, errorDialogTitleResId, messageResId, messageArgs);
+                }
             }
 
             @Override
@@ -422,6 +469,17 @@ public final class WalletActivity extends AbstractBindServiceActivity
         getMenuInflater().inflate(R.menu.wallet_options, menu);
         super.onCreateOptionsMenu(menu);
         return true;
+    }
+
+    private void startViewSeedActivity(DeterministicSeed seed) {
+        if (seed == null)
+            return;
+        java.util.List<String> mnemonicCode = seed.getMnemonicCode();
+        if (mnemonicCode == null)
+            return;
+        String[] seedArray = mnemonicCode.toArray(new String[0]);
+        Intent intent = ViewSeedActivity.createIntent(this, seedArray);
+        startActivity(intent);
     }
 
     @Override
@@ -582,6 +640,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
         }
         if (input != null) {
             handleString(input, R.string.scan_to_pay_error_dialog_title, R.string.scan_to_pay_error_dialog_message);
+        } else if (Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+            SendCoinsActivity.start(this, null, true);
         } else {
             InputParser.dialog(this, null, R.string.scan_to_pay_error_dialog_title,
                     R.string.scan_to_pay_error_dialog_message_no_data);

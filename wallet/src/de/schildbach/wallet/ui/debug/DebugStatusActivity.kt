@@ -14,6 +14,7 @@ import de.schildbach.wallet.api.ExplorerApiClient
 import de.schildbach.wallet.data.BlockchainStateLiveData
 import de.schildbach.wallet.service.BlockchainState
 import kotlinx.android.synthetic.main.activity_debug_status.*
+import androidx.appcompat.widget.Toolbar
 import org.bitcoinj.utils.MonetaryFormat
 import org.bitcoinj.wallet.Wallet
 import org.pepepow.wallet.R
@@ -41,8 +42,14 @@ class DebugStatusActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_debug_status)
-        title = getString(R.string.debug_dashboard_title)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.apply {
+            title = getString(R.string.debug_dashboard_title)
+            setDisplayHomeAsUpEnabled(true)
+            setDisplayShowHomeEnabled(true)
+        }
 
         val walletApp = WalletApplication.getInstance()
         walletApp.startBlockchainService(false)
@@ -65,12 +72,13 @@ class DebugStatusActivity : AppCompatActivity() {
         val factory = de.schildbach.wallet.ui.ExplorerStatsViewModel.Factory(application, repo)
         viewModel = androidx.lifecycle.ViewModelProvider(this, factory).get(de.schildbach.wallet.ui.ExplorerStatsViewModel::class.java)
 
-        debug_spv_balance_value.text =
-            pepewFormat.format(wallet.getBalance(Wallet.BalanceType.AVAILABLE)).toString()
+        // debug_spv_balance_value removed
         trackedAddress = wallet.currentReceiveAddress().toString()
-        debug_test_address_value.text = trackedAddress
+        // debug_test_address_value.text = trackedAddress
 
         // Sync Mode Selector
+        // Sync Mode Selector (Hidden)
+        /*
         val config = walletApp.configuration
         when (config.syncMode) {
             org.dash.wallet.common.data.SyncMode.FAST_API_10POW -> radio_fast_api.isChecked = true
@@ -97,11 +105,13 @@ class DebugStatusActivity : AppCompatActivity() {
                 }, 1000)
             }
         }
+        */
 
         // Display API Base URL
-        debug_api_base_url_value.text = config.apiBaseUrl
+        // Display API Base URL
+        debug_api_base_url_value.text = walletApp.configuration.apiBaseUrl
 
-        updateCheckpointHash(null)
+        // updateCheckpointHash(null) removed
         blockchainStateLiveData.observe(this, Observer { state ->
             currentBlockchainState = state
             debug_spv_header_height_value.text = formatHeight(state?.bestChainHeight ?: 0)
@@ -119,7 +129,7 @@ class DebugStatusActivity : AppCompatActivity() {
             if (stats != null) {
                 debug_explorer_height_value.text = stats.explorerTipHeight.toString()
                 latestExplorerHeight = stats.explorerTipHeight
-                debug_explorer_balance_value.text = "N/A (Shared Repo)" 
+                // debug_explorer_balance_value removed 
                 updateSourceNote()
             }
         })
@@ -173,10 +183,7 @@ class DebugStatusActivity : AppCompatActivity() {
         }
     }
 
-    // Checkpoint verification removed as per user request
-    private fun updateCheckpointHash(explorerHash: String?) {
-        debug_checkpoint_hash_value.text = "Checkpoint verification disabled"
-    }
+    // Checkpoint verification removed
 
     private fun formatHeight(raw: Int): String {
         return if (raw > 0) raw.toString() else getString(R.string.debug_dashboard_value_unknown)

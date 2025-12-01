@@ -32,6 +32,7 @@ class ViewSeedActivity : BaseMenuActivity() {
 
         private const val EXTRA_SEED = "extra_seed"
 
+        @JvmStatic
         fun createIntent(context: Context, seed: Array<String>): Intent {
             val intent = Intent(context, ViewSeedActivity::class.java)
             intent.putExtra(EXTRA_SEED, seed)

@@ -67,6 +67,10 @@ public final class Constants {
     public static final InetSocketAddress HARDCODED_PEER;
     public static boolean FAST_API_10POW_ENABLED_FOR_CORE = false;
 
+    public static boolean isFullReplayAllowed() {
+        return !FAST_API_10POW_ENABLED_FOR_CORE;
+    }
+
     static {
         switch (BuildConfig.FLAVOR) {
             case "prod":

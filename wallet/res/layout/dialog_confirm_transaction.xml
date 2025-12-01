@@ -59,7 +59,7 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginTop="2dp"
                     android:layout_marginRight="8dp"
-                    app:srcCompat="@drawable/ic_dash_d_black" />
+                    app:srcCompat="@drawable/ic_pepepow_logo" />
 
                 <TextView
                     android:id="@+id/input_value"
@@ -159,7 +159,7 @@
             android:layout_height="match_parent"
             android:paddingTop="1dp"
             android:layout_marginRight="4dp"
-            app:srcCompat="@drawable/ic_dash_d_black" />
+            app:srcCompat="@drawable/ic_pepepow_logo" />
 
         <TextView
             android:id="@+id/transaction_fee"
@@ -198,7 +198,7 @@
             android:layout_height="match_parent"
             android:paddingTop="1dp"
             android:layout_marginRight="4dp"
-            app:srcCompat="@drawable/ic_dash_d_black" />
+            app:srcCompat="@drawable/ic_pepepow_logo" />
 
         <TextView
             android:id="@+id/total_amount"

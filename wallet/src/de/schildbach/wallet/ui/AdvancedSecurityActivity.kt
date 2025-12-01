@@ -71,7 +71,7 @@ class AdvancedSecurityActivity : BaseMenuActivity() {
         super.onCreate(savedInstanceState)
 
         val drawableDash = ResourcesCompat.getDrawable(resources,
-                R.drawable.ic_dash_d_black, null)
+                R.drawable.ic_pepepow_logo, null)
         drawableDash!!.setBounds(0, 0, 32, 32)
         dashSymbol = ImageSpan(drawableDash, ImageSpan.ALIGN_BASELINE)
 

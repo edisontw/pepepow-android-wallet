@@ -19,7 +19,7 @@
             android:layout_gravity="center_vertical"
             android:layout_marginTop="2dp"
             android:layout_marginRight="8dp"
-            android:src="@drawable/ic_dash_d_black" />
+            android:src="@drawable/ic_pepepow_logo" />
 
         <TextView
             android:id="@+id/input_value"

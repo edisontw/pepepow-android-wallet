@@ -166,15 +166,9 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
         } else {
             blockTime = holder.timeView.getContext().getString(R.string.block_row_now);
         }
-        final boolean aheadOfExplorer = explorerTipHeight > 0 && height > explorerTipHeight;
-        final String displayTime;
-        if (aheadOfExplorer) {
-            displayTime = context.getString(R.string.network_monitor_block_not_on_explorer, explorerTipHeight);
-        } else {
-            displayTime = blockTime;
-        }
+        final String displayTime = blockTime;
         holder.timeView.setText(displayTime);
-        holder.itemView.setAlpha(aheadOfExplorer ? 0.6f : 1f);
+        holder.itemView.setAlpha(1f);
 
         /*
          * holder.hashView.setText(WalletUtils.formatHash(null,
@@ -253,10 +247,8 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (aheadOfExplorer) {
-                        Toast.makeText(context,
-                                context.getString(R.string.network_monitor_block_not_on_explorer_toast),
-                                Toast.LENGTH_SHORT).show();
+                    if (false) {
+                        // Logic removed
                         return;
                     }
                     BlockInfo blockInfo = new BlockInfo(storedBlock.getHeight(), blockTime, header.getHashAsString());

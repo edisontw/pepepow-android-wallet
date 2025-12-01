@@ -31,13 +31,13 @@
     <!-- Home Screen: Shortcut Button: 2 lines, 9 characters across -->
     <string name="quick_action_secure_now">Secure Wallet Now</string>
     <!-- Home Screen: Shortcut Button: 2 lines, 9 characters across -->
-    <string name="quick_action_scan_to_pay">Scan to Send</string>
+    <string name="quick_action_scan_to_pay">Network monitor</string>
     <!-- Home Screen: Shortcut Button: 2 lines, 9 characters across -->
-    <string name="quick_action_pay_to_address">Send to Address</string>
+    <string name="quick_action_pay_to_address">Address Book</string>
     <!-- Home Screen: Shortcut Button: 2 lines, 9 characters across -->
     <string name="quick_action_buy_sell">Buy / Sell PEPEPOW</string>
     <!-- Home Screen: Shortcut Button: 2 lines, 9 characters across -->
-    <string name="quick_action_import_key">Import Private Key</string>
+    <string name="quick_action_import_key">Recovery Phrase</string>
     <!-- Home Screen: Shortcut Button: 2 lines, 9 characters across -->
     <string name="quick_action_add_shortcut">Add Shortcut</string>
 
@@ -239,11 +239,11 @@
     <string name="menu_buy_and_sell_title">Buy &amp; Sell PEPEPOW</string>
     <string name="menu_buy_and_sell_subtitle">Connect with third party exchanges</string>
     <string name="menu_security_title">Security</string>
-    <string name="menu_security_subtitle">View passphrase, backup wallet¡K</string>
+    <string name="menu_security_subtitle">View passphrase, backup wallet</string>
     <string name="menu_settings_title">Settings</string>
-    <string name="menu_settings_subtitle">Default currency, shortcuts, about¡K</string>
+    <string name="menu_settings_subtitle">Default currency, shortcuts, about</string>
     <string name="menu_tools_title">Tools</string>
-    <string name="menu_tools_subtitle">Import private key¡K</string>
+    <string name="menu_tools_subtitle">Import private key</string>
     <string name="menu_local_currency">Local Currency</string>
     <string name="menu_rescan_blockchain">Rescan Blockchain</string>
 
@@ -255,9 +255,9 @@
     <string name="about_join_discord">Join the community discussion (Discord)</string>
     <string name="about_contact_support">More info (pepepow.org)</string>
     <string name="about_fork_disclaimer">PEPEPOW Wallet is an open source project maintained by the community and originally forked from Dash Wallet.</string>
-    <string name="about_copyright">Copyright Â© 2025 PEPEPOW Community</string>
+    <string name="about_copyright">Copyright Ã‚Â© 2025 PEPEPOW Community</string>
     <string name="about_license">GNU General Public License v3.0</string>
-    <string name="about_github_link" translatable="false">https://github.com/MattF42/pepepow-wallet</string>
+    <string name="about_github_link" translatable="false">https://github.com/edisontw/pepepow-android-wallet</string>
     <string name="about_version_name">PEPEPOW Wallet %s</string>
 
     <string name="block">Block</string>

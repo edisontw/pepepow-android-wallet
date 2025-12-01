@@ -1,204 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:orientation="vertical">
 
-    <LinearLayout
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-        <TextView
-            android:id="@+id/debug_data_source_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_title"
-            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-            android:textStyle="bold" />
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
 
-        <TextView
-            android:id="@+id/debug_sync_mode_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/preferences_sync_mode_title"
-            android:textStyle="bold" />
-
-        <RadioGroup
-            android:id="@+id/debug_sync_mode_group"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <RadioButton
-                android:id="@+id/radio_fast_api"
+            <TextView
+                android:id="@+id/debug_data_source_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/debug_dashboard_title"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_sync_mode_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/preferences_sync_mode_title"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <RadioGroup
+                android:id="@+id/debug_sync_mode_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <RadioButton
+                    android:id="@+id/radio_fast_api"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FAST_API_10POW" />
+
+                <RadioButton
+                    android:id="@+id/radio_api_1000"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="API_1000POW" />
+
+                <RadioButton
+                    android:id="@+id/radio_full_spv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FULL_SPV" />
+            </RadioGroup>
+
+            <TextView
+                android:id="@+id/debug_api_base_url_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="API Base URL"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_api_base_url_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/debug_dashboard_value_unknown"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:id="@+id/debug_explorer_height"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/debug_dashboard_explorer_height"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_explorer_height_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/debug_dashboard_value_unknown" />
+
+            <TextView
+                android:id="@+id/debug_spv_header_height_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/debug_dashboard_local_header_height"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_spv_header_height_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/debug_dashboard_value_unknown" />
+
+            <TextView
+                android:id="@+id/debug_spv_wallet_height_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/debug_dashboard_local_wallet_height"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_spv_wallet_height_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/debug_dashboard_value_unknown" />
+
+            <!-- Checkpoint verification removed -->
+
+            <!-- Explorer balance removed -->
+
+            <!-- SPV balance removed -->
+
+            <TextView
+                android:id="@+id/debug_test_address_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/debug_dashboard_test_address_label"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/debug_test_address_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:autoLink="web"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/debug_api_status_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/debug_dashboard_api_status"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_api_status_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/debug_dashboard_status_loading" />
+
+            <TextView
+                android:id="@+id/debug_recent_logs_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/debug_dashboard_recent_logs"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/debug_recent_logs_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:paddingTop="4dp"
+                android:text="@string/debug_dashboard_logs_loading"
+                android:textIsSelectable="true" />
+
+            <Button
+                android:id="@+id/debug_refresh_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="FAST_API_10POW" />
-
-            <RadioButton
-                android:id="@+id/radio_api_1000"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="API_1000POW" />
-
-            <RadioButton
-                android:id="@+id/radio_full_spv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="FULL_SPV" />
-        </RadioGroup>
-
-        <TextView
-            android:id="@+id/debug_api_base_url_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="API Base URL"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_api_base_url_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown"
-            android:textIsSelectable="true" />
-
-        <TextView
-            android:id="@+id/debug_explorer_height"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/debug_dashboard_explorer_height"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_explorer_height_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown" />
-
-        <TextView
-            android:id="@+id/debug_spv_header_height_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/debug_dashboard_local_header_height"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_spv_header_height_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown" />
-
-        <TextView
-            android:id="@+id/debug_spv_wallet_height_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/debug_dashboard_local_wallet_height"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_spv_wallet_height_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown" />
-
-        <TextView
-            android:id="@+id/debug_checkpoint_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/debug_dashboard_checkpoint_section_title"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_checkpoint_hash_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown" />
-
-        <TextView
-            android:id="@+id/debug_explorer_balance_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/debug_dashboard_explorer_balance"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_explorer_balance_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown" />
-
-        <TextView
-            android:id="@+id/debug_spv_balance_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/debug_dashboard_spv_balance"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_spv_balance_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_value_unknown" />
-
-        <TextView
-            android:id="@+id/debug_test_address_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/debug_dashboard_test_address_label"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_test_address_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:autoLink="web" />
-
-        <TextView
-            android:id="@+id/debug_api_status_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/debug_dashboard_api_status"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_api_status_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/debug_dashboard_status_loading" />
-
-        <TextView
-            android:id="@+id/debug_recent_logs_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/debug_dashboard_recent_logs"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/debug_recent_logs_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:paddingTop="4dp"
-            android:text="@string/debug_dashboard_logs_loading"
-            android:textIsSelectable="true" />
-
-        <Button
-            android:id="@+id/debug_refresh_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/debug_dashboard_refresh" />
-    </LinearLayout>
-</ScrollView>
+                android:layout_marginTop="24dp"
+                android:text="@string/debug_dashboard_refresh" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

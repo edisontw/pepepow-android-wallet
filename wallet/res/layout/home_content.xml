@@ -86,7 +86,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:padding="16dp"
-                    android:src="@drawable/ic_dash_logo_white" />
+                    android:src="@drawable/ic_pepepow_logo" />
 
             </androidx.appcompat.widget.Toolbar>
 

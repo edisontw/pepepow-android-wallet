@@ -43,7 +43,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 /**
- * This service is responsible for showing a notification if the user hasn't used the app for a longer time.
+ * This service is responsible for showing a notification if the user hasn't
+ * used the app for a longer time.
  *
  * @author Andreas Schildbach
  */
@@ -110,7 +111,7 @@ public final class InactivityNotificationService extends Service {
             final NotificationCompat.Builder notification = new NotificationCompat.Builder(this,
                     Constants.NOTIFICATION_CHANNEL_ID_TRANSACTIONS);
             notification.setStyle(new NotificationCompat.BigTextStyle().bigText(text));
-            notification.setSmallIcon(R.drawable.ic_dash_d_white_bottom);
+            notification.setSmallIcon(R.drawable.ic_pepepow_logo);
             notification.setContentTitle(title);
             notification.setContentText(text);
             notification
@@ -126,8 +127,9 @@ public final class InactivityNotificationService extends Service {
             Notification inactivityNotification = notification.build();
             startForeground(Constants.NOTIFICATION_ID_INACTIVITY, inactivityNotification);
         } else {
-            //startForeground is called here to prevent a crash that would happen by not calling
-            //startForeground after calling a service with startForegroundService.
+            // startForeground is called here to prevent a crash that would happen by not
+            // calling
+            // startForeground after calling a service with startForegroundService.
             final NotificationCompat.Builder invisibleNotification = new NotificationCompat.Builder(this,
                     Constants.NOTIFICATION_CHANNEL_ID_ONGOING);
             invisibleNotification.setPriority(Notification.PRIORITY_MIN);

@@ -49,7 +49,7 @@ public class BlockchainStateLiveData extends LiveData<BlockchainState> implement
     @Override
     protected void onActive() {
         broadcastManager.registerReceiver(receiver, new IntentFilter(BlockchainService.ACTION_BLOCKCHAIN_STATE));
-        application.bindService(new Intent(application, BlockchainService.class), this, Context.BIND_AUTO_CREATE);
+        application.bindService(new Intent(application, BlockchainServiceImpl.class), this, Context.BIND_AUTO_CREATE);
     }
 
     @Override

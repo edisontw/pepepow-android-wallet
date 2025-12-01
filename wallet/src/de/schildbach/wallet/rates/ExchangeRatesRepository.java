@@ -28,7 +28,7 @@ public class ExchangeRatesRepository {
     private Deque<ExchangeRatesClient> exchangeRatesClients = new ArrayDeque<>();
     private static final String PRIMARY_FIAT_CURRENCY = "USDT";
 
-    private static final long UPDATE_FREQ_MS = TimeUnit.SECONDS.toMillis(30);
+    private static final long UPDATE_FREQ_MS = TimeUnit.SECONDS.toMillis(60);
     private long lastUpdated;
 
     public MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
@@ -140,6 +140,5 @@ public class ExchangeRatesRepository {
     public LiveData<List<ExchangeRate>> searchRates(String query) {
         return appDatabase.exchangeRatesDao().searchRates(query);
     }
-
 
 }

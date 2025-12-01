@@ -13,6 +13,8 @@
     <string name="blockchain_state_progress_problem_storage">Synchronizing: Storage problem</string>
     <string name="blockchain_state_progress_problem_network">Synchronizing: Network problem</string>
     <string name="wallet_address_fragment_clipboard_msg">PEPEPOW address copied to clipboard</string>
+    <string name="address_copied">Address copied</string>
+    <string name="payments_pay_to_clipboard_no_address">No PEPEPOW address found on clipboard</string>
     <string name="wallet_address_dialog_fragment_hint">To protect your privacy, your address will change once it receives a payment.</string>
     <string name="wallet_balance_fragment_too_much">This amount is quite high for carrying in your pocket. Please move some to a safer place.</string>
     <string name="wallet_balance_fragment_replaying">Balance is unavailable during replay.</string>
@@ -406,7 +408,7 @@
     <string name="about_license_title">License</string>
     <string name="about_source_title">Source code</string>
     <string name="about_category_credits">This app is using...</string>
-    <string name="about_credits_bitcoinj_title">PePe-core %s, a PEPEPOW protocol implementation</string>
+    <string name="about_credits_bitcoinj_title">PePe_core v2.8.1.3, based on Dash/BitcoinJ</string>
     <string name="about_credits_zxing_title">ZXing, a QR-code processing library</string>
     <string name="about_credits_icon_title">This app is using an icon by \'bitboy\'</string>
     <string name="about_credits_scrypt_title">Scrypt, implemented by Will Glozer and Colin Percival</string>

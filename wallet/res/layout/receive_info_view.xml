@@ -31,7 +31,7 @@
         app:layout_constraintStart_toStartOf="@+id/qr_preview"
         app:layout_constraintTop_toTopOf="@+id/qr_preview"
         app:layout_constraintWidth_percent="0.15"
-        app:srcCompat="@drawable/ic_dash_d_circle" />
+        app:srcCompat="@mipmap/ic_launcher" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/address_preview_pane"

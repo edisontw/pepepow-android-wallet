@@ -37,7 +37,7 @@
         app:layout_constraintStart_toStartOf="@id/v_center_guideline"
         app:layout_constraintTop_toTopOf="@id/logo_guideline"
         app:layout_constraintWidth_percent="0.4"
-        app:srcCompat="@drawable/ic_dash_logo_white"
+        app:srcCompat="@mipmap/ic_launcher"
         tool:ignore="ContentDescription" />
 
     <LinearLayout

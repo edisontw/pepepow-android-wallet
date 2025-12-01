@@ -6,6 +6,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -45,6 +47,9 @@ class PaymentsPayFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        if (org.pepepow.wallet.BuildConfig.DEBUG) {
+            org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("NAV: PaymentsPayFragment created (startDestination reached)")
+        }
         handlePaste(false)
     }
 
@@ -62,25 +67,96 @@ class PaymentsPayFragment : Fragment() {
     }
 
     private fun handlePaste(fireAction: Boolean) {
-        val input = clipboardData()
-        if (input != null) {
-            handleString(input, fireAction, R.string.payments_pay_to_clipboard_title)
+        if (org.pepepow.wallet.BuildConfig.DEBUG) {
+            org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("PEPEPOW-PAYMENTS handlePaste(fireAction=$fireAction)")
+        }
+        val input = getClipboardTextNow()
+        if (org.pepepow.wallet.BuildConfig.DEBUG) {
+            org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("PEPEPOW-PAYMENTS handlePaste(): clipboard='$input'")
+        }
+
+        if (input.isNullOrBlank()) {
+            if (fireAction) {
+                android.widget.Toast.makeText(requireContext(), R.string.payments_pay_to_clipboard_no_address, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            manageStateOfPayToAddressButton(null)
+            return
+        }
+
+        object : InputParser.StringInputParser(input) {
+            override fun handlePaymentIntent(paymentIntent: PaymentIntent) {
+                if (fireAction) {
+                    SendCoinsActivity.start(context, paymentIntent, true)
+                } else {
+                    manageStateOfPayToAddressButton(paymentIntent)
+                }
+            }
+
+            override fun error(messageResId: Int, vararg messageArgs: Any) {
+                // Fallback: try to parse as plain base58 address
+                if (org.pepepow.wallet.BuildConfig.DEBUG) {
+                    org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).debug("PEPEPOW-PAYMENTS handlePaste(): InputParser returned null, trying fallback for input='$input'")
+                }
+
+                val paymentIntent = parsePlainAddressOrNull(input)
+
+                if (paymentIntent != null) {
+                    if (org.pepepow.wallet.BuildConfig.DEBUG) {
+                        org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).debug("PEPEPOW-PAYMENTS handlePaste(): fallback success, paymentIntent=$paymentIntent")
+                    }
+                    if (fireAction) {
+                        SendCoinsActivity.start(context, paymentIntent, true)
+                    } else {
+                        manageStateOfPayToAddressButton(paymentIntent)
+                    }
+                } else {
+                    // Both parsers failed
+                    if (org.pepepow.wallet.BuildConfig.DEBUG) {
+                        org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).debug("PEPEPOW-PAYMENTS handlePaste(): fallback failed")
+                    }
+                    if (fireAction) {
+                        android.widget.Toast.makeText(requireContext(), R.string.payments_pay_to_clipboard_no_address, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    manageStateOfPayToAddressButton(null)
+                }
+            }
+
+            override fun handlePrivateKey(key: PrefixedChecksummedBytes) {
+                // Not supported here
+            }
+
+            override fun handleDirectTransaction(tx: Transaction) {
+                // Not supported here
+            }
+        }.parse()
+    }
+
+    private fun parsePlainAddressOrNull(raw: String?): PaymentIntent? {
+        val text = raw?.trim() ?: return null
+        if (text.isEmpty()) return null
+
+        return try {
+            val params = de.schildbach.wallet.Constants.NETWORK_PARAMETERS
+            val address = org.bitcoinj.core.Address.fromString(params, text)
+            PaymentIntent.fromAddress(address, null)
+        } catch (e: Exception) {
+            if (org.pepepow.wallet.BuildConfig.DEBUG) {
+                org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).debug("parsePlainAddressOrNull: '$text' is not a valid address: ${e.message}")
+            }
+            null
         }
     }
 
-    private fun clipboardData(): String? {
-        val clipboardManager = context!!.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        if (clipboardManager.hasPrimaryClip()) {
-            clipboardManager.primaryClip?.run {
-                return when {
-                    description.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST) -> getItemAt(0).uri?.toString()
-                    description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) -> getItemAt(0).text?.toString()
-                    else -> null
-                }
-            }
-        }
-        return null
+    private fun getClipboardTextNow(): String? {
+        val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = cm.primaryClip ?: return null
+        if (clip.itemCount == 0) return null
+
+        val text = clip.getItemAt(0).coerceToText(requireContext())?.toString()?.trim()
+        return if (text.isNullOrEmpty()) null else text
     }
+
+
 
     private fun handleString(input: String, fireAction: Boolean, errorDialogTitleResId: Int) {
         object : InputParser.StringInputParser(input) {
@@ -95,7 +171,11 @@ class PaymentsPayFragment : Fragment() {
 
             override fun error(messageResId: Int, vararg messageArgs: Any) {
                 if (fireAction) {
-                    dialog(context, null, errorDialogTitleResId, messageResId, *messageArgs)
+                    if (de.schildbach.wallet.Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+                        SendCoinsActivity.start(context, null, true)
+                    } else {
+                        InputParser.dialog(context, null, errorDialogTitleResId, messageResId, *messageArgs)
+                    }
                 } else {
                     manageStateOfPayToAddressButton(null)
                 }
@@ -112,12 +192,22 @@ class PaymentsPayFragment : Fragment() {
         }.parse()
     }
 
+    private fun canUserSendCoins(): Boolean {
+        if (de.schildbach.wallet.Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+            return true
+        }
+        return false
+    }
+
     private fun manageStateOfPayToAddressButton(paymentIntent: PaymentIntent?) {
-        pay_to_address.setActive(paymentIntent != null)
-        if (paymentIntent == null) {
-            pay_to_address.setSubTitle(R.string.payments_pay_to_clipboard_sub_title)
-        } else {
+        val canSend = canUserSendCoins() || paymentIntent != null
+        pay_to_address.setActive(canSend)
+
+        if (paymentIntent != null) {
             pay_to_address.setSubTitle(paymentIntent.address.toBase58())
+        } else {
+            // keep original UX subtitle
+            pay_to_address.setSubTitle(R.string.payments_pay_to_clipboard_sub_title)
         }
     }
 }

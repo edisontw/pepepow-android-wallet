@@ -252,7 +252,7 @@
                         app:layout_constraintBottom_toBottomOf="@id/biometric_limit_value"
                         app:layout_constraintEnd_toStartOf="@id/biometric_limit_value"
                         app:layout_constraintTop_toTopOf="@id/biometric_limit_value"
-                        app:srcCompat="@drawable/ic_dash_d_black"
+                        app:srcCompat="@drawable/ic_pepepow_logo"
                         tools:ignore="ContentDescription" />
 
                     <ImageView
@@ -264,7 +264,7 @@
                         android:layout_marginTop="24dp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/biometric_limit_value"
-                        app:srcCompat="@drawable/ic_dash_d_gray"
+                        app:srcCompat="@drawable/ic_pepepow_logo"
                         tools:ignore="ContentDescription" />
 
                     <TextView
@@ -302,7 +302,7 @@
                         app:layout_constraintBottom_toBottomOf="@id/biometric_limit_max"
                         app:layout_constraintEnd_toStartOf="@id/biometric_limit_max"
                         app:layout_constraintTop_toTopOf="@id/biometric_limit_max"
-                        app:srcCompat="@drawable/ic_dash_d_gray"
+                        app:srcCompat="@drawable/ic_pepepow_logo"
                         tools:ignore="ContentDescription" />
 
 

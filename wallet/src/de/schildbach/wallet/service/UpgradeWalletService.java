@@ -34,9 +34,11 @@ import de.schildbach.wallet.WalletApplication;
 import org.pepepow.wallet.R;
 
 /**
- * This service upgrades the wallet to an HD wallet. Use {@link #startUpgrade(Context)} to start the process.
+ * This service upgrades the wallet to an HD wallet. Use
+ * {@link #startUpgrade(Context)} to start the process.
  * <p>
- * It will upgrade and then hand over to {@Link BlockchainService} to pre-generate the look-ahead keys. If the
+ * It will upgrade and then hand over to {@Link BlockchainService} to
+ * pre-generate the look-ahead keys. If the
  * wallet is already upgraded, it will do nothing.
  *
  * @author Andreas Schildbach
@@ -66,7 +68,7 @@ public final class UpgradeWalletService extends IntentService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             final NotificationCompat.Builder notification = new NotificationCompat.Builder(this,
                     Constants.NOTIFICATION_CHANNEL_ID_ONGOING);
-            notification.setSmallIcon(R.drawable.ic_dash_d_white_bottom);
+            notification.setSmallIcon(R.drawable.ic_pepepow_logo);
             notification.setWhen(System.currentTimeMillis());
             notification.setOngoing(true);
             startForeground(Constants.NOTIFICATION_ID_UPGRADE_WALLET, notification.build());

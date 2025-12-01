@@ -315,8 +315,10 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
                     mn > 0 ? String.valueOf(mn) : getString(R.string.network_monitor_stat_unavailable));
         }
         if (apiPriceView != null) {
-            String price = latestNetworkStats != null ? latestNetworkStats.priceUsd : null;
-            apiPriceView.setText(formatPrice(price));
+            // Price view is hidden
+            // String price = latestNetworkStats != null ? latestNetworkStats.priceUsd :
+            // null;
+            // apiPriceView.setText(formatPrice(price));
         }
         if (apiUpdatedView != null) {
             long updated = latestNetworkStats != null ? latestNetworkStats.lastUpdatedMillis : 0;
@@ -348,17 +350,11 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
             return;
         }
         long diff = spvHeight - latestExplorerHeight;
-        if (diff > 0) {
-            if (diff > AHEAD_OF_EXPLORER_THRESHOLD) {
-                heightDiffView.setText(
-                        getString(R.string.network_monitor_height_diff_wallet_ahead_delay, diff));
-            } else {
-                heightDiffView.setText(getString(R.string.network_monitor_height_diff_wallet_ahead, diff));
-            }
-        } else if (diff < 0) {
-            heightDiffView.setText(getString(R.string.network_monitor_height_diff_wallet_behind, -diff));
-        } else {
+        if (diff >= 0) {
+            // Treat as synced if local height is ahead or equal to explorer
             heightDiffView.setText(getString(R.string.network_monitor_height_diff_in_sync));
+        } else {
+            heightDiffView.setText(getString(R.string.network_monitor_height_diff_wallet_behind, -diff));
         }
     }
 

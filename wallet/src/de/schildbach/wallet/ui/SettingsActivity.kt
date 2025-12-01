@@ -37,9 +37,6 @@ class SettingsActivity : BaseMenuActivity() {
         about.setOnClickListener {
             startActivity(Intent(this, AboutActivity::class.java))
         }
-        local_currency.setOnClickListener {
-            startActivity(Intent(this, ExchangeRatesActivity::class.java))
-        }
         developer_options.setOnClickListener {
             val intent = Intent(this, PreferenceActivity::class.java)
             intent.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT,
@@ -48,11 +45,5 @@ class SettingsActivity : BaseMenuActivity() {
                 getString(R.string.preferences_activity_title))
             startActivity(intent)
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        local_currency_symbol.text = WalletApplication.getInstance()
-                .configuration.exchangeCurrencyCode
     }
 }

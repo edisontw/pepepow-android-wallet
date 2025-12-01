@@ -248,7 +248,8 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
             }
 
             final int bestChainHeight = blockChain.getBestChainHeight();
-            final boolean replaying = bestChainHeight < config.getBestChainHeightEver();
+            final boolean replaying = Constants.isFullReplayAllowed()
+                    && bestChainHeight < config.getBestChainHeightEver();
 
             long now = new Date().getTime();
             long blockChainHeadTime = blockChain.getChainHead().getHeader().getTime().getTime();
@@ -335,8 +336,8 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         }
 
         final NotificationCompat.Builder notification = new NotificationCompat.Builder(this,
-                Constants.NOTIFICATION_CHANNEL_ID_TRANSACTIONS);
-        notification.setSmallIcon(R.drawable.ic_dash_d_white_bottom);
+                Constants.NOTIFICATION_CHANNEL_ID_TRANSACTIONS)
+                .setSmallIcon(R.drawable.ic_pepepow_logo);
         notification.setTicker(tickerMsg);
         notification.setContentTitle(msg);
         if (text.length() > 0)
@@ -1194,7 +1195,8 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         final StoredBlock chainHead = blockChain.getChainHead();
         final Date bestChainDate = chainHead.getHeader().getTime();
         final int bestChainHeight = chainHead.getHeight();
-        final boolean replaying = chainHead.getHeight() < config.getBestChainHeightEver();
+        final boolean replaying = Constants.isFullReplayAllowed()
+                && chainHead.getHeight() < config.getBestChainHeightEver();
         StoredBlock block = null;
         if (Constants.NETWORK_PARAMETERS.isLlmqEnabled()) {
             org.bitcoinj.quorums.ChainLocksHandler handler = application.getWallet().getContext().chainLockHandler;
@@ -1264,6 +1266,9 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         log.info("initializeSpv(): begin (thread={})", Thread.currentThread().getName());
         // Ensure we always use the latest sync mode from config
         selectedSyncMode = config.getSyncMode();
+        Constants.FAST_API_10POW_ENABLED_FOR_CORE = (selectedSyncMode == SyncMode.FAST_API_10POW);
+        log.info("PEPEPOW-FAST-API: syncMode=" + selectedSyncMode +
+                ", FAST_API_10POW_ENABLED_FOR_CORE=" + Constants.FAST_API_10POW_ENABLED_FOR_CORE);
 
         final boolean blockChainFileExists = blockChainFile.exists();
 
@@ -1426,6 +1431,11 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         log.info("initializeSpv(): completed; chainHeadHeight={}, apiTipHeight={}",
                 blockChain.getChainHead().getHeight(),
                 apiBestChainHeight);
+
+        if (!Constants.isFullReplayAllowed() && config.isRestoringBackup()) {
+            log.info("FAST_API_10POW: Forcing restoringBackup=false (no full replay in this mode).");
+            config.setRestoringBackup(false);
+        }
         startPeerGroup();
     }
 

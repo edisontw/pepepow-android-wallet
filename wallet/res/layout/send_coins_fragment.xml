@@ -34,6 +34,15 @@
         android:gravity="center_horizontal"
         android:visibility="gone" />
 
+    <EditText
+        android:id="@+id/send_coins_receiving_address_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:hint="@string/send_coins_fragment_receiving_address_hint"
+        android:inputType="textNoSuggestions"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/is_direct_group"
         android:layout_width="match_parent"
