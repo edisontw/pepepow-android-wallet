@@ -43,17 +43,6 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.80" />
 
-    <ImageView
-        android:id="@+id/dash_logo"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@id/logo_guideline"
-        app:layout_constraintEnd_toEndOf="@id/v_center_guideline"
-        app:layout_constraintStart_toStartOf="@id/v_center_guideline"
-        app:layout_constraintTop_toTopOf="@id/logo_guideline"
-        app:layout_constraintWidth_percent="0.4"
-        app:srcCompat="@mipmap/ic_launcher"
-        tools:ignore="ContentDescription" />
 
     <LinearLayout
         android:id="@+id/content"

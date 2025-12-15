@@ -244,6 +244,7 @@ public class WalletApplication extends MultiDexApplication implements ViewModelS
         config = new Configuration(PreferenceManager.getDefaultSharedPreferences(this), getResources());
         autoLogout = new AutoLogout(config);
         initApiTracking();
+
         registerActivityLifecycleCallbacks(new ActivitiesTracker() {
 
             @Override
@@ -1040,10 +1041,17 @@ public class WalletApplication extends MultiDexApplication implements ViewModelS
     }
 
     private void lockTheApp(Context context, Activity activity) {
+        boolean useActivity = activity != null && !activity.isFinishing();
+        Context ctx = useActivity ? activity : this;
+
         if (!isSpecialActivity(activity)) {
-            context = context.getApplicationContext();
-            Intent lockScreenIntent = LockScreenActivity.createIntentAsNewTask(context);
-            context.startActivity(lockScreenIntent);
+            Intent lockScreenIntent = LockScreenActivity.createIntent(ctx);
+            if (useActivity) {
+                activity.startActivity(lockScreenIntent);
+            } else {
+                lockScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(lockScreenIntent);
+            }
         }
         deviceWasLocked = false;
     }

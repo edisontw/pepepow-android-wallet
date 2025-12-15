@@ -32,6 +32,7 @@ import org.bitcoinj.utils.MonetaryFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -80,6 +81,16 @@ public class Configuration {
     public static final String PREFS_RESTORING_BACKUP = "restoring_backup";
     public static final String PREFS_V7_REDESIGN_TUTORIAL_COMPLETED = "v7_tutorial_completed";
     public static final String PREFS_KEY_PIN_LENGTH = "pin_length";
+    public static final String PREFS_KEY_API_SPV_OFFSET = "api_spv_offset";
+    public static final String PREFS_KEY_LAST_FAST_BOOTSTRAP_SUCCESS = "last_fast_bootstrap_success";
+    public static final String PREFS_KEY_LAST_FAST_BOOTSTRAP_HEAD_HEIGHT = "last_fast_bootstrap_head_height";
+    public static final String PREFS_KEY_LAST_FAST_BOOTSTRAP_EXPLORER_TIP = "last_fast_bootstrap_explorer_tip";
+    public static final String PREFS_KEY_LAST_FAST_BOOTSTRAP_TIME = "last_fast_bootstrap_time";
+    public static final String PREFS_KEY_LAST_WALLET_SNAPSHOT_HEIGHT = "last_wallet_snapshot_height";
+    public static final String PREFS_KEY_LAST_WALLET_SNAPSHOT_HASH = "last_wallet_snapshot_hash";
+    public static final String PREFS_KEY_LAST_WALLET_SNAPSHOT_TIME = "last_wallet_snapshot_time";
+    public static final String PREFS_KEY_LAST_WALLET_SNAPSHOT_SUCCESS = "last_wallet_snapshot_success";
+    public static final String PREFS_KEY_FAST_API_SYNC_FAILED = "fast_api_sync_failed";
 
     private static final int PREFS_DEFAULT_BTC_SHIFT = 0;
     private static final int PREFS_DEFAULT_BTC_PRECISION = 4;
@@ -454,6 +465,14 @@ public class Configuration {
         prefs.edit().putInt(PREFS_KEY_PIN_LENGTH, pinLength).apply();
     }
 
+    public int getApiSpvOffset() {
+        return prefs.getInt(PREFS_KEY_API_SPV_OFFSET, 0);
+    }
+
+    public void setApiSpvOffset(int offset) {
+        prefs.edit().putInt(PREFS_KEY_API_SPV_OFFSET, offset).apply();
+    }
+
     public static final String PREFS_KEY_SYNC_MODE = "sync_mode";
     public static final String PREFS_KEY_API_BASE_URL = "api_base_url";
     private static final String DEFAULT_API_BASE_URL = "https://explorer.pepepow.net";
@@ -478,5 +497,103 @@ public class Configuration {
 
     public void setApiBaseUrl(String url) {
         prefs.edit().putString(PREFS_KEY_API_BASE_URL, url).apply();
+    }
+
+    public boolean getLastFastBootstrapSuccess() {
+        return prefs.getBoolean(PREFS_KEY_LAST_FAST_BOOTSTRAP_SUCCESS, false);
+    }
+
+    public void setLastFastBootstrapSuccess(boolean success) {
+        prefs.edit().putBoolean(PREFS_KEY_LAST_FAST_BOOTSTRAP_SUCCESS, success).apply();
+    }
+
+    public int getLastFastBootstrapHeadHeight() {
+        return prefs.getInt(PREFS_KEY_LAST_FAST_BOOTSTRAP_HEAD_HEIGHT, 0);
+    }
+
+    public void setLastFastBootstrapHeadHeight(int height) {
+        prefs.edit().putInt(PREFS_KEY_LAST_FAST_BOOTSTRAP_HEAD_HEIGHT, height).apply();
+    }
+
+    public int getLastFastBootstrapExplorerTip() {
+        return prefs.getInt(PREFS_KEY_LAST_FAST_BOOTSTRAP_EXPLORER_TIP, 0);
+    }
+
+    public void setLastFastBootstrapExplorerTip(int height) {
+        prefs.edit().putInt(PREFS_KEY_LAST_FAST_BOOTSTRAP_EXPLORER_TIP, height).apply();
+    }
+
+    public long getLastFastBootstrapTime() {
+        return prefs.getLong(PREFS_KEY_LAST_FAST_BOOTSTRAP_TIME, 0);
+    }
+
+    public void setLastFastBootstrapTime(long time) {
+        prefs.edit().putLong(PREFS_KEY_LAST_FAST_BOOTSTRAP_TIME, time).apply();
+    }
+
+    public static final String PREFS_KEY_LAST_API_BOOTSTRAP_MODE = "last_api_bootstrap_mode";
+
+    public String getLastApiBootstrapMode() {
+        return prefs.getString(PREFS_KEY_LAST_API_BOOTSTRAP_MODE, "");
+    }
+
+    public void setLastApiBootstrapMode(String mode) {
+        prefs.edit().putString(PREFS_KEY_LAST_API_BOOTSTRAP_MODE, mode).apply();
+    }
+
+    public int getLastWalletSnapshotHeight() {
+        return prefs.getInt(PREFS_KEY_LAST_WALLET_SNAPSHOT_HEIGHT, 0);
+    }
+
+    public void setLastWalletSnapshotHeight(int height) {
+        prefs.edit().putInt(PREFS_KEY_LAST_WALLET_SNAPSHOT_HEIGHT, height).apply();
+    }
+
+    public String getLastWalletSnapshotHash() {
+        return prefs.getString(PREFS_KEY_LAST_WALLET_SNAPSHOT_HASH, null);
+    }
+
+    public void setLastWalletSnapshotHash(@Nullable String hash) {
+        prefs.edit().putString(PREFS_KEY_LAST_WALLET_SNAPSHOT_HASH, hash).apply();
+    }
+
+    public long getLastWalletSnapshotTime() {
+        return prefs.getLong(PREFS_KEY_LAST_WALLET_SNAPSHOT_TIME, 0);
+    }
+
+    public void setLastWalletSnapshotTime(long time) {
+        prefs.edit().putLong(PREFS_KEY_LAST_WALLET_SNAPSHOT_TIME, time).apply();
+    }
+
+    public boolean getLastWalletSnapshotSuccess() {
+        return prefs.getBoolean(PREFS_KEY_LAST_WALLET_SNAPSHOT_SUCCESS, false);
+    }
+
+    public void setLastWalletSnapshotSuccess(boolean success) {
+        prefs.edit().putBoolean(PREFS_KEY_LAST_WALLET_SNAPSHOT_SUCCESS, success).apply();
+    }
+
+    public boolean isFastApiSyncFailed() {
+        return prefs.getBoolean(PREFS_KEY_FAST_API_SYNC_FAILED, false);
+    }
+
+    public void setFastApiSyncFailed(boolean failed) {
+        prefs.edit().putBoolean(PREFS_KEY_FAST_API_SYNC_FAILED, failed).apply();
+    }
+
+    private static final String PREFS_KEY_WALLET_SNAPSHOT_STATUS = "wallet_snapshot_status";
+
+    public org.dash.wallet.common.data.WalletSnapshotStatus getWalletSnapshotStatus() {
+        String statusName = prefs.getString(PREFS_KEY_WALLET_SNAPSHOT_STATUS,
+                org.dash.wallet.common.data.WalletSnapshotStatus.NOT_REQUESTED.name());
+        try {
+            return org.dash.wallet.common.data.WalletSnapshotStatus.valueOf(statusName);
+        } catch (IllegalArgumentException e) {
+            return org.dash.wallet.common.data.WalletSnapshotStatus.NOT_REQUESTED;
+        }
+    }
+
+    public void setWalletSnapshotStatus(org.dash.wallet.common.data.WalletSnapshotStatus status) {
+        prefs.edit().putString(PREFS_KEY_WALLET_SNAPSHOT_STATUS, status.name()).apply();
     }
 }

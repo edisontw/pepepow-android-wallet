@@ -34,6 +34,7 @@ public class BlockchainState {
     private static final String EXTRA_CHAINLOCK_HEIGHT = "chainlock_height";
     private static final String EXTRA_MASTERNODE_LIST_HEIGHT = "mn_list_height";
     private static final String EXTRA_PERCENTAGE_SYNC = "percentage_sync";
+    private static final String EXTRA_IS_API_READY = "is_api_ready";
 
     public enum Impediment {
         STORAGE, NETWORK
@@ -46,9 +47,17 @@ public class BlockchainState {
     public final int chainlockHeight;
     public final int mnlistHeight;
     public final int percentageSync;
+    public final boolean isApiReady;
 
     public BlockchainState(final Date bestChainDate, final int bestChainHeight, final boolean replaying,
             final Set<Impediment> impediments, int chainlockHeight, int mnlistHeight, int percentageSync) {
+        this(bestChainDate, bestChainHeight, replaying, impediments, chainlockHeight, mnlistHeight, percentageSync,
+                false);
+    }
+
+    public BlockchainState(final Date bestChainDate, final int bestChainHeight, final boolean replaying,
+            final Set<Impediment> impediments, int chainlockHeight, int mnlistHeight, int percentageSync,
+            boolean isApiReady) {
         this.bestChainDate = bestChainDate;
         this.bestChainHeight = bestChainHeight;
         this.replaying = replaying;
@@ -56,6 +65,7 @@ public class BlockchainState {
         this.chainlockHeight = chainlockHeight;
         this.mnlistHeight = mnlistHeight;
         this.percentageSync = percentageSync;
+        this.isApiReady = isApiReady;
     }
 
     public static BlockchainState fromIntent(final Intent intent) {
@@ -67,8 +77,10 @@ public class BlockchainState {
         final int chainlockHeight = intent.getIntExtra(EXTRA_CHAINLOCK_HEIGHT, 0);
         final int mnListHeight = intent.getIntExtra(EXTRA_MASTERNODE_LIST_HEIGHT, 0);
         final int percentageSync = intent.getIntExtra(EXTRA_PERCENTAGE_SYNC, 0);
+        final boolean isApiReady = intent.getBooleanExtra(EXTRA_IS_API_READY, false);
 
-        return new BlockchainState(bestChainDate, bestChainHeight, replaying, impediments, chainlockHeight, mnListHeight, percentageSync);
+        return new BlockchainState(bestChainDate, bestChainHeight, replaying, impediments, chainlockHeight,
+                mnListHeight, percentageSync, isApiReady);
     }
 
     public void putExtras(final Intent intent) {
@@ -79,5 +91,6 @@ public class BlockchainState {
         intent.putExtra(EXTRA_CHAINLOCK_HEIGHT, chainlockHeight);
         intent.putExtra(EXTRA_MASTERNODE_LIST_HEIGHT, mnlistHeight);
         intent.putExtra(EXTRA_PERCENTAGE_SYNC, percentageSync);
+        intent.putExtra(EXTRA_IS_API_READY, isApiReady);
     }
 }

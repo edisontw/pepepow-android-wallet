@@ -30,3 +30,10 @@ external/*.zip
 !/external/dashj/
 wallet/cpp/**/CMakeFiles/
 wallet/cpp/**/cmake-build-*
+# Keystore files
+*.jks
+*.keystore
+# Temp directories
+/tmp/
+# Build log files
+*_log*.txt

@@ -66,6 +66,31 @@ class PaymentsPayFragment : Fragment() {
         }
     }
 
+    private fun canUserSendCoins(): Boolean {
+        // Allow sending if we have a balance, regardless of sync mode (unless wallet is null/closed)
+        val application = activity?.application as? de.schildbach.wallet.WalletApplication
+        val wallet = application?.wallet
+        if (wallet == null) return false
+
+        val balance = wallet.getBalance(org.bitcoinj.wallet.Wallet.BalanceType.AVAILABLE)
+        return balance.signum() > 0
+    }
+
+    private fun manageStateOfPayToAddressButton(paymentIntent: PaymentIntent?) {
+        val canSend = canUserSendCoins() || paymentIntent != null
+        if (org.pepepow.wallet.BuildConfig.DEBUG) {
+             org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("PEPEPOW-PAYMENTS: manageStateOfPayToAddressButton: canSend=$canSend (balance>0=${canUserSendCoins()}, clipboard=${paymentIntent != null})")
+        }
+        pay_to_address.setActive(canSend)
+
+        if (paymentIntent != null) {
+            pay_to_address.setSubTitle(paymentIntent.address.toBase58())
+        } else {
+            // keep original UX subtitle
+            pay_to_address.setSubTitle(R.string.payments_pay_to_clipboard_sub_title)
+        }
+    }
+
     private fun handlePaste(fireAction: Boolean) {
         if (org.pepepow.wallet.BuildConfig.DEBUG) {
             org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("PEPEPOW-PAYMENTS handlePaste(fireAction=$fireAction)")
@@ -192,22 +217,4 @@ class PaymentsPayFragment : Fragment() {
         }.parse()
     }
 
-    private fun canUserSendCoins(): Boolean {
-        if (de.schildbach.wallet.Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
-            return true
-        }
-        return false
-    }
-
-    private fun manageStateOfPayToAddressButton(paymentIntent: PaymentIntent?) {
-        val canSend = canUserSendCoins() || paymentIntent != null
-        pay_to_address.setActive(canSend)
-
-        if (paymentIntent != null) {
-            pay_to_address.setSubTitle(paymentIntent.address.toBase58())
-        } else {
-            // keep original UX subtitle
-            pay_to_address.setSubTitle(R.string.payments_pay_to_clipboard_sub_title)
-        }
-    }
 }

@@ -38,7 +38,6 @@ import de.schildbach.wallet.ui.widget.PinPreviewView
 import de.schildbach.wallet.util.FingerprintHelper
 import org.pepepow.wallet.R
 import kotlinx.android.synthetic.main.activity_lock_screen.*
-import org.bitcoinj.wallet.Wallet.BalanceType
 import org.dash.wallet.common.ui.DialogBuilder
 import java.util.concurrent.TimeUnit
 
@@ -236,13 +235,8 @@ class LockScreenActivity : SendCoinsQrActivity() {
         org.slf4j.LoggerFactory.getLogger(LockScreenActivity::class.java).info("LockScreenActivity: PIN verified, launching WalletActivity")
         pinRetryController.clearPinFailPrefs()
         walletApplication.maybeStartAutoLogoutTimer()
-        val intent: Intent
-        if (shouldShowBackupReminder()) {
-            intent = VerifySeedActivity.createIntent(this, pin)
-            walletApplication.configuration.disarmBackupSeedReminder()
-        } else {
-            intent = WalletActivity.createIntent(this)
-        }
+        val intent = WalletActivity.createIntent(this)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
         finish()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -380,13 +374,5 @@ class LockScreenActivity : SendCoinsQrActivity() {
             setState(State.ENTER_PIN)
         }
         dialogBuilder.show()
-    }
-
-    private fun shouldShowBackupReminder(): Boolean {
-        if (walletApplication.wallet.getBalance(BalanceType.ESTIMATED).isZero) {
-            walletApplication.configuration.setBackupSeedLastDismissedReminderOnce(true)
-        }
-        return walletApplication.configuration.remindBackupSeed()
-                && walletApplication.configuration.lastDismissedReminderMoreThan24hAgo()
     }
 }

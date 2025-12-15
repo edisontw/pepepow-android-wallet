@@ -1,5 +1,7 @@
 # LLMQ/Evolution Features Disabled for PEPEPOW
 
+> *This is a dashj compatibility fix unrelated to the FAST bootstrap overlay. It addresses NPE crashes from Dash Evolution features that PEPEPOW does not support.*
+
 ## 🎯 Objective
 
 Disable Dash Evolution (LLMQ, InstantSend, Quorum) features completely in PEPEPOW to prevent `NullPointerException` errors during SPV sync.

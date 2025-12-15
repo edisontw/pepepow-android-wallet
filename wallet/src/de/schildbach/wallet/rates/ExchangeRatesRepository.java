@@ -28,7 +28,7 @@ public class ExchangeRatesRepository {
     private Deque<ExchangeRatesClient> exchangeRatesClients = new ArrayDeque<>();
     private static final String PRIMARY_FIAT_CURRENCY = "USDT";
 
-    private static final long UPDATE_FREQ_MS = TimeUnit.SECONDS.toMillis(60);
+    private static final long UPDATE_FREQ_MS = TimeUnit.MINUTES.toMillis(10);
     private long lastUpdated;
 
     public MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
@@ -36,11 +36,32 @@ public class ExchangeRatesRepository {
 
     private boolean isRefreshing = false;
 
+    private boolean isFiltered = false;
+
     private ExchangeRatesRepository() {
         appDatabase = AppDatabase.getAppDatabase();
         executor = Executors.newSingleThreadExecutor();
 
         populateExchangeRatesStack();
+        startPolling();
+    }
+
+    // START POLLING LOGIC
+    private final java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors
+            .newScheduledThreadPool(1);
+
+    private void startPolling() {
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    log.info("Polling for exchange rates...");
+                    refreshRates(true);
+                } catch (Exception e) {
+                    log.warn("Price poll failed (quietly)", e);
+                }
+            }
+        }, 0, 10, TimeUnit.MINUTES);
     }
 
     public static ExchangeRatesRepository getInstance() {
@@ -52,7 +73,6 @@ public class ExchangeRatesRepository {
 
     private void populateExchangeRatesStack() {
         exchangeRatesClients.clear();
-
         exchangeRatesClients.addLast(ExplorerPriceClient.getInstance());
     }
 
@@ -60,10 +80,9 @@ public class ExchangeRatesRepository {
         this.refreshRates(false);
     }
 
-    private void refreshRates(boolean forceRefresh) {
-        if (!shouldRefresh()) {
-            return;
-        }
+    private synchronized void refreshRates(boolean forceRefresh) {
+        // Removed: if (!shouldRefresh()) { return; } since we are now scheduled.
+
         if (exchangeRatesClients.isEmpty()) {
             populateExchangeRatesStack();
         }
@@ -98,7 +117,8 @@ public class ExchangeRatesRepository {
                         handleRefreshError();
                     }
                 } catch (Exception e) {
-                    log.error("failed to fetch exchange rates with {}", exchangeRatesClient, e);
+                    log.warn("failed to fetch exchange rates with {} (quietly)", exchangeRatesClient);
+                    // Suppress crash, just try next or stop
                     if (!exchangeRatesClients.isEmpty()) {
                         refreshRates(true);
                     } else {
@@ -119,26 +139,23 @@ public class ExchangeRatesRepository {
     }
 
     private boolean shouldRefresh() {
+        // Deprecated by scheduler, but kept for any legacy external calls just in case
         long now = System.currentTimeMillis();
         return lastUpdated == 0 || now - lastUpdated > UPDATE_FREQ_MS;
     }
 
     public LiveData<List<ExchangeRate>> getRates() {
-        if (shouldRefresh()) {
-            refreshRates();
-        }
+        // Removed: if (shouldRefresh()) { refreshRates(); }
+        // We now rely on the background poller.
         return appDatabase.exchangeRatesDao().getAll();
     }
 
     public LiveData<ExchangeRate> getRate(String currencyCode) {
-        if (shouldRefresh()) {
-            refreshRates();
-        }
+        // Removed: if (shouldRefresh()) { refreshRates(); }
         return appDatabase.exchangeRatesDao().getRate(currencyCode);
     }
 
     public LiveData<List<ExchangeRate>> searchRates(String query) {
         return appDatabase.exchangeRatesDao().searchRates(query);
     }
-
 }

@@ -37,6 +37,10 @@ public class ExplorerApiStatsRepository {
     private volatile String lastCheckpointHash;
     private volatile String baseUrl;
 
+    // Price throttle state
+    private volatile long lastPriceFetchTime = 0;
+    private volatile String lastPriceUsd = null;
+
     public ExplorerApiStatsRepository(String baseUrl, MutableLiveData<ApiStatus> apiStatusLiveData,
             MutableLiveData<NetworkStats> networkStatsLiveData) {
         this.baseUrl = trimBaseUrl(baseUrl);
@@ -128,24 +132,52 @@ public class ExplorerApiStatsRepository {
 
         // 3. Get Price
         try {
-            // Read json[0].price from /ext/summary
-            FetchResult<String> priceResult = fetchString("/ext/summary");
-            if (priceResult.value != null) {
-                JSONArray jsonArray = new JSONArray(priceResult.value);
-                if (jsonArray.length() > 0) {
-                    JSONObject obj = jsonArray.getJSONObject(0);
-                    // "price" field
-                    double priceVal = obj.optDouble("price", Double.NaN);
-                    if (!Double.isNaN(priceVal)) {
-                        BigDecimal priceBd = BigDecimal.valueOf(priceVal);
-                        // Format to EXACTLY 8 decimals
-                        priceUsd = priceBd.setScale(8, RoundingMode.HALF_UP).toPlainString();
+            long now = System.currentTimeMillis();
+            if (now - lastPriceFetchTime < TimeUnit.MINUTES.toMillis(10)) {
+                log.info("API-STATS: Throttling price fetch (last fetch {} ms ago)", now - lastPriceFetchTime);
+                // Keep existing priceUsd (null or previous value) - effectively handled by not
+                // updating local var if it was a class field,
+                // but here we are building local vars to post.
+                // We need to store the *last successful* price to reuse it.
+                // Let's rely on the fact that we post 'priceUsd' which is local.
+                // Wait, we need to persist the price across calls if we throttle.
+                // The field `priceUsd` is a local variable here.
+
+                // Correction: The class structure doesn't seem to have a persistent
+                // `lastPriceUsd` field visible in the snippet I saw earlier (it had
+                // `lastFetchElapsedMs` but that's for the whole refresh).
+                // I need to add a field to the class to store the last price.
+            } else {
+                // Read json[0].price from /ext/summary
+                FetchResult<String> priceResult = fetchString("/ext/summary");
+                if (priceResult.value != null) {
+                    JSONArray jsonArray = new JSONArray(priceResult.value);
+                    if (jsonArray.length() > 0) {
+                        JSONObject obj = jsonArray.getJSONObject(0);
+                        // "price" field
+                        double priceVal = obj.optDouble("price", Double.NaN);
+                        if (!Double.isNaN(priceVal)) {
+                            BigDecimal priceBd = BigDecimal.valueOf(priceVal);
+                            // Format to EXACTLY 8 decimals
+                            priceUsd = priceBd.setScale(8, RoundingMode.HALF_UP).toPlainString();
+                            lastPriceUsd = priceUsd; // Persist
+                            lastPriceFetchTime = now;
+                            log.info("API-STATS: Price fetched: {}", priceUsd);
+                        }
                     }
                 }
+                lastHttpCode = priceResult.httpCode;
             }
-            lastHttpCode = priceResult.httpCode;
+        } catch (IOException e) {
+            // Quietly handle 404 or network error
+            log.warn("API-STATS: Price fetch failed ({}). Keeping last known price: {}", e.getMessage(), lastPriceUsd);
         } catch (Exception e) {
-            log.warn("Price fetch failed: {}", e.toString());
+            log.warn("Price fetch failed with exception: {}", e.toString());
+        }
+
+        // If we throttled or failed, use last known
+        if (priceUsd == null) {
+            priceUsd = lastPriceUsd;
         }
 
         // 4. Get Block Count (Tip Height)

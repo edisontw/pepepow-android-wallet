@@ -92,10 +92,10 @@ public class ApiSyncManager {
         StoredBlock checkpoint = toStoredBlock(checkpointDto, null);
         byte[] checkpointBytes = serializeCheckpoint(checkpoint);
 
-        // Keep a minimal chain head in the temporary BlockStore so existing status
-        // reporting continues to work before SPV kicks in.
-        blockStore.put(checkpoint);
-        blockStore.setChainHead(checkpoint);
+        // Framework refinement:
+        // FAST_API_10POW is overlay-only and MUST NOT mutate SPV core state (blockstore/chainHead).
+        // This method returns an in-memory checkpoint object only.
+        log.info("FAST_API_10POW overlay: not persisting checkpoint into blockstore (no chainHead writes).");
 
         log.info("FAST_API_10POW bootstrap completed. Checkpoint at height {} hash {}", checkpoint.getHeight(),
                 checkpoint.getHeader().getHashAsString());

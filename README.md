@@ -15,17 +15,26 @@ This project contains several sub-projects:
 
 ## **Recent Updates (2025)**
 
-### ✅ **FAST_API_10POW Sync Implemented**
+### ✅ **Sync Modes & Fast Bootstrap Overlay**
 
-A new accelerated synchronization pipeline has been added:
+The wallet supports three sync configurations:
 
-* Fetches latest chain tip from API
-* Downloads the last 1000 headers
-* Performs 10 random PoW verifications
-* Validates difficulty and chainwork
-* Boots the SPV chain head instantly before switching to P2P header sync
+| Mode | Description |
+|------|-------------|
+| `FULL_SPV` | Full P2P SPV sync — the **only** canonical chain writer |
+| `API_1000POW` | API-assisted bootstrap with 1000-header validation |
+| `FAST_API_10POW` | **UI Overlay** — fast display snapshot, does NOT write to blockstore |
 
-This removes the need for static checkpoints and dramatically improves initial wallet sync.
+#### Security Principles
+
+* **Canonical Chain**: Only `FULL_SPV` can write to blockstore, update chainHead, or perform rollback operations
+* **Overlay Data**: `FAST_API_10POW` provides UI-only height/balance/transaction snapshots for fast display
+* **Independence**: `FULL_SPV` always runs in background, regardless of overlay success/failure
+
+#### Failure Behavior
+
+* **FAST failure**: Disables overlay for current session + cooldown period; SPV continues normally
+* **FAST success**: Overlay data shown in UI; SPV still syncs independently in background
 
 ---
 
@@ -105,7 +114,7 @@ APK outputs are under `wallet/build/outputs/apk`.
 (Updated summary, merging original content + new changes)
 
 * Native dependencies bundled (dashj, bls-signatures) at BLS commit `581b761…`.
-* **FAST_API_10POW** fast sync pipeline fully implemented.
+* **FAST_API_10POW** fast bootstrap overlay for instant UI display (overlay only, not canonical sync).
 * **XelisV2** pure-Java hashing active for post-Xelis blocks; JNI path prepared.
 * Builds reproducible via Gradle 6.5 + AGP 4.0.2 + Java 11.
 * Remaining work:

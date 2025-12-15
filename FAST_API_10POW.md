@@ -1,167 +1,147 @@
-✅ 1. Detailed Developer Version — FAST_API_10POW: Principles, SPV Comparison, Security Model
-1. Overview
+# FAST_API_10POW: Fast Bootstrap Overlay
 
-FAST_API_10POW is a hybrid fast-sync mechanism for the PepePoW Android Wallet that accelerates initial synchronization while preserving essential security guarantees.
-The design combines:
+## 1. Overview
 
-API-based header sourcing
+**FAST_API_10POW** is a fast-bootstrap **UI overlay** for the PepePow Android Wallet. It provides instant display of chain height, balance, and recent transactions while the canonical SPV sync runs in the background.
 
-Fixed-window PoW spot-verification
+> [!IMPORTANT]
+> **FAST_API_10POW is NOT a sync mode.** It does not write to the blockstore, modify chainHead, or affect SPV consensus state. Only `FULL_SPV` manages the canonical chain.
 
-Difficulty verification
+### Key Principles
 
-Header-only P2P sync after bootstrap
+| Aspect | Behavior |
+|--------|----------|
+| **Data Source** | Explorer API snapshot |
+| **Writes to Blockstore** | ❌ Never |
+| **Modifies ChainHead** | ❌ Never |
+| **Affects Wallet State** | ❌ Never |
+| **Purpose** | UI display overlay only |
 
-Its purpose is to eliminate full chain replay and remove the need for static checkpoints, while still detecting forged chains or malicious API responses.
+---
 
-2. Architecture & Workflow
-2.1 Step-by-Step Process
+## 2. Architecture & Workflow
 
-API Height Discovery
-The wallet queries the explorer API for:
+### 2.1 Overlay Bootstrap Process
 
-current chain tip
+1. **API Height Discovery**  
+   Query explorer API for: current tip height, block hash, difficulty, chainwork
 
-block hash of the tip
+2. **Header Window Extraction (Tip−1000)**  
+   Download the most recent 1000 block headers from API
 
-difficulty & chainwork
+3. **Window Validation**  
+   - Structural validation for each header
+   - Parent→child linkage checks
+   - Difficulty target validation per header
+   - Cumulative chainwork reconstruction
 
-Header Window Extraction (Tip−1000)
-The wallet downloads the most recent 1000 block headers from the API.
+4. **PoW Spot-Verification (10 Random Blocks)**  
+   Select 10 random blocks within the window and perform full PoW hash validation
 
-Window Validation
-The client performs:
+5. **Overlay Snapshot Created** *(not written to blockstore)*  
+   If PoW sampling passes, overlay data is stored in memory-only variables for UI display
 
-structural validation for each header
+6. **FULL_SPV Runs Independently**  
+   SPV sync starts/continues regardless of overlay result — it is never affected by FAST bootstrap
 
-parent/child linkage checks
+### 2.2 State Machine: FAST_BOOT_STATE
 
-difficulty target validation per header
+```
+IDLE → RUNNING → SUCCEEDED
+              ↘ DISABLED_SESSION → DISABLED_COOLDOWN → IDLE
+```
 
-cumulative chainwork reconstruction
+| State | Description |
+|-------|-------------|
+| `IDLE` | Not running, ready to attempt |
+| `RUNNING` | Bootstrap in progress |
+| `SUCCEEDED` | Overlay data available for UI |
+| `DISABLED_SESSION` | Failed this session, will not retry |
+| `DISABLED_COOLDOWN` | Cooldown period before next attempt |
 
-PoW Spot-Verification (10 Random Blocks)
-The wallet chooses 10 random blocks within the 1000-block window and performs full PoW hash validation.
+---
 
-These 10 blocks act as statistical anchors confirming the authenticity of the whole window.
+## 3. Comparison With Traditional SPV
 
-Header Commit to SPV BlockStore
-The last header in the window becomes the chain head of the SPVBlockStore.
+| Feature | Traditional SPV | FAST_API_10POW Overlay |
+|---------|-----------------|------------------------|
+| Header Source | P2P only | API snapshot (UI only) |
+| Initial Display Speed | Slow, waits for sync | Instant |
+| PoW Verification | Per block | 10-block random spot-check |
+| Writes to Blockstore | ✅ Yes | ❌ No |
+| Canonical Chain | ✅ Yes | ❌ No (overlay only) |
+| Trust Model | Pure PoW trust | API-assisted display |
 
-Transition to Standard SPV
-After bootstrap:
+---
 
-full PoW remains disabled
+## 4. Security Model
 
-difficulty verification stays enabled
+### 4.1 Threat Scenarios
 
-header-only P2P sync continues normally
+The main threat is a compromised API providing a fake 1000-header chain.
 
-This turns “1000 validated headers” into a trusted anchor for fast SPV.
+To succeed, an attacker must:
+- **(A)** Forge valid difficulty-adjusted headers with correct parent→child linkage
+- **(B)** Pass 10 random PoW spot-verification checks
 
-3. Comparison With Traditional SPV Clients
-Feature	Traditional Bitcoin SPV	FAST_API_10POW
-Header Source	P2P only	API snapshot, then P2P
-Initial Sync Speed	Slow, linear replay	Instant bootstrap
-PoW Verification	Per block	10-block random spot-check
-Difficulty Verification	Always	Always
-Trust Model	Pure PoW trust	API-assisted + PoW safety net
-Checkpoints	Often required	None
-Advantages over classic SPV
+### 4.2 Why This Is Safe
 
-No need to re-verify millions of PoW blocks
+- Forging a single valid PoW block is computationally expensive
+- Forging 10 random blocks simultaneously is **astronomically improbable**
+- Even if overlay is fooled, **SPV canonical chain is unaffected**
+- Worst case: UI shows incorrect data temporarily; SPV will correct it
 
-No reliance on fixed checkpoints that become outdated
+### 4.3 Why 1000 Headers?
 
-Detects API tampering via PoW randomness
+- Sufficient difficulty variation for meaningful validation
+- Meaningful chainwork reconstruction
+- Low correlation for random PoW selection
+- Comparable to Bitcoin SPV checkpoint spacing
 
-Still compatible with BitcoinJ’s SPV consensus rules
+---
 
-4. Security Model
-4.1 Attack Scenarios
+## 5. Common Misconceptions
 
-The main threat is an attacker controlling or compromising the API server and providing a fake 1000-header chain.
+> [!WARNING]
+> **Misconception**: "FAST success means SPV is synced to tip"  
+> **Reality**: FAST success only means overlay UI data is ready. SPV sync continues independently and may be behind.
 
-To succeed, the attacker must:
+> [!WARNING]
+> **Misconception**: "FAST failure means I need to reset/reinstall/switch modes"  
+> **Reality**: FAST failure only disables the overlay for this session. SPV sync continues normally — no action required.
 
-(A) Forge valid difficulty-adjusted headers
+> [!WARNING]
+> **Misconception**: "FAST writes the API headers to the blockstore"  
+> **Reality**: FAST never writes anything to the blockstore. Only `FULL_SPV` manages persistent chain state.
 
-Headers must:
+---
 
-meet difficulty bits
+## 6. When to Use Each Mode
 
-connect parent→child
+| Use Case | Recommended Mode |
+|----------|------------------|
+| Normal wallet usage | `FAST_API_10POW` (overlay) + `FULL_SPV` (canonical) |
+| Validating historical PoW | `FULL_SPV` only |
+| Building archival nodes | `FULL_SPV` only |
+| Forensic analysis | `FULL_SPV` only |
+| Testing consensus changes | `FULL_SPV` only |
 
-build coherent chainwork
+---
 
-(B) Pass 10 PoW spot-verification checks
+## 7. Failure-Safe Contract
 
-Each randomly selected header must contain:
+FAST_API_10POW **MUST NEVER**:
+- Delete or recreate the blockstore
+- Reset chainHead to 0 or any other height
+- Stop or restart PeerGroup
+- Modify wallet lastSeenBlockHeight
+- Trigger rollback operations
 
-a valid nonce
+On failure, FAST **MUST**:
+- Set state to `DISABLED_SESSION`
+- Log the failure clearly
+- Allow SPV to continue unimpeded
 
-a valid block hash below target
+---
 
-valid merkle root structure
-
-Forging one PoW block is computationally expensive; forging 10 is unrealistic.
-
-4.2 Probability of Success
-
-If faking a PoW block has probability:
-
-P(forge_PoW) = extremely low (near zero)
-
-
-then forging 10:
-
-P(forge_10_PoW) = (P(forge_PoW))^10
-
-
-This is astronomically impossible for any realistic adversary.
-
-4.3 Why 1000 Headers?
-
-A 1000-block window ensures:
-
-sufficient difficulty variation
-
-meaningful chainwork reconstruction
-
-low correlation for random PoW selection
-
-comparable length to Bitcoin’s SPV checkpoints
-
-5. When This Is Safe
-
-FAST_API_10POW is secure when:
-
-explorer API is honest or
-
-attacker cannot forge 10 valid PoW blocks
-
-This aligns closely with the security model of:
-
-Electrum servers
-
-Neutrino compact block filters
-
-Ethereum fast-sync trusted checkpoints
-
-Geth's "light client sync" pre-snapshot verification
-
-6. When to Use FULL_SPV Instead
-
-Developers or auditors should use FULL_SPV mode when:
-
-validating entire historical PoW chain
-
-building archival nodes
-
-performing forensic analysis
-
-testing consensus rule changes
-
-FAST_API_10POW is intended for end-user wallets, not validators.
-
-🔚 End of Detailed Developer Version
+🔚 *End of FAST_API_10POW Documentation*

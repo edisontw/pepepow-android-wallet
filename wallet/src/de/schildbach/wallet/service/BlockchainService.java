@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 
 import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.StoredBlock;
+import org.dash.wallet.common.data.SyncMode;
 
 import javax.annotation.CheckForNull;
 import java.util.List;
@@ -54,4 +55,6 @@ public interface BlockchainService {
     List<Peer> getConnectedPeers();
 
     List<StoredBlock> getRecentBlocks(int maxBlocks);
+
+    void switchSyncMode(SyncMode mode);
 }

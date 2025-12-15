@@ -258,7 +258,7 @@
     <string name="about_copyright">Copyright Â© 2025 PEPEPOW Community</string>
     <string name="about_license">GNU General Public License v3.0</string>
     <string name="about_github_link" translatable="false">https://github.com/edisontw/pepepow-android-wallet</string>
-    <string name="about_version_name">PEPEPOW Wallet %s</string>
+    <string name="about_version_name">PEPEPOW Android Wallet v%s</string>
 
     <string name="block">Block</string>
     <string name="time">Time</string>

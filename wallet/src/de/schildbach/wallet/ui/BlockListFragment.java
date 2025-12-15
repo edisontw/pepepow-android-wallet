@@ -91,6 +91,8 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 	private long explorerTipHeight = 0;
 	private SyncMode syncMode;
 	private boolean walletMissingWarningShown = false;
+	@Nullable
+	private Boolean lastForcedSpvUiSource = null;
 
 	private static final int ID_BLOCK_LOADER = 0;
 	private static final int ID_TRANSACTION_LOADER = 1;
@@ -258,14 +260,31 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 		getActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.activity_stay);
 	}
 
+	private boolean shouldForceSpvUiSource() {
+		final SyncMode mode = config != null ? config.getSyncMode() : null;
+		final boolean disabledSession = mode == SyncMode.FAST_API_10POW && config != null && config.isFastApiSyncFailed();
+		if (lastForcedSpvUiSource == null || lastForcedSpvUiSource.booleanValue() != disabledSession) {
+			lastForcedSpvUiSource = disabledSession;
+			final String fastBootState = disabledSession ? "DISABLED_SESSION" : "ACTIVE";
+			log.info("BLOCKS-UI: FAST_BOOT_STATE observed by UI = {} (mode={}, fastApiSyncFailed={})",
+					fastBootState, mode, config != null && config.isFastApiSyncFailed());
+			if (disabledSession) {
+				log.info("UI source switched to SPV due to FAST_BOOT DISABLED_SESSION");
+			}
+		}
+		return disabledSession;
+	}
+
 	public void updateNetworkData(long explorerHeight, @Nullable SyncMode syncMode) {
-		this.explorerTipHeight = explorerHeight;
+		final boolean forceSpv = shouldForceSpvUiSource();
+		this.explorerTipHeight = forceSpv ? 0 : explorerHeight;
 		if (syncMode != null) {
 			this.syncMode = syncMode;
 		}
 		if (adapter != null) {
 			adapter.setExplorerTipHeight(explorerTipHeight);
 		}
+		log.info("BLOCKS-UI: listSource=SPV (forceSpv={}, explorerTipHeight={})", forceSpv, this.explorerTipHeight);
 		updateModeDescription();
 
 		// Refresh the loader to respect the new effective tip height
@@ -309,13 +328,25 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 		if (syncMode == null) {
 			syncMode = config.getSyncMode();
 		}
+		final boolean forceSpv = shouldForceSpvUiSource();
 		String description;
 		if (syncMode == null) {
 			description = getString(R.string.network_monitor_blocks_hint_unknown);
 		} else {
 			switch (syncMode) {
 				case FAST_API_10POW:
-					description = getString(R.string.network_monitor_blocks_hint_fast_api);
+					if (forceSpv) {
+						description = getString(R.string.network_monitor_blocks_hint_full_spv);
+					} else {
+						org.dash.wallet.common.data.WalletSnapshotStatus status = config.getWalletSnapshotStatus();
+						if (status == org.dash.wallet.common.data.WalletSnapshotStatus.FAILED) {
+							description = getString(R.string.network_monitor_blocks_hint_fast_api_snapshot_failed);
+						} else if (status == org.dash.wallet.common.data.WalletSnapshotStatus.EMPTY_OK) {
+							description = getString(R.string.network_monitor_blocks_hint_fast_api) + " (Empty snapshot)";
+						} else {
+							description = getString(R.string.network_monitor_blocks_hint_fast_api);
+						}
+					}
 					break;
 				case API_1000POW:
 					description = getString(R.string.network_monitor_blocks_hint_secure_api);
@@ -403,30 +434,22 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 
 		@Override
 		public List<StoredBlock> loadInBackground() {
-			int limit = getNetworkMonitorBlockLimit(WalletApplication.getInstance().getConfiguration().getSyncMode());
+			final SyncMode configuredMode = fragment != null && fragment.config != null ? fragment.config.getSyncMode()
+					: WalletApplication.getInstance().getConfiguration().getSyncMode();
+			final boolean forceSpv = configuredMode == SyncMode.FAST_API_10POW
+					&& fragment != null && fragment.config != null && fragment.config.isFastApiSyncFailed();
+			final SyncMode effectiveMode = forceSpv ? SyncMode.FULL_SPV : configuredMode;
+
+			log.info("BLOCKS-UI: selecting listSource=SPV mode={} (configuredMode={}, forceSpv={})",
+					effectiveMode, configuredMode, forceSpv);
+
+			int limit = getNetworkMonitorBlockLimit(effectiveMode);
 			List<StoredBlock> blocks = service.getRecentBlocks(limit);
 
 			// Filter blocks based on effective tip height
 			if (fragment.explorerTipHeight > 0) {
 				int spvTip = blocks.isEmpty() ? 0 : blocks.get(0).getHeight();
 				int effectiveTip = fragment.getEffectiveDisplayTipHeight(spvTip, (int) fragment.explorerTipHeight);
-
-				// If the top block is higher than effective tip, we might need to filter or
-				// re-fetch
-				// But since getRecentBlocks returns the *latest* blocks, we just need to filter
-				// out those
-				// that are strictly greater than effectiveTip.
-				// However, getRecentBlocks(limit) just grabs the last N blocks.
-				// If SPV is ahead, we might be showing blocks 1005, 1004, 1003... when explorer
-				// is at 1000.
-				// We want to show 1000, 999...
-
-				// Since we can't easily ask service for "blocks ending at height X",
-				// and modifying BlockchainService is out of scope/risky,
-				// we will just filter the list for now to not show "future" blocks.
-				// Note: This might result in a shorter list if many blocks are ahead.
-				// Ideally we would fetch blocks starting from effectiveTip downwards, but that
-				// API might not exist.
 
 				java.util.Iterator<StoredBlock> iter = blocks.iterator();
 				while (iter.hasNext()) {
@@ -435,6 +458,38 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 					}
 				}
 			}
+
+			// Fix for FAST_API_10POW showing "Block 0" rows:
+			// In this mode, we might not have a full chain history, so getting "0" might
+			// indicate
+			// missing headers or uninitialized blocks being returned as defaults.
+			// We strictly filter out blocks with height 0 in this mode, unless it is
+			// legally the genesis block
+			// and that's all we have (which shouldn't happen for a synced wallet).
+			if (effectiveMode == SyncMode.FAST_API_10POW || effectiveMode == SyncMode.API_1000POW) {
+				java.util.Iterator<StoredBlock> iter = blocks.iterator();
+				while (iter.hasNext()) {
+					StoredBlock b = iter.next();
+					if (b.getHeight() == 0) {
+						// Log debug if needed, but for now just remove to clean UI
+						iter.remove();
+					}
+				}
+			}
+
+			if (blocks.size() == 1 && blocks.get(0).getHeight() == 0) {
+				// Only genesis block found, treat as empty
+				blocks.clear();
+			}
+
+			// LOGGING for verification
+			if (!blocks.isEmpty()) {
+				log.info("BLOCKS-UI: Loaded {} blocks. Top: Height={}, Hash={}", blocks.size(),
+						blocks.get(0).getHeight(), blocks.get(0).getHeader().getHashAsString());
+			} else {
+				log.info("BLOCKS-UI: Loaded 0 blocks (empty or filtered).");
+			}
+
 			return blocks;
 		}
 
@@ -467,6 +522,9 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 	private final LoaderManager.LoaderCallbacks<List<StoredBlock>> blockLoaderCallbacks = new LoaderManager.LoaderCallbacks<List<StoredBlock>>() {
 		@Override
 		public Loader<List<StoredBlock>> onCreateLoader(final int id, final Bundle args) {
+			// final SyncMode mode =
+			// WalletApplication.getInstance().getConfiguration().getSyncMode();
+			// Code removed (ExplorerBlockLoader is deleted)
 			return new BlockLoader(activity, service, BlockListFragment.this);
 		}
 

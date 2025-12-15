@@ -42,7 +42,7 @@ class SettingsActivity : BaseMenuActivity() {
             intent.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT,
                 SettingsFragment::class.java.name)
             intent.putExtra(android.preference.PreferenceActivity.EXTRA_SHOW_FRAGMENT_TITLE,
-                getString(R.string.preferences_activity_title))
+                getString(R.string.menu_developer_options))
             startActivity(intent)
         }
     }

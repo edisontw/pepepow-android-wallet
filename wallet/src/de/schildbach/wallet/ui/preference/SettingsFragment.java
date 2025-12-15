@@ -70,16 +70,9 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     private Preference trustedPeerOnlyPreference;
     private CheckBoxPreference developerModePreference;
     private android.preference.ListPreference syncModePreference;
-    private Preference debugDashboardPreference;
-    private Preference apiSyncModePreference;
     private Preference apiBaseUrlPreference;
-    private Preference apiHealthPreference;
-    private Preference apiLastCheckPreference;
-    private Preference apiCheckpointPreference;
-    private Preference apiErrorPreference;
 
     private static final Logger log = LoggerFactory.getLogger(SettingsFragment.class);
-    private static final String PREF_KEY_DEBUG_DASHBOARD = "developer_debug_dashboard";
 
     @Override
     public void onAttach(final Activity activity) {
@@ -116,27 +109,10 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
 
         developerModePreference = (CheckBoxPreference) findPreference(Configuration.PREFS_KEY_DEVELOPER_MODE);
         syncModePreference = (android.preference.ListPreference) findPreference(Configuration.PREFS_KEY_SYNC_MODE);
-        debugDashboardPreference = findPreference(PREF_KEY_DEBUG_DASHBOARD);
-        apiSyncModePreference = findPreference("developer_api_sync_mode");
         apiBaseUrlPreference = findPreference("developer_api_base_url");
-        apiHealthPreference = findPreference("developer_api_health");
-        apiLastCheckPreference = findPreference("developer_api_last_check");
-        apiCheckpointPreference = findPreference("developer_api_checkpoint");
-        apiErrorPreference = findPreference("developer_api_error");
 
-        config.setDeveloperModeEnabled(true);
         if (developerModePreference != null) {
-            developerModePreference.setChecked(true);
-            developerModePreference.setEnabled(false);
-        }
-        if (debugDashboardPreference != null) {
-            debugDashboardPreference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference preference) {
-                    startActivity(new Intent(activity, DebugStatusActivity.class));
-                    return true;
-                }
-            });
+            config.setDeveloperModeEnabled(developerModePreference.isChecked());
         }
         de.schildbach.wallet.data.api.ExplorerApiStatsRepository repo = application.getExplorerApiStatsRepository();
         de.schildbach.wallet.ui.ExplorerStatsViewModel.Factory factory = new de.schildbach.wallet.ui.ExplorerStatsViewModel.Factory(
@@ -159,7 +135,13 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object newValue) {
                     String modeName = (String) newValue;
-                    org.dash.wallet.common.data.SyncMode mode = org.dash.wallet.common.data.SyncMode.valueOf(modeName);
+                    org.dash.wallet.common.data.SyncMode mode;
+                    try {
+                        mode = org.dash.wallet.common.data.SyncMode.valueOf(modeName);
+                    } catch (IllegalArgumentException e) {
+                        log.error("Invalid sync mode selected: {}", modeName, e);
+                        mode = org.dash.wallet.common.data.SyncMode.FAST_API_10POW;
+                    }
                     config.setSyncMode(mode);
 
                     int index = syncModePreference.findIndexOfValue(modeName);
@@ -169,6 +151,15 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
 
                     // Stop service to apply changes
                     application.stopBlockchainService();
+
+                    // Restart service to apply changes immediately
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            application.startBlockchainService(false);
+                        }
+                    }, 200);
+
                     updateApiPreferences(viewModel.getApiStatus().getValue());
 
                     return true;
@@ -231,60 +222,6 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
         if (apiBaseUrlPreference != null) {
             apiBaseUrlPreference.setSummary(config.getApiBaseUrl());
         }
-        if (apiSyncModePreference != null) {
-            apiSyncModePreference.setSummary(getSyncModeLabel(config.getSyncMode()));
-        }
-        if (status == null) {
-            if (apiHealthPreference != null) {
-                apiHealthPreference.setSummary(getString(R.string.preferences_api_health_summary));
-            }
-            if (apiLastCheckPreference != null) {
-                apiLastCheckPreference.setSummary(getString(R.string.preferences_api_last_check_summary));
-            }
-            if (apiCheckpointPreference != null) {
-                apiCheckpointPreference.setSummary(getString(R.string.preferences_api_checkpoint_summary));
-            }
-            if (apiErrorPreference != null) {
-                apiErrorPreference.setSummary(getString(R.string.preferences_api_error_summary));
-            }
-            return;
-        }
-
-        if (apiHealthPreference != null) {
-            String summary = formatApiState(status.getState());
-            if (status.getLastHttpCode() > 0) {
-                summary += " (HTTP " + status.getLastHttpCode() + ")";
-            }
-            apiHealthPreference.setSummary(summary);
-        }
-        if (apiLastCheckPreference != null) {
-            if (status.getLastCheckedMillis() > 0) {
-                DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT,
-                        Locale.getDefault());
-                apiLastCheckPreference.setSummary(formatter.format(new Date(status.getLastCheckedMillis())));
-            } else {
-                apiLastCheckPreference.setSummary(getString(R.string.preferences_api_last_check_summary));
-            }
-        }
-        if (apiCheckpointPreference != null) {
-            if (status.getLastCheckpointHeight() > 0) {
-                String hash = status.getLastCheckpointHash();
-                if (hash != null && hash.length() > 12) {
-                    hash = hash.substring(0, 12) + "...";
-                }
-                apiCheckpointPreference.setSummary("#" + status.getLastCheckpointHeight()
-                        + (hash != null ? " (" + hash + ")" : ""));
-            } else {
-                apiCheckpointPreference.setSummary(getString(R.string.preferences_api_checkpoint_summary));
-            }
-        }
-        if (apiErrorPreference != null) {
-            if (status.getState() == ApiStatus.State.HEALTHY || status.getLastErrorMessage() == null) {
-                apiErrorPreference.setSummary(getString(R.string.preferences_api_error_summary));
-            } else {
-                apiErrorPreference.setSummary(status.getLastErrorMessage());
-            }
-        }
     }
 
     private String formatApiState(ApiStatus.State state) {
@@ -340,14 +277,6 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     }
 
     private void updateDeveloperOptionsVisibility(boolean developerModeEnabled) {
-        if (debugDashboardPreference == null)
-            return;
-        final boolean enabled = developerModeEnabled || BuildConfig.DEBUG;
-        debugDashboardPreference.setEnabled(enabled);
-        debugDashboardPreference.setSelectable(enabled);
-        debugDashboardPreference.setSummary(enabled
-                ? getString(R.string.preferences_debug_dashboard_summary)
-                : getString(R.string.preferences_debug_dashboard_locked));
     }
 
 }

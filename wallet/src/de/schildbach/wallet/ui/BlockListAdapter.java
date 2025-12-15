@@ -158,7 +158,11 @@ public class BlockListAdapter extends RecyclerView.Adapter<BlockListAdapter.Bloc
         final int height = storedBlock.getHeight();
         holder.heightView.setText(Integer.toString(height));
 
-        final long timeMs = header.getTimeSeconds() * DateUtils.SECOND_IN_MILLIS;
+        long timeMs = header.getTimeSeconds() * DateUtils.SECOND_IN_MILLIS;
+        if (timeMs == 0) {
+            // Fix for Block 0 / 1970 timestamp
+            timeMs = System.currentTimeMillis();
+        }
         final String blockTime;
         if (timeMs < System.currentTimeMillis() - DateUtils.MINUTE_IN_MILLIS) {
             blockTime = DateUtils.getRelativeDateTimeString(context, timeMs, DateUtils.MINUTE_IN_MILLIS,

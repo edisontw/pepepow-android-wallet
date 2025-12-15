@@ -43,8 +43,6 @@ abstract class BaseMenuActivity : AppCompatActivity() {
         actionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
-            setLogo(R.drawable.ic_pepepow_logo)
-            setDisplayUseLogoEnabled(true)
         }
     }
 

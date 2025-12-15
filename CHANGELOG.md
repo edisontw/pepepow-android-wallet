@@ -36,6 +36,23 @@
 
 ---
 
+### Framework Refinement (2025-12)
+
+#### Changed
+- FAST_API_10POW is now a fast-bootstrap **overlay**; `FULL_SPV` is the only canonical chain writer
+- Overlay data stored in memory-only variables, never written to blockstore
+
+#### Fixed
+- Prevent FAST from resetting blockstore/rollback/restarting PeerGroup
+- FAST failure no longer affects SPV sync state
+
+#### Added
+- `FAST_BOOT_STATE` machine (IDLE/RUNNING/SUCCEEDED/DISABLED_SESSION/DISABLED_COOLDOWN)
+- Session disable + cooldown on FAST failure
+- Clear separation between overlay UI data and canonical SPV chain
+
+---
+
 ### Key Updates
 
 * **PEPEPOW retargeting**

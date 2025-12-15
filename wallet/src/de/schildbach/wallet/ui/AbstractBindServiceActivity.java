@@ -45,14 +45,22 @@ public abstract class AbstractBindServiceActivity extends AbstractWalletActivity
         public void onServiceConnected(final ComponentName name, final IBinder binder) {
             blockchainService = ((BlockchainServiceImpl.LocalBinder) binder).getService();
             log.info("Service bound to {} (thread={})", name, Thread.currentThread().getName());
+            AbstractBindServiceActivity.this.onServiceConnected(blockchainService);
         }
 
         @Override
         public void onServiceDisconnected(final ComponentName name) {
             blockchainService = null;
             log.info("Service disconnected from {} (thread={})", name, Thread.currentThread().getName());
+            AbstractBindServiceActivity.this.onServiceDisconnected();
         }
     };
+
+    protected void onServiceConnected(BlockchainService service) {
+    }
+
+    protected void onServiceDisconnected() {
+    }
 
     @Override
     protected void onResume() {
@@ -68,7 +76,7 @@ public abstract class AbstractBindServiceActivity extends AbstractWalletActivity
         super.onPause();
     }
 
-    protected void unbindServiceServiceConnection(){
+    protected void unbindServiceServiceConnection() {
         unbindService(serviceConnection);
     }
 

@@ -20,6 +20,17 @@ public class PowVerifier {
         this.params = params;
     }
 
+    public void verifyBlocks(List<Block> blocks) throws VerificationException {
+        if (blocks == null || blocks.isEmpty()) {
+            return;
+        }
+        log.info("Verifying PoW for {} blocks", blocks.size());
+        for (Block block : blocks) {
+            block.verifyHeader();
+        }
+        log.info("PoW verification passed for all {} blocks", blocks.size());
+    }
+
     public void verifyPow(List<HeaderDto> headers) throws VerificationException {
         if (headers == null || headers.isEmpty()) {
             return;

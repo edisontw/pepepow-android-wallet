@@ -57,6 +57,7 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.navigation.NavigationView;
@@ -71,6 +72,7 @@ import org.bitcoinj.wallet.Wallet;
 import org.bitcoinj.wallet.DeterministicSeed;
 import org.dash.wallet.common.Configuration;
 import org.dash.wallet.common.data.CurrencyInfo;
+import org.dash.wallet.common.data.SyncMode;
 import org.dash.wallet.common.ui.DialogBuilder;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -96,6 +98,7 @@ import de.schildbach.wallet.ui.widget.UpgradeWalletDisclaimerDialog;
 import de.schildbach.wallet.util.CrashReporter;
 import de.schildbach.wallet.util.FingerprintHelper;
 import de.schildbach.wallet.util.Nfc;
+import de.schildbach.wallet.service.BlockchainService;
 import org.pepepow.wallet.R;
 import kotlin.Pair;
 
@@ -141,6 +144,34 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private ClipboardManager clipboardManager;
 
     private boolean showBackupWalletDialog = false;
+
+    private final android.content.BroadcastReceiver fastSyncFailureReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            showFastSyncFailedDialog();
+        }
+    };
+
+    private void showFastSyncFailedDialog() {
+        if (isFinishing())
+            return;
+        DialogBuilder dialog = new DialogBuilder(this);
+        dialog.setTitle("Fast Sync Error");
+        dialog.setMessage("Fast sync failed. You may switch to FULL_SPV mode (slower but safe).");
+        dialog.setPositiveButton("Switch to FULL_SPV", new OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int which) {
+                BlockchainService service = getBlockchainService();
+                if (service != null) {
+                    service.switchSyncMode(SyncMode.FULL_SPV);
+                } else {
+                    log.warn("[FAST-BOOT] BlockchainService not bound; unable to switch sync mode from dialog.");
+                }
+            }
+        });
+        dialog.setNegativeButton("Keep Fast Sync", null);
+        dialog.show();
+    }
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -325,6 +356,9 @@ public final class WalletActivity extends AbstractBindServiceActivity
     protected void onResume() {
         super.onResume();
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(fastSyncFailureReceiver,
+                new IntentFilter("de.schildbach.wallet.service.ACTION_FAST_SYNC_FAILED"));
+
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -370,6 +404,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
     @Override
     protected void onPause() {
         handler.removeCallbacksAndMessages(null);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(fastSyncFailureReceiver);
 
         super.onPause();
     }

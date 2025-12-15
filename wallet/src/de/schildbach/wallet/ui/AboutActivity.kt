@@ -48,11 +48,7 @@ class AboutActivity : BaseMenuActivity() {
         review_and_rate.setOnClickListener { openDiscordInvite() }
         contact_support.setOnClickListener { openInfoSite() }
 
-        supportActionBar?.apply {
-            setLogo(R.drawable.ic_pepepow_logo)
-            setDisplayUseLogoEnabled(true)
-            setDisplayShowHomeEnabled(true)
-        }
+
     }
 
     override fun finish() {

@@ -195,6 +195,7 @@
     <string name="network_monitor_sync_progress_label">Sync progress</string>
     <string name="network_monitor_sync_mode_label">Sync mode</string>
     <string name="network_monitor_chain_warning">SPV height is %1$d blocks behind explorer. Sync in progress…</string>
+    <string name="network_monitor_chain_api_snapshot">Headers from explorer snapshot; historical SPV sync disabled in API mode.</string>
     <string name="network_monitor_api_status_label">Explorer status</string>
     <string name="network_monitor_api_tip_height_label">Explorer tip height</string>
     <string name="network_monitor_api_difficulty_label">Difficulty (API)</string>
@@ -205,6 +206,7 @@
     <string name="network_monitor_api_source_label">Data source: %1$s</string>
     <string name="network_monitor_progress_bootstrap">Bootstrapping from explorer API…</string>
     <string name="network_monitor_sync_unknown">Unknown</string>
+    <string name="network_monitor_height_diff_api_mode">SPV: API tip snapshot</string>
     <string name="network_monitor_stat_unavailable">Unavailable</string>
     <string name="network_monitor_hashrate_unit">H/s</string>
     <string name="sync_mode_fast_api_10pow">Fast API Sync (Default)</string>
@@ -218,7 +220,8 @@
     <string name="network_monitor_block_not_on_explorer_toast">This block is ahead of the explorer and cannot be opened yet (likely API delay).</string>
     <string name="network_monitor_wallet_not_loaded">Wallet not loaded yet. Please wait...</string>
     <string name="wallet_load_failed_message">Unable to load wallet. Please restart the app and try again.</string>
-    <string name="network_monitor_blocks_hint_fast_api">Headers from explorer snapshot, then P2P headers; explorer may be behind.</string>
+    <string name="network_monitor_blocks_hint_fast_api">Headers and wallet snapshot from explorer; new blocks validated via SPV. Explorer may be behind.</string>
+    <string name="network_monitor_blocks_hint_fast_api_snapshot_failed">Wallet snapshot failed; switch to FULL SPV for full validation.</string>
     <string name="network_monitor_blocks_hint_secure_api">Explorer snapshot + 1000 PoW-verified headers.</string>
     <string name="network_monitor_blocks_hint_full_spv">All headers fully PoW-verified from genesis (slow).</string>
     <string name="network_monitor_blocks_hint_unknown">Block list source unknown.</string>
@@ -331,7 +334,7 @@
     <string name="preferences_api_category_title">API / Explorer</string>
     <string name="preferences_api_sync_mode_title">Sync mode</string>
     <string name="preferences_api_sync_mode_summary">Current synchronization strategy</string>
-    <string name="preferences_api_base_url_title">API base URL</string>
+    <string name="preferences_api_base_url_title">API URL</string>
     <string name="preferences_api_base_url_summary">Endpoint used for explorer bootstrap</string>
     <string name="preferences_api_health_title">Explorer health</string>
     <string name="preferences_api_health_summary">Waiting for status…</string>

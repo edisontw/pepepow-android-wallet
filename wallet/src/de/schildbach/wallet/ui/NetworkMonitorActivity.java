@@ -56,6 +56,8 @@ import org.pepepow.wallet.R;
  */
 public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NetworkMonitorActivity.class);
+
     private PeerListFragment peerListFragment;
     private BlockListFragment blockListFragment;
     private ViewPager pager;
@@ -85,6 +87,10 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
     private NetworkStats latestNetworkStats;
     private long latestExplorerHeight = 0;
     private int latestPeerCount = 0;
+    @Nullable
+    private Boolean lastForcedSpvUiSource = null;
+    private int lastLoggedSpvHeight = Integer.MIN_VALUE;
+    private long lastLoggedApiSnapshotHeight = Long.MIN_VALUE;
 
     private final BroadcastReceiver peerStateReceiver = new BroadcastReceiver() {
         @Override
@@ -93,6 +99,14 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
             updateSpvSection();
         }
     };
+
+    @Override
+    protected void onServiceConnected(BlockchainService service) {
+        if (service != null && service.getConnectedPeers() != null) {
+            latestPeerCount = service.getConnectedPeers().size();
+            updateSpvSection();
+        }
+    }
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -254,7 +268,39 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
         apiSourceView = findViewById(R.id.network_status_api_source_value);
     }
 
+    private boolean shouldForceSpvUiSource() {
+        final SyncMode mode = config != null ? config.getSyncMode() : null;
+        final boolean disabledSession = mode == SyncMode.FAST_API_10POW && config != null && config.isFastApiSyncFailed();
+        if (lastForcedSpvUiSource == null || lastForcedSpvUiSource.booleanValue() != disabledSession) {
+            lastForcedSpvUiSource = disabledSession;
+            final String fastBootState = disabledSession ? "DISABLED_SESSION" : "ACTIVE";
+            log.info("NETMON-UI: FAST_BOOT_STATE observed by UI = {} (mode={}, fastApiSyncFailed={})",
+                    fastBootState, mode, config != null && config.isFastApiSyncFailed());
+            if (disabledSession) {
+                log.info("UI source switched to SPV due to FAST_BOOT DISABLED_SESSION");
+            }
+        }
+        return disabledSession;
+    }
+
+    private int resolveSpvHeight() {
+        int height = latestBlockchainState != null ? latestBlockchainState.bestChainHeight : 0;
+        if (height > 0) {
+            return height;
+        }
+        final BlockchainService service = getBlockchainService();
+        if (service == null) {
+            return height;
+        }
+        final BlockchainState state = service.getBlockchainState();
+        if (state == null) {
+            return height;
+        }
+        return Math.max(height, state.bestChainHeight);
+    }
+
     private void updateSpvSection() {
+        final boolean forceSpv = shouldForceSpvUiSource();
         if (syncModeValueView != null) {
             syncModeValueView.setText(getSyncModeLabel(config.getSyncMode()));
         }
@@ -262,9 +308,13 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
             peerCountView.setText(String.valueOf(latestPeerCount));
         }
         if (spvHeightView != null) {
-            int height = latestBlockchainState != null ? latestBlockchainState.bestChainHeight : 0;
-            spvHeightView
-                    .setText(height > 0 ? String.valueOf(height) : getString(R.string.network_monitor_sync_unknown));
+            final int height = resolveSpvHeight();
+            spvHeightView.setText(
+                    height > 0 ? String.valueOf(height) : getString(R.string.network_monitor_sync_unknown));
+            if (height > 0 && lastLoggedSpvHeight != height) {
+                lastLoggedSpvHeight = height;
+                log.info("NETMON-UI: height value={} source=SPV (forceSpv={})", height, forceSpv);
+            }
         }
         if (syncProgressView != null) {
             syncProgressView.setText(formatSyncProgress());
@@ -279,17 +329,57 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
             return;
         }
         warningView.setVisibility(View.GONE);
-        if (latestBlockchainState != null) {
+        final SyncMode mode = config.getSyncMode();
+        final boolean forceSpv = shouldForceSpvUiSource();
+
+        // TASK 4: Display logic for FAST_API_10POW
+        if (mode == SyncMode.FAST_API_10POW && !forceSpv) {
+            if (config.isFastApiSyncFailed()) {
+                warningView.setText(getString(R.string.network_monitor_blocks_hint_fast_api_snapshot_failed));
+                warningView.setVisibility(View.VISIBLE);
+                logStatus(mode, "failed");
+                return;
+            }
+            if (latestBlockchainState != null && latestBlockchainState.bestChainHeight > 0) {
+                warningView.setText(getString(R.string.network_monitor_chain_api_snapshot));
+                warningView.setVisibility(View.VISIBLE);
+                logStatus(mode, "snapshot_ok");
+                return;
+            }
+        }
+
+        if (mode == SyncMode.API_1000POW
+                && latestBlockchainState != null
+                && latestBlockchainState.bestChainHeight > 0) {
+            warningView.setText(getString(R.string.network_monitor_chain_api_snapshot));
+            warningView.setVisibility(View.VISIBLE);
+            return;
+        }
+        final int spvHeight = resolveSpvHeight();
+        if (spvHeight > 0) {
             long explorerHeight = resolveExplorerHeight();
-            long diff = explorerHeight - latestBlockchainState.bestChainHeight;
+            long diff = explorerHeight - spvHeight;
             if (diff > 10) {
                 warningView.setText(getString(R.string.network_monitor_chain_warning, diff));
                 warningView.setVisibility(View.VISIBLE);
+                logStatus(mode, forceSpv ? "spv_running_behind_warning" : "behind_warning");
             }
         }
     }
 
+    private void logStatus(SyncMode mode, String stateEnum) {
+        final int spvHeight = resolveSpvHeight();
+        final long apiTipHeight = resolveExplorerHeight();
+        final boolean forceSpv = shouldForceSpvUiSource();
+        log.info("NETMON: mode=" + mode
+                + ", spvHeight=" + spvHeight
+                + ", apiTipHeight=" + apiTipHeight
+                + ", heightSource=" + (forceSpv ? "SPV(forced)" : "API/normal")
+                + ", messageState=" + stateEnum);
+    }
+
     private void updateApiSection() {
+        final boolean forceSpv = shouldForceSpvUiSource();
         if (apiStateView != null) {
             apiStateView.setText(formatApiState(latestApiStatus));
         }
@@ -298,8 +388,21 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
         }
         latestExplorerHeight = resolveExplorerHeight();
         if (apiHeightView != null) {
-            apiHeightView.setText(latestExplorerHeight > 0 ? String.valueOf(latestExplorerHeight)
-                    : getString(R.string.network_monitor_stat_unavailable));
+            if (forceSpv) {
+                apiHeightView.setText(getString(R.string.network_monitor_stat_unavailable));
+                if (lastLoggedApiSnapshotHeight != latestExplorerHeight) {
+                    lastLoggedApiSnapshotHeight = latestExplorerHeight;
+                    log.info("NETMON-UI: apiSnapshotHeight ignored (forceSpv=true, explorerHeight={})",
+                            latestExplorerHeight);
+                }
+            } else {
+                apiHeightView.setText(latestExplorerHeight > 0 ? String.valueOf(latestExplorerHeight)
+                        : getString(R.string.network_monitor_stat_unavailable));
+                if (lastLoggedApiSnapshotHeight != latestExplorerHeight) {
+                    lastLoggedApiSnapshotHeight = latestExplorerHeight;
+                    log.info("NETMON-UI: apiSnapshotHeight value={} source=API", latestExplorerHeight);
+                }
+            }
         }
         if (apiDifficultyView != null) {
             double difficulty = latestNetworkStats != null ? latestNetworkStats.difficulty : Double.NaN;
@@ -343,8 +446,23 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
         if (heightDiffView == null) {
             return;
         }
+        final boolean forceSpv = shouldForceSpvUiSource();
+        final int spvHeight = resolveSpvHeight();
+        final SyncMode mode = config.getSyncMode();
+
+        if (forceSpv) {
+            heightDiffView.setText(
+                    spvHeight > 0 ? getString(R.string.network_monitor_height_diff_in_sync)
+                            : getString(R.string.network_monitor_sync_unknown));
+            log.info("NETMON-UI: heightDiff source=SPV (forceSpv=true, spvHeight={})", spvHeight);
+            return;
+        }
+
         latestExplorerHeight = resolveExplorerHeight();
-        int spvHeight = latestBlockchainState != null ? latestBlockchainState.bestChainHeight : 0;
+        if ((mode == SyncMode.FAST_API_10POW || mode == SyncMode.API_1000POW) && spvHeight > 0) {
+            heightDiffView.setText(getString(R.string.network_monitor_height_diff_api_mode));
+            return;
+        }
         if (spvHeight <= 0 || latestExplorerHeight <= 0) {
             heightDiffView.setText(getString(R.string.network_monitor_sync_unknown));
             return;
@@ -360,7 +478,9 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
 
     private void updateBlockListState() {
         if (blockListFragment != null) {
-            blockListFragment.updateNetworkData(latestExplorerHeight, config.getSyncMode());
+            final boolean forceSpv = shouldForceSpvUiSource();
+            final long explorerHeightForBlocksList = forceSpv ? 0 : latestExplorerHeight;
+            blockListFragment.updateNetworkData(explorerHeightForBlocksList, config.getSyncMode());
         }
     }
 
@@ -384,7 +504,8 @@ public final class NetworkMonitorActivity extends AbstractBindServiceActivity {
         if (latestBlockchainState != null && latestBlockchainState.percentageSync > 0) {
             return latestBlockchainState.percentageSync + "%";
         }
-        if (config.getSyncMode() == SyncMode.FAST_API_10POW) {
+        final boolean forceSpv = shouldForceSpvUiSource();
+        if (!forceSpv && config.getSyncMode() == SyncMode.FAST_API_10POW) {
             if (latestBlockchainState == null || latestBlockchainState.bestChainHeight == 0) {
                 return getString(R.string.network_monitor_progress_bootstrap);
             }

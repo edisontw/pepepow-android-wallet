@@ -66,6 +66,8 @@ public final class Constants {
     public static final int FAST_SYNC_BASE_HEIGHT = 3700000;
     public static final InetSocketAddress HARDCODED_PEER;
     public static boolean FAST_API_10POW_ENABLED_FOR_CORE = false;
+    public static int FAST_TRUSTED_WINDOW_START_HEIGHT = -1;
+    public static int FAST_TRUSTED_WINDOW_END_HEIGHT = -1;
 
     public static boolean isFullReplayAllowed() {
         return !FAST_API_10POW_ENABLED_FOR_CORE;

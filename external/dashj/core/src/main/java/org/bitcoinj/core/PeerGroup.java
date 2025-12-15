@@ -221,6 +221,7 @@ public class PeerGroup implements TransactionBroadcaster, GovernanceVoteBroadcas
 
     @GuardedBy("lock")
     private long fastCatchupTimeSecs;
+
     private final CopyOnWriteArrayList<Wallet> wallets;
     private final CopyOnWriteArrayList<PeerFilterProvider> peerFilterProviders;
 
@@ -2376,7 +2377,9 @@ public class PeerGroup implements TransactionBroadcaster, GovernanceVoteBroadcas
                             bytesInLastSecond / 1024.0, chainHeight, mostCommonChainHeight);
                     String thresholdString = String.format(Locale.US, "(threshold <%.2f KB/sec for %d seconds)",
                             minSpeedBytesPerSec / 1024.0, samples.length);
-                    if (!stallDetectionEnabled) {
+                    if (Peer.FAST_API_10POW_ENABLED_FOR_CORE && (blocksInLastSecond + txnsInLastSecond
+                            + headersInLastSecond + masternodeListsInLastSecond == 0)) {
+                        /* Silence */ } else if (!stallDetectionEnabled) {
                         log.info(statsString + ", stall detection disabled");
                     } else if (maxStalls <= 0) {
                         log.info(statsString + ", stall disabled " + thresholdString);
