@@ -17,6 +17,8 @@
 
 package de.schildbach.wallet.ui;
 
+import de.schildbach.wallet.service.BlockchainService;
+
 import javax.annotation.Nullable;
 
 import org.bitcoinj.core.Coin;
@@ -80,6 +82,8 @@ public final class WalletBalanceFragment extends Fragment {
     private BlockchainState blockchainState = null;
     @Nullable
     private ExplorerDataState explorerDataState = null;
+    @Nullable
+    private BlockchainService.WalletUsabilityState latestUsabilityState = null;
     private ExplorerDataViewModel explorerDataViewModel;
 
     private static final int ID_BALANCE_LOADER = 0;
@@ -97,7 +101,7 @@ public final class WalletBalanceFragment extends Fragment {
         this.activity = (AbstractBindServiceActivity) activity;
         this.application = (WalletApplication) activity.getApplication();
         this.config = application.getConfiguration();
-        this.wallet = application.getWallet();
+        this.wallet = application.getActiveWallet();
         this.loaderManager = getLoaderManager();
 
         showLocalBalance = getResources().getBoolean(R.bool.show_local_balance);
@@ -153,6 +157,14 @@ public final class WalletBalanceFragment extends Fragment {
         exchangeRatesViewModel = ViewModelProviders.of(this).get(ExchangeRatesViewModel.class);
     }
 
+    private final Observer<BlockchainService.WalletUsabilityState> usabilityObserver = new Observer<BlockchainService.WalletUsabilityState>() {
+        @Override
+        public void onChanged(BlockchainService.WalletUsabilityState state) {
+            latestUsabilityState = state;
+            updateView();
+        }
+    };
+
     @Override
     public void onResume() {
         super.onResume();
@@ -182,12 +194,19 @@ public final class WalletBalanceFragment extends Fragment {
                 });
 
         updateView();
+
+        if (activity.getBlockchainService() != null) {
+            activity.getBlockchainService().getWalletUsabilityLiveData().observe(this, usabilityObserver);
+        }
     }
 
     @Override
     public void onPause() {
         loaderManager.destroyLoader(ID_BLOCKCHAIN_STATE_LOADER);
         loaderManager.destroyLoader(ID_BALANCE_LOADER);
+        if (activity.getBlockchainService() != null) {
+            activity.getBlockchainService().getWalletUsabilityLiveData().removeObserver(usabilityObserver);
+        }
 
         super.onPause();
     }
@@ -196,6 +215,8 @@ public final class WalletBalanceFragment extends Fragment {
         if (!isAdded())
             return;
 
+        WalletReadiness.logUiGateWalletReadyOnlyOnce("WalletBalanceFragment");
+        final boolean walletReady = WalletReadiness.isWalletReady(application, blockchainState);
         final boolean showProgress;
 
         if (blockchainState != null && blockchainState.bestChainDate != null) {
@@ -203,11 +224,7 @@ public final class WalletBalanceFragment extends Fragment {
             final boolean blockchainUptodate = blockchainLag < BLOCKCHAIN_UPTODATE_THRESHOLD_MS;
             final boolean noImpediments = blockchainState.impediments.isEmpty();
 
-            if (blockchainState.isApiReady) {
-                showProgress = false;
-            } else {
-                showProgress = !(blockchainUptodate || !blockchainState.replaying);
-            }
+            showProgress = !(blockchainUptodate || !blockchainState.replaying);
 
             final String downloading = getString(noImpediments ? R.string.blockchain_state_progress_downloading
                     : R.string.blockchain_state_progress_stalled);
@@ -229,7 +246,20 @@ public final class WalletBalanceFragment extends Fragment {
             showProgress = false;
         }
 
-        if (!showProgress) {
+        final boolean isApiSession = latestUsabilityState != null
+                && "API_SESSION".equals(latestUsabilityState.balanceSource);
+
+        if (!walletReady && !isApiSession) {
+            viewProgress.setVisibility(View.VISIBLE);
+            viewProgress.setText(R.string.sync_status_syncing_headers);
+            viewBalance.setVisibility(View.INVISIBLE);
+            if (viewDataSource != null) {
+                viewDataSource.setVisibility(View.GONE);
+            }
+            return;
+        }
+
+        if (!showProgress || isApiSession) {
             viewBalance.setVisibility(View.VISIBLE);
 
             if (!showLocalBalance)
@@ -267,10 +297,8 @@ public final class WalletBalanceFragment extends Fragment {
             updateDataSourceLabel();
         } else {
             viewProgress.setVisibility(View.VISIBLE);
-            viewBalance.setVisibility(View.INVISIBLE);
-            if (viewDataSource != null) {
-                viewDataSource.setVisibility(View.GONE);
-            }
+            viewBalance.setVisibility(View.VISIBLE);
+            updateDataSourceLabel();
         }
     }
 
@@ -319,6 +347,12 @@ public final class WalletBalanceFragment extends Fragment {
 
     @Nullable
     private Coin determineDisplayBalance() {
+        if (latestUsabilityState != null && "API_SESSION".equals(latestUsabilityState.balanceSource)) {
+            return latestUsabilityState.sessionBalance;
+        }
+        if (WalletReadiness.isWalletReady(application, blockchainState)) {
+            return balance;
+        }
         if (shouldUseExplorerData() && explorerDataState != null && explorerDataState.getBalance() != null)
             return explorerDataState.getBalance();
         return balance;
@@ -352,6 +386,15 @@ public final class WalletBalanceFragment extends Fragment {
     private void updateDataSourceLabel() {
         if (viewDataSource == null)
             return;
+
+        if (latestUsabilityState != null && "API_SESSION".equals(latestUsabilityState.balanceSource)) {
+            viewDataSource.setVisibility(View.VISIBLE);
+            viewDataSource.setText(getString(R.string.wallet_balance_source_explorer,
+                    0, String.valueOf(getDisplayChainHeight()))); // We don't have explorer height here easily, use 0 or
+                                                                  // placeholder
+            return;
+        }
+
         if (shouldUseExplorerData() && explorerDataState != null && explorerDataState.getExplorerHeight() != null) {
             viewDataSource.setVisibility(View.VISIBLE);
             viewDataSource.setText(getString(R.string.wallet_balance_source_explorer,

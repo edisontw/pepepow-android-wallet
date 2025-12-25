@@ -31,6 +31,25 @@ class PaymentsPayFragment : Fragment() {
         fun newInstance() = PaymentsPayFragment()
     }
 
+    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+    private val log = org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java)
+    
+    // Prevent repeated auto-paste attempts per fragment instance
+    private var hasAttemptedAutoPaste = false
+
+    // Global send enablement state from BlockchainService usability stream
+    private var globalSendEnabled = false
+    private val usabilityObserver = androidx.lifecycle.Observer<de.schildbach.wallet.service.BlockchainService.WalletUsabilityState> { state ->
+        if (state != null) {
+            val old = globalSendEnabled
+            globalSendEnabled = state.sendEnabled
+            if (old != globalSendEnabled) {
+                log.info("PAYMENTS-SEND[sid=${de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID}] globalSendEnabled changed to $globalSendEnabled, refreshing UI")
+                handlePaste(false)
+            }
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_payments_pay, container, false)
     }
@@ -48,9 +67,67 @@ class PaymentsPayFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         if (org.pepepow.wallet.BuildConfig.DEBUG) {
-            org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("NAV: PaymentsPayFragment created (startDestination reached)")
+            log.info("NAV: PaymentsPayFragment created (startDestination reached)")
         }
-        handlePaste(false)
+        
+        // Observe usability state for global send enablement
+        val application = activity?.application as? de.schildbach.wallet.WalletApplication
+        application?.blockchainService?.walletUsabilityLiveData?.observe(viewLifecycleOwner, usabilityObserver)
+
+        // Fix C: Register clipboard listener for live UI updates
+        val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardListener = ClipboardManager.OnPrimaryClipChangedListener {
+            Handler(Looper.getMainLooper()).post { 
+                log.info("PAYMENTS-SEND clipboard changed, re-evaluating button state")
+                handlePaste(false) 
+            }
+        }
+        cm.addPrimaryClipChangedListener(clipboardListener)
+        
+        // Fix A: Delay auto-paste to allow window focus, only attempt once per instance
+        if (!hasAttemptedAutoPaste) {
+            hasAttemptedAutoPaste = true
+            view?.postDelayed({ tryAutoPaste() }, 250)
+        } else {
+            // Just refresh button state without auto-paste
+            manageStateOfPayToAddressButton(null)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Fix C: Unregister clipboard listener
+        clipboardListener?.let {
+            val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.removePrimaryClipChangedListener(it)
+        }
+        clipboardListener = null
+        
+        // LiveData observer is automatically removed by viewLifecycleOwner
+    }
+
+    /**
+     * Fix A: Attempt auto-paste with SecurityException handling.
+     * Called with delay after onResume to ensure window focus.
+     */
+    private fun tryAutoPaste() {
+        val sid = de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID
+        try {
+            val input = getClipboardTextNow()
+            if (input != null) {
+                log.info("PAYMENTS-PASTE[sid=$sid] attempt=onResume result=ok clip_length=${input.length}")
+            } else {
+                log.info("PAYMENTS-PASTE[sid=$sid] attempt=onResume result=null")
+            }
+            handlePaste(false)
+        } catch (e: SecurityException) {
+            log.info("PAYMENTS-PASTE[sid=$sid] attempt=onResume result=denied msg=${e.message}")
+            // Don't mark as failure, keep UI interactive for manual paste
+            manageStateOfPayToAddressButton(null)
+        } catch (e: Exception) {
+            log.warn("PAYMENTS-PASTE[sid=$sid] attempt=onResume result=error", e)
+            manageStateOfPayToAddressButton(null)
+        }
     }
 
     private fun handleScan(clickView: View) {
@@ -67,21 +144,46 @@ class PaymentsPayFragment : Fragment() {
     }
 
     private fun canUserSendCoins(): Boolean {
-        // Allow sending if we have a balance, regardless of sync mode (unless wallet is null/closed)
         val application = activity?.application as? de.schildbach.wallet.WalletApplication
-        val wallet = application?.wallet
-        if (wallet == null) return false
+        val sid = de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID
+        
+        // Rule A: Respect the global usability stream if available
+        if (globalSendEnabled) {
+            log.info("PAYMENTS-SEND[sid=$sid] enabled=true reason=globalSendEnabled")
+            return true
+        }
 
+        // Rule B: Manual check for API_SESSION (redundant but safe)
+        val blockchainService = application?.blockchainService
+        val sessionWallet = blockchainService?.sessionWallet
+        if (sessionWallet != null && sessionWallet.isReady) {
+            val sessionSpendable = sessionWallet.spendableBalance
+            val enabled = sessionSpendable.signum() > 0
+            log.info("PAYMENTS-SEND[sid=$sid] src=API_SESSION enabled=$enabled reason=sessionSpendable=${sessionSpendable.toFriendlyString()}")
+            return enabled
+        }
+
+        // Rule C: Fallback to SPV wallet
+        val wallet = application?.wallet
+        if (wallet == null) {
+            log.info("PAYMENTS-SEND[sid=$sid] src=SPV enabled=false reason=wallet_null")
+            return false
+        }
         val balance = wallet.getBalance(org.bitcoinj.wallet.Wallet.BalanceType.AVAILABLE)
-        return balance.signum() > 0
+        val enabled = balance.signum() > 0
+        log.info("PAYMENTS-SEND[sid=$sid] src=SPV enabled=$enabled reason=balance=${balance.toFriendlyString()}")
+        return enabled
     }
 
     private fun manageStateOfPayToAddressButton(paymentIntent: PaymentIntent?) {
-        val canSend = canUserSendCoins() || paymentIntent != null
-        if (org.pepepow.wallet.BuildConfig.DEBUG) {
-             org.slf4j.LoggerFactory.getLogger(PaymentsPayFragment::class.java).info("PEPEPOW-PAYMENTS: manageStateOfPayToAddressButton: canSend=$canSend (balance>0=${canUserSendCoins()}, clipboard=${paymentIntent != null})")
-        }
-        pay_to_address.setActive(canSend)
+        // Clipboard shortcut enablement: based on BOTH global send enabled AND valid address
+        val balanceEnabled = canUserSendCoins()
+        val addressValid = paymentIntent != null
+        val canClick = balanceEnabled && addressValid
+        
+        log.info("PAYMENTS-SEND[sid=${de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID}] manageState: balanceEnabled=$balanceEnabled addressValid=$addressValid canClick=$canClick")
+        
+        pay_to_address.setActive(canClick)
 
         if (paymentIntent != null) {
             pay_to_address.setSubTitle(paymentIntent.address.toBase58())

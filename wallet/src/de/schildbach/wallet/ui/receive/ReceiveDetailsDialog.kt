@@ -60,7 +60,7 @@ class ReceiveDetailsDialog : BaseBottomSheetDialogFragment() {
             val fiatAmount = getSerializable(ARG_FIAT_AMOUNT) as Fiat?
 
             receive_info.amount = dashAmount
-            input_value.text = MonetaryFormat.BTC.noCode().format(dashAmount).toString()
+            input_value.text = de.schildbach.wallet.Constants.PEPEPOW_FORMAT.noCode().format(dashAmount).toString()
             if (fiatAmount != null) {
                 fiat_symbol.text = GenericUtils.currencySymbol(fiatAmount.currencyCode)
                 fiat_value.text = fiatAmount.toPlainString()

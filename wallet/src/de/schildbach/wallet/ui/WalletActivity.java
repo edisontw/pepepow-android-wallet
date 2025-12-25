@@ -57,6 +57,8 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.Loader;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.material.appbar.AppBarLayout;
@@ -91,6 +93,7 @@ import de.schildbach.wallet.data.PaymentIntent;
 import de.schildbach.wallet.ui.InputParser.BinaryInputParser;
 import de.schildbach.wallet.ui.InputParser.StringInputParser;
 import de.schildbach.wallet.ui.preference.PreferenceActivity;
+import de.schildbach.wallet.ui.WalletReadiness;
 import de.schildbach.wallet.ui.scan.ScanActivity;
 import de.schildbach.wallet.ui.send.SendCoinsActivity;
 import de.schildbach.wallet.ui.send.SweepWalletActivity;
@@ -99,6 +102,9 @@ import de.schildbach.wallet.util.CrashReporter;
 import de.schildbach.wallet.util.FingerprintHelper;
 import de.schildbach.wallet.util.Nfc;
 import de.schildbach.wallet.service.BlockchainService;
+import de.schildbach.wallet.service.BlockchainServiceImpl;
+import de.schildbach.wallet.service.BlockchainState;
+import de.schildbach.wallet.service.BlockchainStateLoader;
 import org.pepepow.wallet.R;
 import kotlin.Pair;
 
@@ -120,6 +126,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private static final int DIALOG_VERSION_ALERT = 4;
     private static final int DIALOG_LOW_STORAGE_ALERT = 5;
     private static final int AUTH_REQUEST_CODE_VIEW_RECOVERYPHRASE = 100;
+    private static final int ID_BLOCKCHAIN_STATE_LOADER = 100;
 
     public static Intent createIntent(Context context) {
         return new Intent(context, WalletActivity.class);
@@ -129,6 +136,23 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private Configuration config;
     private Wallet wallet;
     private FingerprintHelper fingerprintHelper;
+    private BlockchainState latestBlockchainState;
+    private volatile BlockchainService.WalletUsabilityState latestWalletUsabilityState;
+
+    // Checklist:
+    // - Observe a single deterministic usability stream from BlockchainServiceImpl.
+    // - Enable/disable Home Send button without relying on NetworkMonitor
+    // side-effects.
+    private final Observer<BlockchainService.WalletUsabilityState> walletUsabilityObserver = new Observer<BlockchainService.WalletUsabilityState>() {
+        @Override
+        public void onChanged(BlockchainService.WalletUsabilityState state) {
+            latestWalletUsabilityState = state;
+            updateSendButtonState();
+        }
+    };
+    private SyncProgressEvent latestSpvProgressEvent;
+    private Boolean lastWalletReady = null;
+    private boolean ignoredFlagsLogged = false;
 
     private DrawerLayout viewDrawer;
     private View viewFakeForSafetySubmenu;
@@ -140,6 +164,16 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private static final int REQUEST_CODE_RESTORE_WALLET = 2;
 
     private boolean isRestoringBackup;
+
+    // Fix B: Foreground polling for balance/history refresh every 20s
+    private static final long HOME_POLL_INTERVAL_MS = 20_000;
+    private final Runnable homePollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            triggerForegroundPoll();
+            handler.postDelayed(this, HOME_POLL_INTERVAL_MS);
+        }
+    };
 
     private ClipboardManager clipboardManager;
 
@@ -157,19 +191,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
             return;
         DialogBuilder dialog = new DialogBuilder(this);
         dialog.setTitle("Fast Sync Error");
-        dialog.setMessage("Fast sync failed. You may switch to FULL_SPV mode (slower but safe).");
-        dialog.setPositiveButton("Switch to FULL_SPV", new OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int which) {
-                BlockchainService service = getBlockchainService();
-                if (service != null) {
-                    service.switchSyncMode(SyncMode.FULL_SPV);
-                } else {
-                    log.warn("[FAST-BOOT] BlockchainService not bound; unable to switch sync mode from dialog.");
-                }
-            }
-        });
-        dialog.setNegativeButton("Keep Fast Sync", null);
+        dialog.setMessage("Fast sync failed. Please restart the app or check your connection.");
+        dialog.setPositiveButton("OK", null);
         dialog.show();
     }
 
@@ -267,6 +290,9 @@ public final class WalletActivity extends AbstractBindServiceActivity
                 return walletTransactionsFragment != null && !walletTransactionsFragment.isHistoryEmpty();
             }
         });
+
+        LoaderManager.getInstance(this).initLoader(ID_BLOCKCHAIN_STATE_LOADER, null, blockchainStateLoaderCallbacks);
+        updateWalletReadinessAndSyncUi();
     }
 
     private void initFingerprintHelper() {
@@ -373,7 +399,15 @@ public final class WalletActivity extends AbstractBindServiceActivity
         showBackupWalletDialogIfNeeded();
         showBackupWalletDialogIfNeeded();
         showHideSecureAction();
-        updateSendButtonState();
+
+        // Fix C: Ensure Send Button state is refreshed on Resume
+        handler.post(() -> {
+            log.info("UI[sid={}] onResume: forcing updateSendButtonState", WalletReadiness.UI_SESSION_ID);
+            updateSendButtonState();
+        });
+
+        // Fix B: Start 20s foreground poll for balance/history refresh
+        handler.postDelayed(homePollRunnable, HOME_POLL_INTERVAL_MS);
     }
 
     private void updateSendButtonState() {
@@ -382,16 +416,75 @@ public final class WalletActivity extends AbstractBindServiceActivity
             boolean enabled = canOpenSendScreen();
             payBtn.setEnabled(enabled);
             payBtn.setAlpha(enabled ? 1.0f : 0.5f);
+
+            final String source = (latestWalletUsabilityState != null)
+                    ? ("usabilityStream(" + latestWalletUsabilityState.balanceSource + ")")
+                    : "readinessFallback";
+            log.info("UI[sid={}] updateSendButtonState: enabled={} source={}",
+                    WalletReadiness.UI_SESSION_ID, enabled, source);
         }
     }
 
+    // Fix B: Foreground poll for balance/history refresh
+    private void triggerForegroundPoll() {
+        BlockchainService service = getBlockchainService();
+        if (service == null)
+            return;
+
+        BlockchainService.DataSource source = service.getUiDataSource();
+        BlockchainService.WalletUsabilityState state = service.getWalletUsabilityLiveData().getValue();
+
+        log.info("UI-REFRESH[sid={}] source={} bal={} hist={} reason=timer",
+                WalletReadiness.UI_SESSION_ID,
+                source,
+                state != null ? state.sessionBalance : "null",
+                state != null && state.sessionHistory != null ? state.sessionHistory.size() : 0);
+
+        // Refresh balance display and send button state
+        updateBalance();
+        updateSendButtonState();
+    }
+
+    private void updateBalance() {
+        // Balance refresh is handled by WalletBalanceFragment via LiveData
+        // This method exists for explicit balance view updates if needed
+    }
+
     private boolean canOpenSendScreen() {
-        if (Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
-            // In FAST_API_10POW we allow opening Send even if SPV is behind.
-            return !config.isRestoringBackup();
+        // Unified Logic (Task B)
+        // Delegate to BlockchainService which now holds the single source of truth for
+        // Send Gating.
+        if (application != null) {
+            BlockchainService service = application.getBlockchainService();
+            if (service != null && service instanceof BlockchainServiceImpl) {
+                // Cast to Impl to access the new method (if interface doesn't have it yet, we
+                // might need to cast or add to interface)
+                // Assuming we add it to interface or cast. Let's try casting first.
+                return ((BlockchainServiceImpl) service).canOpenSendScreen();
+            }
         }
-        // Existing behaviour for other modes (always enabled in WalletActivity)
-        return true;
+
+        // Fallback if service not ready (should strictly be false or legacy logic)
+        Wallet wallet = application.getWallet();
+        if (wallet == null)
+            return false;
+
+        return WalletReadiness.canSendCoins(application, latestBlockchainState, wallet);
+    }
+
+    @Override
+    protected void onServiceConnected(BlockchainService service) {
+        super.onServiceConnected(service);
+        if (service != null) {
+            service.getWalletUsabilityLiveData().observe(this, walletUsabilityObserver);
+        }
+    }
+
+    @Override
+    protected void onServiceDisconnected() {
+        super.onServiceDisconnected();
+        latestWalletUsabilityState = null;
+        updateSendButtonState();
     }
 
     private void showBackupWalletDialogIfNeeded() {
@@ -403,6 +496,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
     @Override
     protected void onPause() {
+        // Fix B: Stop foreground poll when not visible
+        handler.removeCallbacks(homePollRunnable);
         handler.removeCallbacksAndMessages(null);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(fastSyncFailureReceiver);
 
@@ -484,7 +579,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
             @Override
             protected void error(final int messageResId, final Object... messageArgs) {
-                if (Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+                if (WalletReadiness.isWalletReady(application, latestBlockchainState)) {
                     SendCoinsActivity.start(WalletActivity.this, null, true);
                 } else {
                     dialog(WalletActivity.this, null, errorDialogTitleResId, messageResId, messageArgs);
@@ -675,7 +770,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
         }
         if (input != null) {
             handleString(input, R.string.scan_to_pay_error_dialog_title, R.string.scan_to_pay_error_dialog_message);
-        } else if (Constants.FAST_API_10POW_ENABLED_FOR_CORE) {
+        } else if (WalletReadiness.isWalletReady(application, latestBlockchainState)) {
             SendCoinsActivity.start(this, null, true);
         } else {
             InputParser.dialog(this, null, R.string.scan_to_pay_error_dialog_title,
@@ -1143,34 +1238,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
     @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
     public void onEvent(SyncProgressEvent event) {
-        ProgressBar syncProgressView = findViewById(R.id.sync_status_progress);
-        if (event.getFailed()) {
-            findViewById(R.id.sync_progress_pane).setVisibility(View.GONE);
-            findViewById(R.id.sync_error_pane).setVisibility(View.VISIBLE);
-            return;
-        }
-        showSyncPane(R.id.sync_error_pane, false);
-        showSyncPane(R.id.sync_progress_pane, true);
-        int percentage = (int) event.getPct();
-        TextView syncStatusTitle = findViewById(R.id.sync_status_title);
-        TextView syncStatusMessage = findViewById(R.id.sync_status_message);
-        if (percentage != syncProgressView.getProgress()) {
-            syncProgressView.setProgress(percentage);
-            TextView syncPercentageView = findViewById(R.id.sync_status_percentage);
-
-            syncPercentageView.setText(percentage + "%");
-            if (percentage == 100) {
-                syncPercentageView.setTextColor(getResources().getColor(R.color.success_green));
-                syncStatusTitle.setText(R.string.sync_status_sync_title);
-                syncStatusMessage.setText(R.string.sync_status_sync_completed);
-                showSyncPane(R.id.sync_status_pane, false);
-            } else {
-                syncPercentageView.setTextColor(getResources().getColor(R.color.dash_gray));
-                syncStatusTitle.setText(R.string.sync_status_syncing_title);
-                syncStatusMessage.setText(R.string.sync_status_syncing_sub_title);
-                showSyncPane(R.id.sync_status_pane, true);
-            }
-        }
+        latestSpvProgressEvent = event;
+        updateWalletReadinessAndSyncUi();
     }
 
     @Override
@@ -1332,7 +1401,159 @@ public final class WalletActivity extends AbstractBindServiceActivity
         dialogBuilder.show();
     }
 
+    private void updateWalletReadinessAndSyncUi() {
+        if (application == null) {
+            return;
+        }
+
+        WalletReadiness.logUiGateWalletReadyOnlyOnce("WalletActivity");
+
+        final boolean walletLoaded = WalletReadiness.isWalletLoaded(application);
+        final int spvHeight = WalletReadiness.spvBestHeight(latestBlockchainState);
+        final boolean walletReady = WalletReadiness.isWalletReady(application, latestBlockchainState);
+
+        if (!ignoredFlagsLogged) {
+            // Explicit lock-in: WalletReady is the only UI usability gate.
+            WalletReadiness.logIgnoredFlagOnce("FAST_STATE");
+            WalletReadiness.logIgnoredFlagOnce("SYNC_MODE");
+            WalletReadiness.logIgnoredFlagOnce("SYNC_PROGRESS_PCT");
+            WalletReadiness.logIgnoredFlagOnce("API_BOOTSTRAP");
+            ignoredFlagsLogged = true;
+        }
+
+        if (lastWalletReady == null || lastWalletReady.booleanValue() != walletReady) {
+            if (walletReady) {
+                WalletReadiness.logUiReadyOverrideOnce();
+            }
+            log.info("WALLET-READY[sid={}] walletLoaded={} spvHeight={} ready={}",
+                    WalletReadiness.UI_SESSION_ID, walletLoaded, spvHeight, walletReady);
+            lastWalletReady = walletReady;
+        }
+
+        updateSyncStatusPane(walletReady, latestSpvProgressEvent);
+        updateSendButtonState();
+
+        // Log UI source selection for debug contract
+        final String balanceSource = (wallet != null
+                && wallet.getBalance(org.bitcoinj.wallet.Wallet.BalanceType.AVAILABLE)
+                        .isGreaterThan(org.bitcoinj.core.Coin.ZERO)) ? "SPV" : "API_OVERLAY";
+        final String txSource = (wallet != null && !wallet.getTransactions(false).isEmpty()) ? "SPV" : "API_OVERLAY";
+        final String heightSource = (latestBlockchainState != null && latestBlockchainState.bestChainHeight > 0) ? "SPV"
+                : "API_OVERLAY";
+        WalletReadiness.logUiSourceOnce(balanceSource, txSource, heightSource, "update_ui");
+    }
+
+    private void updateSyncStatusPane(final boolean walletReady, final SyncProgressEvent event) {
+        final View syncStatusPane = findViewById(R.id.sync_status_pane);
+        if (syncStatusPane == null) {
+            return;
+        }
+
+        // Decoupling Logic: If API_SESSION is authoritative, we hide the SPV sync pane
+        // entirely.
+        // The user should perceive the wallet as "Ready" (handled by walletReady=true)
+        // and background SPV sync should be invisible in the UI.
+        final BlockchainService service = application != null ? application.getBlockchainService() : null;
+        if (service != null && service.getUiDataSource() == BlockchainService.DataSource.API_SESSION) {
+            showSyncPane(R.id.sync_status_pane, false);
+            return;
+        }
+
+        final ProgressBar syncProgressView = findViewById(R.id.sync_status_progress);
+        final TextView syncPercentageView = findViewById(R.id.sync_status_percentage);
+        final TextView syncStatusTitle = findViewById(R.id.sync_status_title);
+        final TextView syncStatusMessage = findViewById(R.id.sync_status_message);
+
+        final boolean failed = event != null && event.getFailed();
+        final double pct = event != null ? event.getPct() : -1;
+        final boolean progressKnown = pct >= 0 && pct <= 100;
+        final int percentage = progressKnown ? (int) pct : -1;
+
+        if (walletReady) {
+            // Wallet usability is SPV-only. Once ready, do not block UI on any
+            // sync/progress UI.
+            if (progressKnown && percentage >= 100 && !failed) {
+                showSyncPane(R.id.sync_status_pane, false);
+                return;
+            }
+
+            // PERMANENT SUPPRESSION: Never show "Wallet Ready / Syncing in background"
+            // dialog/pane again.
+            // The user finds it annoying and it's redundant if the wallet is usable.
+            // showSyncPane(R.id.sync_error_pane, false);
+            // showSyncPane(R.id.sync_progress_pane, true);
+            // showSyncPane(R.id.sync_status_pane, true);
+            // syncStatusTitle.setText(R.string.sync_status_wallet_ready_title);
+            // syncStatusMessage.setText(R.string.sync_status_spv_syncing_background);
+
+            // Force hide it
+            showSyncPane(R.id.sync_status_pane, false);
+            return;
+        }
+
+        if (failed) {
+            showSyncPane(R.id.sync_progress_pane, false);
+            showSyncPane(R.id.sync_error_pane, true);
+            showSyncPane(R.id.sync_status_pane, true);
+            return;
+        }
+
+        showSyncPane(R.id.sync_error_pane, false);
+        showSyncPane(R.id.sync_progress_pane, true);
+        showSyncPane(R.id.sync_status_pane, true);
+        syncProgressView.setVisibility(View.VISIBLE);
+        syncPercentageView.setVisibility(View.VISIBLE);
+
+        if (!progressKnown) {
+            syncProgressView.setIndeterminate(true);
+            syncPercentageView.setText("");
+            syncPercentageView.setVisibility(View.GONE);
+            syncPercentageView.setTextColor(getResources().getColor(R.color.dash_gray));
+            syncStatusTitle.setText(R.string.sync_status_syncing_title);
+            syncStatusMessage.setText(R.string.sync_status_syncing_headers);
+            return;
+        }
+
+        syncProgressView.setIndeterminate(false);
+        if (percentage != syncProgressView.getProgress()) {
+            syncProgressView.setProgress(percentage);
+        }
+
+        syncPercentageView.setText(percentage + "%");
+        if (percentage == 100) {
+            syncPercentageView.setTextColor(getResources().getColor(R.color.success_green));
+            syncStatusTitle.setText(R.string.sync_status_sync_title);
+            syncStatusMessage.setText(R.string.sync_status_sync_completed);
+            showSyncPane(R.id.sync_status_pane, false);
+        } else {
+            syncPercentageView.setTextColor(getResources().getColor(R.color.dash_gray));
+            syncStatusTitle.setText(R.string.sync_status_syncing_title);
+            syncStatusMessage.setText(R.string.sync_status_syncing_sub_title);
+            showSyncPane(R.id.sync_status_pane, true);
+        }
+    }
+
     private void showSyncPane(int id, boolean show) {
         findViewById(id).setVisibility(show ? View.VISIBLE : View.GONE);
     }
+
+    private final LoaderManager.LoaderCallbacks<BlockchainState> blockchainStateLoaderCallbacks = new LoaderManager.LoaderCallbacks<BlockchainState>() {
+        @Override
+        public Loader<BlockchainState> onCreateLoader(final int id, final Bundle args) {
+            return new BlockchainStateLoader(WalletActivity.this);
+        }
+
+        @Override
+        public void onLoadFinished(@NonNull final Loader<BlockchainState> loader,
+                final BlockchainState blockchainState) {
+            WalletActivity.this.latestBlockchainState = blockchainState;
+            updateWalletReadinessAndSyncUi();
+        }
+
+        @Override
+        public void onLoaderReset(@NonNull final Loader<BlockchainState> loader) {
+            WalletActivity.this.latestBlockchainState = null;
+            updateWalletReadinessAndSyncUi();
+        }
+    };
 }

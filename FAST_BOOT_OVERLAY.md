@@ -1,154 +1,121 @@
-# FAST Boot Overlay Framework Principles
+# FAST Boot Overlay Framework Principles (Canonical)
+
+This document defines the **canonical rules** for the overlay framework.
+All code contributions must comply.
 
 > [!IMPORTANT]
-> This document defines the **canonical rules** for the FAST bootstrap overlay. All code contributions must comply with these principles.
+> **FULL_SPV is the only canonical chain writer.**
+> Overlays are bootstrap helpers and must be incapable of breaking SPV.
 
 ---
 
-## 1. Canonical Chain Rule
+## 1. Canonical chain rule
 
-**Only `FULL_SPV` writes to persistent chain state.**
+Only `FULL_SPV` may:
 
-| Operation | FULL_SPV | FAST_API_10POW |
-|-----------|----------|----------------|
-| Write to SPVBlockStore | ✅ Allowed | ❌ Forbidden |
-| Update chainHead | ✅ Allowed | ❌ Forbidden |
-| Perform rollback | ✅ Allowed | ❌ Forbidden |
-| Modify wallet lastSeenBlockHeight | ✅ Allowed | ❌ Forbidden |
-| Start/stop PeerGroup | ✅ Allowed | ❌ Forbidden |
-| Delete blockstore file | ⚠️ User action only | ❌ Forbidden |
+- write blockstore
+- modify chainHead
+- rollback
+- persist `wallet.dat`
+
+Overlays (`FAST_API_10POW`, `API_1000POW`) must NEVER do any of the above.
 
 ---
 
-## 2. FAST_BOOT_STATE Machine
+## 2. Overlays are not sync modes
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│    IDLE ──────────► RUNNING ──────────► SUCCEEDED       │
-│     ▲                   │                               │
-│     │                   ▼                               │
-│     │            DISABLED_SESSION                       │
-│     │                   │                               │
-│     │                   ▼                               │
-│     └──────────── DISABLED_COOLDOWN                     │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
+Overlays are **Bootstrap Overlays**:
 
-### State Definitions
-
-| State | Description | Transitions |
-|-------|-------------|-------------|
-| `IDLE` | Ready to attempt bootstrap | → `RUNNING` on start |
-| `RUNNING` | Bootstrap in progress | → `SUCCEEDED` or `DISABLED_SESSION` |
-| `SUCCEEDED` | Overlay active, data available | Terminal for session |
-| `DISABLED_SESSION` | Failed, no retry this session | → `DISABLED_COOLDOWN` on app restart |
-| `DISABLED_COOLDOWN` | Waiting before next attempt | → `IDLE` after cooldown expires |
-
-### State Persistence
-
-- `IDLE`, `RUNNING`, `SUCCEEDED`: Not persisted (session-only)
-- `DISABLED_SESSION`: Persisted as session flag
-- `DISABLED_COOLDOWN`: Persisted with timestamp
+- Speed up UI / usability only
+- NEVER define chain validity
+- NEVER mutate SPV state
 
 ---
 
-## 3. Failure-Safe Contract
+## 3. Two independent overlay lanes
 
-When FAST bootstrap fails, the following **MUST** be guaranteed:
+### Lane A: PoW sampling (optional)
 
-### ❌ MUST NOT
-- Delete or recreate the blockstore file
-- Reset chainHead to 0 or any height
-- Stop PeerGroup
-- Restart PeerGroup
-- Call `wallet.reset()` or similar
-- Modify any persistent chain state
-- Throw exceptions that crash the app
+Purpose: trust signal only. Must never block usability.
 
-### ✅ MUST
-- Set `fastBootState = DISABLED_SESSION`
-- Log failure with session ID and reason
-- Allow SPV sync to continue unimpeded
-- Set cooldown timestamp for future attempts
+### Lane B: Tx→UTXO snapshot (required)
+
+Purpose: build Session Wallet so balance/history/send work fast.
+
+Snapshot success alone is enough to enable Send.
 
 ---
 
-## 4. UI Data Source Policy
+## 4. State machines
 
-The UI displays data from either SPV or overlay, based on these rules:
+### SNAPSHOT_STATE (required)
 
-### Height Display
+- `IDLE`
+- `RUNNING`
+- `READY`
+- `FAILED_TRANSIENT`
+- `DISABLED_PERMANENT`
 
-```
-if (fastBootState == SUCCEEDED && overlayHeight > spvHeight) {
-    display = overlayHeight + " (API)"
-} else {
-    display = spvHeight + " (SPV)"
-}
-```
+### POW_STATE (optional)
 
-### Balance Display
-
-```
-if (fastBootState == SUCCEEDED && !spvFullySynced) {
-    display = overlayBalance + " (pending SPV verification)"
-} else {
-    display = spvBalance
-}
-```
-
-### Transaction List
-
-```
-if (fastBootState == SUCCEEDED && !spvFullySynced) {
-    show overlay transactions with "unverified" badge
-} else {
-    show SPV-verified transactions only
-}
-```
-
-### Switching Logic
-
-- Overlay data is **always temporary**
-- Once SPV catches up, overlay data is discarded
-- SPV is always authoritative when synced
+- `IDLE`
+- `RUNNING`
+- `SUCCEEDED`
+- `FAILED_TRANSIENT`
+- `DISABLED_PERMANENT`
 
 ---
 
-## 5. Runtime Guards
+## 5. UI data source router
 
-Code must include guards to prevent violations:
+`DATA_SOURCE` must be:
 
-```java
-// Example guard before any blockstore operation in FAST mode
-if (syncMode == SyncMode.FAST_API_10POW) {
-    log.error("FASTBOOT VIOLATION: Attempted blockstore write in FAST mode");
-    return; // or throw IllegalStateException
-}
-```
+- `API_SESSION` when Session Wallet is `READY`
+- otherwise `SPV_CANONICAL`
 
-### Guard Locations
+Rules:
 
-1. `SPVBlockStore.put()` — guard against FAST writes
-2. `BlockChain.setChainHead()` — guard FAST modifications
-3. `PeerGroup.stop()` — guard FAST-triggered stops
-4. Any blockstore file deletion code
+- Never switch source based on PoW result
+- All switches must be logged
 
 ---
 
-## 6. Testing Checklist
+## 6. Failure must be safe
 
-When modifying FAST-related code, verify:
+Overlay failure MUST NOT:
 
-- [ ] FAST failure does not affect SPV blockstore
-- [ ] FAST failure does not reset chainHead
-- [ ] SPV continues syncing after FAST failure
-- [ ] Overlay data only appears when FAST succeeds
-- [ ] UI correctly shows data source (API vs SPV)
-- [ ] Cooldown is respected between attempts
+- reset blockstore
+- rollback chain
+- stop PeerGroup
+- restart sync
+- force mode switch
+- modify `wallet.dat`
+
+Transient failures (timeout / IO / 5xx):
+
+- end attempt
+- retry on next onResume / next app start
+
+Permanent disable ONLY when:
+
+- invalid schema
+- integrity failure
+- wrong network/config
 
 ---
 
-🔚 *End of Framework Principles*
+## 7. Required logging
+
+Every run must include:
+
+1. bootstrap entry `(mode, powState, snapshotState, lastRunTime)`
+2. state transitions (pow + snapshot)
+3. SPV start/stop (if SPV enabled separately)
+4. SPV chainHead / bestHeight update (if SPV running)
+5. UI source switch `(SPV_CANONICAL ↔ API_SESSION)`
+
+Also include `FASTBOOT_SESSION_ID` in all overlay logs.
+
+---
+
+🔚 End of Framework Principles

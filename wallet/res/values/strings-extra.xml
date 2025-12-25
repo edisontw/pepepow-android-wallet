@@ -222,6 +222,8 @@
 	<string name="transaction_result_sent_to">Sent to</string>
 	<string name="transaction_date_and_time">Date</string>
 	<string name="transaction_close">Close</string>
+    <string name="transaction_id">Transaction ID</string>
+    <string name="transaction_details_confirmations">Confirmations</string>
 	<string name="transaction_details_amount_received">Amount Received</string>
 	<string name="transaction_details_amount_sent">Amount Sent</string>
     <string name="transaction_details_sent_from">Sent from</string>

@@ -86,6 +86,11 @@ import de.schildbach.wallet.util.Qr;
 import de.schildbach.wallet.util.ThrottlingWalletChangeListener;
 import de.schildbach.wallet.util.TransactionUtil;
 import de.schildbach.wallet.util.WalletUtils;
+import de.schildbach.wallet.service.BlockchainService;
+import de.schildbach.wallet.service.BlockchainService.DataSource;
+import de.schildbach.wallet.data.api.ApiSessionWallet;
+import de.schildbach.wallet.ui.ApiSessionTransactionsAdapter;
+import androidx.lifecycle.Observer;
 import org.pepepow.wallet.R;
 
 /**
@@ -93,7 +98,6 @@ import org.pepepow.wallet.R;
  */
 public class WalletTransactionsFragment extends Fragment implements LoaderManager.LoaderCallbacks<List<Transaction>>,
         TransactionsAdapter.OnClickListener, OnSharedPreferenceChangeListener {
-
 
     public enum Direction {
         RECEIVED, SENT;
@@ -111,7 +115,13 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
     private View loading;
     private RecyclerView recyclerView;
     private TransactionsAdapter adapter;
+    private ApiSessionTransactionsAdapter apiAdapter;
     private Spinner filterSpinner;
+
+    // Cached API session history to prevent blanking during RUNNING state or unlock
+    // transitions
+    @Nullable
+    private List<ApiSessionWallet.SessionTxItem> cachedApiHistory = null;
 
     @Nullable
     private Direction direction;
@@ -122,6 +132,7 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
 
     private static final String ARG_DIRECTION = "direction";
     private static final long THROTTLE_MS = DateUtils.SECOND_IN_MILLIS;
+    private static final long AUTO_REFRESH_INTERVAL_MS = 20_000; // 20 seconds
 
     private static final int SHOW_QR_THRESHOLD_BYTES = 2500;
     private static final Logger log = LoggerFactory.getLogger(WalletTransactionsFragment.class);
@@ -140,7 +151,7 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
         this.activity = (AbstractWalletActivity) activity;
         this.application = (WalletApplication) activity.getApplication();
         this.config = application.getConfiguration();
-        this.wallet = application.getWallet();
+        this.wallet = application.getActiveWallet();
         this.resolver = activity.getContentResolver();
         this.loaderManager = LoaderManager.getInstance(this.activity);
     }
@@ -153,6 +164,13 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
 
         adapter = new TransactionsAdapter(activity, wallet, application.maxConnectedPeers(), this);
         adapter.setShowTransactionRowMenu(true);
+        apiAdapter = new ApiSessionTransactionsAdapter(activity);
+
+        // TASK 3: Set click listener for session transaction details
+        apiAdapter.setOnItemClickListener(item -> {
+            SessionTransactionDetailsBottomSheet.newInstance(item)
+                    .show(getChildFragmentManager(), "session_tx_details");
+        });
 
         this.direction = null;
     }
@@ -165,7 +183,7 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
 
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-                             final Bundle savedInstanceState) {
+            final Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.wallet_transactions_fragment, container, false);
 
         emptyView = view.findViewById(R.id.wallet_transactions_empty);
@@ -182,7 +200,7 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
 
             @Override
             public void getItemOffsets(final Rect outRect, final View view, final RecyclerView parent,
-                                       final RecyclerView.State state) {
+                    final RecyclerView.State state) {
                 super.getItemOffsets(outRect, view, parent, state);
 
                 final int position = parent.getChildAdapterPosition(view);
@@ -193,7 +211,8 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
             }
         });
 
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(filterSpinner.getContext(), R.array.history_filter, R.layout.custom_spinner_item);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(filterSpinner.getContext(),
+                R.array.history_filter, R.layout.custom_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         filterSpinner.setAdapter(adapter);
         filterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -210,6 +229,45 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
                         direction = Direction.SENT;
                         break;
                 }
+
+                // Check if using API_SESSION - filter directly from session wallet
+                BlockchainService service = null;
+                try {
+                    service = ((AbstractBindServiceActivity) activity).getBlockchainService();
+                } catch (Exception e) {
+                    // Service not bound yet
+                }
+
+                if (service != null && service.getUiDataSource() == DataSource.API_SESSION) {
+                    ApiSessionWallet sw = service.getSessionWallet();
+                    if (sw != null && sw.isReady()) {
+                        // Map UI direction to API direction
+                        ApiSessionWallet.TxDirection apiDirection = null;
+                        if (direction == Direction.RECEIVED) {
+                            apiDirection = ApiSessionWallet.TxDirection.RECEIVED;
+                        } else if (direction == Direction.SENT) {
+                            apiDirection = ApiSessionWallet.TxDirection.SENT;
+                        }
+
+                        List<ApiSessionWallet.SessionTxItem> filtered = sw.getFilteredHistory(apiDirection);
+                        log.info("HISTORY-UI[sid={}] filter changed: direction={} apiDirection={} count={}",
+                                WalletReadiness.UI_SESSION_ID, direction, apiDirection, filtered.size());
+
+                        if (recyclerView.getAdapter() != apiAdapter) {
+                            recyclerView.setAdapter(apiAdapter);
+                        }
+                        apiAdapter.replace(filtered);
+
+                        if (filtered.isEmpty()) {
+                            showEmptyView();
+                        } else {
+                            showTransactionList();
+                        }
+                        return; // Don't fall through to SPV loader
+                    }
+                }
+
+                // SPV mode - use loader
                 reloadTransactions();
             }
 
@@ -241,10 +299,73 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
         wallet.addTransactionConfidenceEventListener(Threading.SAME_THREAD, transactionChangeListener);
 
         updateView();
+
+        // Subscribe to Usability State
+        BlockchainService service = ((AbstractBindServiceActivity) activity).getBlockchainService();
+        if (service != null) {
+            service.getWalletUsabilityLiveData().observe(this, new Observer<BlockchainService.WalletUsabilityState>() {
+                @Override
+                public void onChanged(BlockchainService.WalletUsabilityState state) {
+                    updateTransactionsList(state);
+                }
+            });
+
+            // Task C: Force immediate refresh for API_SESSION to prevent empty history
+            // after PIN unlock
+            if (service.getUiDataSource() == BlockchainService.DataSource.API_SESSION) {
+                ApiSessionWallet sw = service.getSessionWallet();
+                if (sw != null && sw.isReady()) {
+                    List<ApiSessionWallet.SessionTxItem> sessionHistory = sw.getHistory();
+                    if (sessionHistory != null && !sessionHistory.isEmpty()) {
+                        log.info("HISTORY-UI forceRefresh onResume source=API_SESSION count={}", sessionHistory.size());
+                        if (recyclerView.getAdapter() != apiAdapter) {
+                            recyclerView.setAdapter(apiAdapter);
+                        }
+                        apiAdapter.replace(sessionHistory);
+                        showTransactionList();
+                    } else {
+                        log.info("HISTORY-UI onResume: API_SESSION ready but history empty");
+                    }
+                } else {
+                    log.info("HISTORY-UI onResume: API_SESSION not ready, awaiting LiveData update");
+                }
+            } else {
+                log.info("HISTORY-UI onResume: source={} awaiting LiveData update", service.getUiDataSource());
+            }
+        }
+
+        // Fix B: Start 20s auto-refresh for UI
+        handler.postDelayed(autoRefreshRunnable, AUTO_REFRESH_INTERVAL_MS);
+    }
+
+    private final Runnable autoRefreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            triggerAutoRefresh();
+        }
+    };
+
+    private void triggerAutoRefresh() {
+        BlockchainService service = ((AbstractBindServiceActivity) activity).getBlockchainService();
+        if (service != null) {
+            // Auto-refresh: just re-fetch current state from LiveData
+            // (UtxoSnapshotRunner handles its own polling schedule)
+            BlockchainService.WalletUsabilityState state = service.getWalletUsabilityLiveData().getValue();
+            if (state != null) {
+                log.info("HISTORY-UI autoRefresh: source={} txCount={}",
+                        state.balanceSource, state.sessionHistory != null ? state.sessionHistory.size() : 0);
+                updateTransactionsList(state);
+            }
+        }
+        // Reschedule
+        handler.postDelayed(autoRefreshRunnable, AUTO_REFRESH_INTERVAL_MS);
     }
 
     @Override
     public void onPause() {
+        // Fix B: Stop auto-refresh when not visible
+        handler.removeCallbacks(autoRefreshRunnable);
+
         wallet.removeTransactionConfidenceEventListener(transactionChangeListener);
         wallet.removeChangeEventListener(transactionChangeListener);
         wallet.removeCoinsSentEventListener(transactionChangeListener);
@@ -258,6 +379,112 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
         resolver.unregisterContentObserver(addressBookObserver);
 
         super.onPause();
+    }
+
+    private void updateTransactionsList(BlockchainService.WalletUsabilityState state) {
+        if (state == null || recyclerView == null)
+            return;
+
+        final String sid = de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID;
+        final String snapshotState = state.snapshotState;
+        final boolean isRunning = "RUNNING".equals(snapshotState);
+
+        if (state.balanceSource.equals(DataSource.API_SESSION.name())) {
+            BlockchainService service = ((AbstractBindServiceActivity) activity).getBlockchainService();
+            if (service != null && service.getSessionWallet() != null) {
+                ApiSessionWallet sw = service.getSessionWallet();
+
+                // Map UI direction to API direction for filtering
+                ApiSessionWallet.TxDirection apiDirection = null;
+                if (direction == Direction.RECEIVED) {
+                    apiDirection = ApiSessionWallet.TxDirection.RECEIVED;
+                } else if (direction == Direction.SENT) {
+                    apiDirection = ApiSessionWallet.TxDirection.SENT;
+                }
+
+                // Use filtered history respecting current filter selection
+                List<ApiSessionWallet.SessionTxItem> history = sw.getFilteredHistory(apiDirection);
+
+                log.info("HISTORY-UI[sid={}] refresh reason={} source=API_SESSION filter={} txCount={}",
+                        sid, state.reason != null ? state.reason : "livedata", apiDirection, history.size());
+
+                // CRITICAL: During RUNNING state, use cached history to prevent blanking
+                if (isRunning && cachedApiHistory != null && !cachedApiHistory.isEmpty()) {
+                    log.info("UI[sid={}] HISTORY-UI kept-cache during RUNNING size={}", sid, cachedApiHistory.size());
+                    // Keep showing cached history, don't update adapter
+                    if (recyclerView.getAdapter() != apiAdapter) {
+                        recyclerView.setAdapter(apiAdapter);
+                    }
+                    // Don't call replace, keep existing data
+                    showTransactionList();
+                    return;
+                }
+
+                // GUARD: Don't swap to empty API adapter during transitions
+                // Keep last-known history visible until new data arrives
+                if (history == null || history.isEmpty()) {
+                    if (recyclerView.getAdapter() == apiAdapter && apiAdapter.getItemCount() > 0) {
+                        // Keep existing API adapter with its current data
+                        log.info("UI[sid={}] HISTORY-UI guard: keeping apiAdapter data during transition (oldSize={})",
+                                sid, apiAdapter.getItemCount());
+                        return;
+                    }
+                }
+
+                // Update cache when we have valid history (unfiltered for cache stability)
+                List<ApiSessionWallet.SessionTxItem> fullHistory = sw.getHistory();
+                if (fullHistory != null && !fullHistory.isEmpty()) {
+                    cachedApiHistory = new java.util.ArrayList<>(fullHistory);
+                }
+
+                // Fix C: Skip full replace if history unchanged (prevents UI flicker)
+                int oldCount = apiAdapter.getItemCount();
+                int newCount = history != null ? history.size() : 0;
+
+                if (!state.historyChanged && oldCount == newCount && oldCount > 0) {
+                    log.info("HISTORY[sid={}] changed=false oldCount={} newCount={} appended=0 (skipped)",
+                            sid, oldCount, newCount);
+                    // Ensure correct adapter is set
+                    if (recyclerView.getAdapter() != apiAdapter) {
+                        recyclerView.setAdapter(apiAdapter);
+                    }
+                    showTransactionList();
+                    return;
+                }
+
+                // Switch to API adapter
+                if (recyclerView.getAdapter() != apiAdapter) {
+                    recyclerView.setAdapter(apiAdapter);
+                }
+                apiAdapter.replace(history);
+                int appended = newCount - oldCount;
+                log.info("HISTORY[sid={}] changed={} oldCount={} newCount={} appended={}",
+                        sid, state.historyChanged, oldCount, newCount, appended > 0 ? appended : 0);
+
+                if (history == null || history.isEmpty()) {
+                    showEmptyView();
+                } else {
+                    showTransactionList();
+                }
+            }
+        } else {
+            // Switch to SPV adapter
+            if (recyclerView.getAdapter() != apiAdapter) {
+                // Clear cached API history when switching away from API_SESSION
+                cachedApiHistory = null;
+            }
+            if (recyclerView.getAdapter() != adapter) {
+                recyclerView.setAdapter(adapter);
+            }
+            log.info("UI[sid={}] HISTORY-UI update: source={}, size={}, snapshotState={}, reason={}",
+                    sid, state.balanceSource, adapter.getItemCount(), snapshotState, state.reason);
+            // Logic for SPV empty/list is handled by onLoadFinished
+            if (adapter.getItemCount() == 0) {
+                showEmptyView();
+            } else {
+                showTransactionList();
+            }
+        }
     }
 
     private void reloadTransactions() {
@@ -382,8 +609,8 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
 
     @Override
     public void onTransactionRowClicked(Transaction tx) {
-        TransactionDetailsDialogFragment transactionDetailsDialogFragment =
-                TransactionDetailsDialogFragment.newInstance(tx.getTxId());
+        TransactionDetailsDialogFragment transactionDetailsDialogFragment = TransactionDetailsDialogFragment
+                .newInstance(tx.getTxId());
         transactionDetailsDialogFragment.show(getChildFragmentManager(), null);
     }
 
@@ -398,6 +625,17 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
 
         loading.setVisibility(View.GONE);
         adapter.replace(transactions);
+
+        // Fix: If we are in API_SESSION mode, do NOT let the SPV loader dictate
+        // visibility/UI.
+        // The RecyclerView should be using apiAdapter, and visibility controlled by
+        // updateTransactionsList.
+        BlockchainService service = ((AbstractBindServiceActivity) activity).getBlockchainService();
+        if (service != null && service.getUiDataSource() == BlockchainService.DataSource.API_SESSION) {
+            // Do not touch views.
+            return;
+        }
+
         updateView();
 
         if (transactions.isEmpty()) {
@@ -445,8 +683,7 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
             this.direction = direction;
         }
 
-        public @Nullable
-        Direction getDirection() {
+        public @Nullable Direction getDirection() {
             return direction;
         }
 

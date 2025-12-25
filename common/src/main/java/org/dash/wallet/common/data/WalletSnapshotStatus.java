@@ -16,5 +16,10 @@ public enum WalletSnapshotStatus {
      * A real error occurred (network error, parsing error) that requires user
      * attention.
      */
-    FAILED
+    FAILED,
+    /**
+     * Snapshot stopped due to time/address budget but can be resumed from cursor.
+     */
+    INCOMPLETE_RESUMABLE
+
 }

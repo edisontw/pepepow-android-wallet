@@ -161,31 +161,31 @@ public final class WalletAddressesFragment extends FancyListFragment {
             @Override
             public boolean onActionItemClicked(final ActionMode mode, final MenuItem item) {
                 switch (item.getItemId()) {
-                case R.id.wallet_addresses_context_edit:
-                    handleEdit(getAddress(position));
+                    case R.id.wallet_addresses_context_edit:
+                        handleEdit(getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.wallet_addresses_context_show_qr:
-                    handleShowQr(getAddress(position));
+                    case R.id.wallet_addresses_context_show_qr:
+                        handleShowQr(getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.wallet_addresses_context_copy_to_clipboard:
-                    handleCopyToClipboard(getAddress(position));
+                    case R.id.wallet_addresses_context_copy_to_clipboard:
+                        handleCopyToClipboard(getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.wallet_addresses_context_browse:
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.withAppendedPath(
-                            config.getBlockExplorer(R.array.preferences_block_explorer_values),
-                            "address/" + getAddress(position).toString())));
+                    case R.id.wallet_addresses_context_browse:
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.withAppendedPath(
+                                config.getBlockExplorer(R.array.preferences_block_explorer_values),
+                                "address/" + getAddress(position).toString())));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
                 }
 
                 return false;
@@ -213,7 +213,7 @@ public final class WalletAddressesFragment extends FancyListFragment {
             }
 
             private void handleCopyToClipboard(final Address address) {
-                clipboardManager.setPrimaryClip(ClipData.newPlainText("Bitcoin address", address.toString()));
+                clipboardManager.setPrimaryClip(ClipData.newPlainText("PEPEPOW address", address.toString()));
                 log.info("wallet address copied to clipboard: {}", address);
                 new Toast(activity).toast(R.string.wallet_address_fragment_clipboard_msg);
             }

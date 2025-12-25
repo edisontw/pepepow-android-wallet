@@ -4,6 +4,40 @@
 
 # Changelog
 
+## [1.0.0] - 2025-12-26
+
+### Added
+- In-memory **Tx→UTXO Snapshot Session Wallet** for fast usability.
+- Snapshot-based balance calculation independent of FULL_SPV sync.
+- Local outgoing transaction journal (sent txs + spent outpoints).
+- Persistence of locally generated change addresses for snapshot rescans.
+- Explicit source routing between canonical SPV data and API session data.
+
+### Changed
+- FAST_API_10POW and API_1000POW are finalized as **non-canonical bootstrap overlays**.
+- FULL_SPV is strictly isolated as the only canonical chain writer.
+- PoW sampling lane is decoupled from snapshot usability; PoW failure no longer blocks Send.
+- Wallet startup prioritizes UI usability without triggering SPV sync.
+
+### Fixed
+- Fixed PIN-related crashes and state loss during send flow.
+- Corrected balance miscalculation involving change outputs.
+- Fixed duplicate or phantom history entries (pending vs confirmed sent txs).
+- Prevented false “incoming funds” notifications after outgoing transactions.
+- Restored correct state after app restart (balance, history, sent records).
+- Normalized explorer transaction links and PEPEPOW denomination display.
+
+### Safety & Guarantees
+- Overlays never modify blockstore, chainHead, rollback state, or wallet.dat.
+- Overlay failure is strictly non-destructive and cannot break SPV.
+- Inputs are locally locked immediately after transaction creation.
+
+### Known Limitations
+- Old wallet import / restore is not supported in this release.
+- Snapshot relies on explorer transaction data; global spent index is unavailable.
+- FULL_SPV must be started manually and is intentionally gated in UI.
+
+
 ## [1.0.0-beta] - 2025-11-28
 
 ### Added

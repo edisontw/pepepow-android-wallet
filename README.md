@@ -1,107 +1,94 @@
-# **PEPEPOW Wallet (Updated Overview)**
+# PEPEPOW Android Wallet
 
-A standalone PEPEW payment app for Android, featuring fast-sync technology, updated consensus support, and improved mobile wallet performance.
+A standalone **PEPEPOW (PEPEW)** payment wallet for Android, based on the Dash / bitcoinj SPV wallet codebase.
 
-This project contains several sub-projects:
+This repository contains several sub-projects:
 
-* **wallet** – The Android application.
-* **common** – Components shared across modules.
-* **uphold-integration** – (Legacy) Uphold support.
-* **market** – Play Store metadata & promotional content.
-* **integration-android** – A small library for integrating PEPEW payments into Android apps.
-* **sample-integration-android** – Example of PEPEW integration.
-
----
-
-## **Recent Updates (2025)**
-
-### ✅ **Sync Modes & Fast Bootstrap Overlay**
-
-The wallet supports three sync configurations:
-
-| Mode | Description |
-|------|-------------|
-| `FULL_SPV` | Full P2P SPV sync — the **only** canonical chain writer |
-| `API_1000POW` | API-assisted bootstrap with 1000-header validation |
-| `FAST_API_10POW` | **UI Overlay** — fast display snapshot, does NOT write to blockstore |
-
-#### Security Principles
-
-* **Canonical Chain**: Only `FULL_SPV` can write to blockstore, update chainHead, or perform rollback operations
-* **Overlay Data**: `FAST_API_10POW` provides UI-only height/balance/transaction snapshots for fast display
-* **Independence**: `FULL_SPV` always runs in background, regardless of overlay success/failure
-
-#### Failure Behavior
-
-* **FAST failure**: Disables overlay for current session + cooldown period; SPV continues normally
-* **FAST success**: Overlay data shown in UI; SPV still syncs independently in background
+- **wallet** – The Android application.
+- **common** – Components shared across modules.
+- **uphold-integration** – (Legacy) Uphold support.
+- **market** – Play Store metadata & promotional content.
+- **integration-android** – A small library for integrating PEPEW payments into Android apps.
+- **sample-integration-android** – Example of PEPEW integration.
 
 ---
 
-### ✅ **XelisV2 Consensus Support Included**
+## 2025 Release Notes (Fast Usability Overlay)
 
-The wallet now supports the **pure-Java XelisV2 PoW hash**, matching current PePe-core behavior:
+### Sync / Bootstrap configurations
 
-* Activated automatically when block version triggers post-Xelis rules
-* JNI hooks included for future native optimization
-* Test vectors partially implemented
+The wallet supports three configurations:
 
-Full JNI/native XelisV2 is planned for a performance boost.
+| Mode | What it is | Persistence / authority |
+|------|------------|------------------------|
+| `FULL_SPV` | Full P2P SPV sync | **Canonical** (writes blockstore & wallet.dat) |
+| `API_1000POW` | API-assisted bootstrap overlay | **Overlay only** (never writes canonical state) |
+| `FAST_API_10POW` | Fast usability overlay (Tx→UTXO snapshot) | **Overlay only** (never writes canonical state) |
+
+> [!IMPORTANT]
+> **Overlays are NOT sync modes.** They must never write to blockstore, modify chainHead, rollback, or touch `wallet.dat`.
+>
+> **This release defaults to overlay usability.** `FULL_SPV` can be exposed behind a developer / advanced toggle and must not auto-run or auto-switch.
+
+### What FAST overlay does
+
+`FAST_API_10POW` aims to make the wallet usable immediately after creation:
+
+- Fetches address transaction lists via explorer API
+- Builds a **Tx→UTXO snapshot** for wallet-owned addresses (birth-time scoped)
+- Creates an **in-memory Session Wallet** for:
+  - balance display
+  - transaction list (incoming + locally-recorded outgoing)
+  - send enablement + building/signing/broadcasting transactions
+- Keeps a **local spent journal** for outgoing transactions (no global spent index available)
+
+### What FAST overlay must NEVER do
+
+- Delete or recreate blockstore files
+- Start/stop/restart PeerGroup
+- Update SPV chainHead, rollback, or write headers
+- Persist any “session wallet” state as canonical
+- Modify `wallet.dat` (except normal keychain usage for signing)
 
 ---
 
-### 🔧 **Ongoing Work**
+## Consensus (XelisV2)
 
-These items are implemented at code level but require final QA:
-
-#### **UI Improvements / Bug Fixes (In Progress)**
-
-* Missing icons in PIN pad & main menu
-* API status panel not always visible
-* Network monitor display not updating
-* Developer Options visibility fixes
-
-#### **Wallet Operations Pending Final Testing**
-
-* Actual on-chain transfer (send/receive)
-* Wallet import / export
-* QR code + deep link behavior
-* Multi-session SPV sync reliability
-
-These will be validated once FAST_API_10POW is fully stabilized.
+The wallet includes **pure-Java XelisV2 PoW hashing** matching PePe-core post-Xelis rules, with JNI hooks prepared for future native optimization.
 
 ---
 
-## **Build requirements**
+## Build requirements
 
-(unchanged from original)
+Pinned toolchain for reproducible builds:
 
-* Android SDK Platform 28 / Build-Tools 30.x
-* Android NDK r29
-* CMake 3.19.8
-* Java 11
+- Android SDK Platform 28 / Build-Tools 30.x
+- Android NDK r29
+- CMake 3.19.8 (or project-noted compatible version)
+- Java 11
+- Gradle 6.5 + AGP 4.0.2 (do not upgrade in this release)
 
 Include a `local.properties`:
 
-```
-sdk.dir=C:\\Android\\Sdk
-ndk.dir=C:\\Android\\Sdk\\ndk\\29.0.14206865
-cmake.dir=C:\\Android\\Sdk\\cmake\\3.19.8
+```properties
+sdk.dir=C:\Android\Sdk
+ndk.dir=C:\Android\Sdk\ndk\29.0.14206865
+cmake.dir=C:\Android\Sdk\cmake\3.19.8
 ```
 
 ---
 
-## **Building**
+## Building
 
 Debug (testnet):
 
-```
+```bash
 ./gradlew :wallet:assembleDebug
 ```
 
 Production (mainnet):
 
-```
+```bash
 ./gradlew :wallet:assembleProdDebug
 ```
 
@@ -109,22 +96,10 @@ APK outputs are under `wallet/build/outputs/apk`.
 
 ---
 
-## **Current Development Status**
+## Documentation
 
-(Updated summary, merging original content + new changes)
-
-* Native dependencies bundled (dashj, bls-signatures) at BLS commit `581b761…`.
-* **FAST_API_10POW** fast bootstrap overlay for instant UI display (overlay only, not canonical sync).
-* **XelisV2** pure-Java hashing active for post-Xelis blocks; JNI path prepared.
-* Builds reproducible via Gradle 6.5 + AGP 4.0.2 + Java 11.
-* Remaining work:
-
-  * Native XelisV2 implementation
-  * Complete UI polish
-  * Fix display bugs in API/Network panels
-  * Final QA: send/receive, wallet import/export, SPV multi-session sync
-  * Gradle/AGP modernization after dependency updates
-
----
-
-# **End of Updated README.md**
+- `FAST_BOOT_OVERLAY.md` – Overlay safety contract + state machines
+- `FAST_API_10POW.md` – FAST overlay workflow & threat model
+- `DEBUG_CONTRACT_FASTBOOT.md` – Mandatory logging points
+- `TROUBLESHOOTING_SYNC.md` – Debugging overlay vs SPV issues
+- `BUILD_FIX_NOTES.md` – Common build fixes / toolchain notes

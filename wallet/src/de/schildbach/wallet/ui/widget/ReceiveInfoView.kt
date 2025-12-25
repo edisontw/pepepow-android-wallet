@@ -122,9 +122,9 @@ class ReceiveInfoView(context: Context, attrs: AttributeSet?) : ConstraintLayout
         try {
             val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             if (amount != null) {
-                clipboardManager.primaryClip = ClipData.newPlainText("Dash payment request", paymentRequestUri)
+                clipboardManager.primaryClip = ClipData.newPlainText("PEPEPOW payment request", paymentRequestUri)
             } else {
-            clipboardManager.primaryClip = ClipData.newPlainText("Dash address", address.toBase58())
+            clipboardManager.primaryClip = ClipData.newPlainText("PEPEPOW address", address.toBase58())
             }
             android.widget.Toast.makeText(context, R.string.address_copied, android.widget.Toast.LENGTH_SHORT).show()
             log.info("address copied to clipboard: {}", address)

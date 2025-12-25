@@ -210,13 +210,13 @@ public final class SendingAddressesFragment extends FancyListFragment
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         switch (item.getItemId()) {
-        case R.id.sending_addresses_options_paste:
-            handlePasteClipboard();
-            return true;
+            case R.id.sending_addresses_options_paste:
+                handlePasteClipboard();
+                return true;
 
-        case R.id.sending_addresses_options_scan:
-            handleScan();
-            return true;
+            case R.id.sending_addresses_options_scan:
+                handleScan();
+                return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -267,35 +267,35 @@ public final class SendingAddressesFragment extends FancyListFragment
             @Override
             public boolean onActionItemClicked(final ActionMode mode, final MenuItem item) {
                 switch (item.getItemId()) {
-                case R.id.sending_addresses_context_send:
-                    handleSend(getAddress(position));
+                    case R.id.sending_addresses_context_send:
+                        handleSend(getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.sending_addresses_context_edit:
-                    EditAddressBookEntryFragment.edit(getFragmentManager(), getAddress(position));
+                    case R.id.sending_addresses_context_edit:
+                        EditAddressBookEntryFragment.edit(getFragmentManager(), getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.sending_addresses_context_remove:
-                    handleRemove(getAddress(position));
+                    case R.id.sending_addresses_context_remove:
+                        handleRemove(getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.sending_addresses_context_show_qr:
-                    handleShowQr(getAddress(position), getLabel(position));
+                    case R.id.sending_addresses_context_show_qr:
+                        handleShowQr(getAddress(position), getLabel(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
 
-                case R.id.sending_addresses_context_copy_to_clipboard:
-                    handleCopyToClipboard(getAddress(position));
+                    case R.id.sending_addresses_context_copy_to_clipboard:
+                        handleCopyToClipboard(getAddress(position));
 
-                    mode.finish();
-                    return true;
+                        mode.finish();
+                        return true;
                 }
 
                 return false;
@@ -333,7 +333,7 @@ public final class SendingAddressesFragment extends FancyListFragment
     }
 
     private void handleCopyToClipboard(final String address) {
-        clipboardManager.setPrimaryClip(ClipData.newPlainText("Bitcoin address", address));
+        clipboardManager.setPrimaryClip(ClipData.newPlainText("PEPEPOW address", address));
         log.info("sending address copied to clipboard: {}", address.toString());
         new Toast(activity).toast(R.string.wallet_address_fragment_clipboard_msg);
     }
@@ -362,7 +362,20 @@ public final class SendingAddressesFragment extends FancyListFragment
         final StringBuilder builder = new StringBuilder();
         for (final Address address : addresses)
             builder.append(address.toString()).append(",");
-        if (addresses.size() > 0)
+
+        // TASK 2: Also exclude overlay addresses (change addresses from previous sends)
+        // These should appear under YOUR ADDRESSES, not SENDING ADDRESSES
+        try {
+            java.util.Set<String> overlayAddrs = de.schildbach.wallet.data.api.OverlayAddressStore
+                    .getAllAddresses(getContext());
+            for (String overlayAddr : overlayAddrs) {
+                builder.append(overlayAddr).append(",");
+            }
+        } catch (Exception e) {
+            // Ignore - overlay store may not be initialized
+        }
+
+        if (builder.length() > 0)
             builder.setLength(builder.length() - 1);
 
         walletAddressesSelection = builder.toString();

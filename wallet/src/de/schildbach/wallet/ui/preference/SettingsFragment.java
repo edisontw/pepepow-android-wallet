@@ -114,6 +114,15 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
         if (developerModePreference != null) {
             config.setDeveloperModeEnabled(developerModePreference.isChecked());
         }
+
+        // Task E: Hide FULL_SPV Switching UI
+        // Remove Sync Mode preference to strictly enforce overlay behavior
+        Preference syncPref = findPreference(Configuration.PREFS_KEY_SYNC_MODE);
+        if (syncPref != null) {
+            getPreferenceScreen().removePreference(syncPref);
+            syncModePreference = null;
+        }
+
         de.schildbach.wallet.data.api.ExplorerApiStatsRepository repo = application.getExplorerApiStatsRepository();
         de.schildbach.wallet.ui.ExplorerStatsViewModel.Factory factory = new de.schildbach.wallet.ui.ExplorerStatsViewModel.Factory(
                 activity.getApplication(), repo);
@@ -128,44 +137,7 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
         viewModel = new androidx.lifecycle.ViewModelProvider(owner, factory)
                 .get(de.schildbach.wallet.ui.ExplorerStatsViewModel.class);
 
-        if (syncModePreference != null) {
-            syncModePreference.setValue(config.getSyncMode().name());
-            syncModePreference.setSummary(syncModePreference.getEntry());
-            syncModePreference.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    String modeName = (String) newValue;
-                    org.dash.wallet.common.data.SyncMode mode;
-                    try {
-                        mode = org.dash.wallet.common.data.SyncMode.valueOf(modeName);
-                    } catch (IllegalArgumentException e) {
-                        log.error("Invalid sync mode selected: {}", modeName, e);
-                        mode = org.dash.wallet.common.data.SyncMode.FAST_API_10POW;
-                    }
-                    config.setSyncMode(mode);
-
-                    int index = syncModePreference.findIndexOfValue(modeName);
-                    if (index >= 0) {
-                        syncModePreference.setSummary(syncModePreference.getEntries()[index]);
-                    }
-
-                    // Stop service to apply changes
-                    application.stopBlockchainService();
-
-                    // Restart service to apply changes immediately
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            application.startBlockchainService(false);
-                        }
-                    }, 200);
-
-                    updateApiPreferences(viewModel.getApiStatus().getValue());
-
-                    return true;
-                }
-            });
-        }
+        // syncModePreference listener removed
         if (activity instanceof LifecycleOwner) {
             viewModel.getApiStatus().observe((LifecycleOwner) activity, new Observer<ApiStatus>() {
                 @Override

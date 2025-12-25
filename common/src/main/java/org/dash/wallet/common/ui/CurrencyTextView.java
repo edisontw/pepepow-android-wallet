@@ -72,7 +72,12 @@ public class CurrencyTextView extends AppCompatTextView {
     }
 
     public void setFormat(final MonetaryFormat format) {
-        this.format = format.codeSeparator(Constants.CHAR_HAIR_SPACE);
+        if (format == null) {
+            // Prevent NPE if format is null, use a safe default or keep existing
+            this.format = MonetaryFormat.BTC.codeSeparator(Constants.CHAR_HAIR_SPACE);
+        } else {
+            this.format = format.codeSeparator(Constants.CHAR_HAIR_SPACE);
+        }
         updateView();
     }
 
@@ -113,8 +118,8 @@ public class CurrencyTextView extends AppCompatTextView {
     }
 
     public void setFiatAmount(Coin amount, ExchangeRate exchangeRate, MonetaryFormat format,
-                              String exchangeCurrencyCode) {
-        setAmount(null);  //clear the exchange rate first
+            String exchangeCurrencyCode) {
+        setAmount(null); // clear the exchange rate first
         if (exchangeRate != null) {
             setFormat(format.code(0, exchangeCurrencyCode + " "));
             Coin absCoin = Coin.valueOf(Math.abs(amount.value));
@@ -141,7 +146,13 @@ public class CurrencyTextView extends AppCompatTextView {
         MonetarySpannable text;
 
         if (amount != null) {
-            text = new MonetarySpannable(format, alwaysSigned, amount);
+            // Fix A: Ensure format is never null to prevent NPE in MonetarySpannable
+            MonetaryFormat safeFormat = format;
+            if (safeFormat == null) {
+                safeFormat = MonetaryFormat.BTC.codeSeparator(Constants.CHAR_HAIR_SPACE);
+                android.util.Log.w("CurrencyTextView", "UI-CURRENCY fallback MonetaryFormat applied");
+            }
+            text = new MonetarySpannable(safeFormat, alwaysSigned, amount);
             if (applyMarkup) {
                 text = text.applyMarkup(
                         new Object[] { prefixRelativeSizeSpan, prefixScaleXSpan, prefixColorSpan },

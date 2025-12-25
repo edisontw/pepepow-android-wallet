@@ -48,4 +48,4 @@
 **Maintainers:**
 Edison Huang @edisontw
 Foztor (Core Integration)
-PEPEPOW Dev Group 2025
+PEPEPOW Dev Group

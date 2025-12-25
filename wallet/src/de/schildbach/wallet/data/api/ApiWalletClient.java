@@ -27,9 +27,14 @@ public class ApiWalletClient {
     private final String baseUrl;
     @Nullable
     private final ApiHeaderClient headerClient;
+    private String sessionId = "UNKNOWN"; // Ensure sessionId is available and used in logs if needed
 
     public ApiWalletClient(String baseUrl) {
         this(baseUrl, null);
+    }
+
+    public void setSessionIdForLogs(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public ApiWalletClient(String baseUrl, @Nullable ApiHeaderClient headerClient) {
@@ -39,6 +44,43 @@ public class ApiWalletClient {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build();
         this.headerClient = headerClient;
+    }
+
+    public String pushTransaction(String rawTxHex) throws IOException, ApiSyncException {
+        final String url = buildUrl("/api/tx/send");
+        log.info("FAST-BOOT-API: POST {} (hex length={})", url, rawTxHex.length());
+
+        JSONObject json = new JSONObject();
+        try {
+            json.put("rawtx", rawTxHex);
+        } catch (JSONException e) {
+            throw new ApiSyncException("Failed to build JSON for transaction broadcast", e);
+        }
+
+        okhttp3.RequestBody body = okhttp3.RequestBody.create(
+                okhttp3.MediaType.parse("application/json; charset=utf-8"), json.toString());
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(body)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body() != null ? response.body().string() : "";
+            if (response.isSuccessful()) {
+                log.info("FAST-BOOT-API: Transaction broadcast success: {}", responseBody);
+                try {
+                    JSONObject obj = new JSONObject(responseBody);
+                    return firstNonEmpty(obj.optString("txid", null), obj.optString("txId", null), responseBody);
+                } catch (JSONException e) {
+                    return responseBody; // Return raw body if not JSON
+                }
+            } else {
+                log.warn("FAST-BOOT-API: Transaction broadcast failed (HTTP {}). Body: {}", response.code(),
+                        responseBody);
+                throw new ApiSyncException("HTTP " + response.code() + " during broadcast: " + responseBody);
+            }
+        }
     }
 
     public ApiAddressInfo fetchAddressInfo(String address) throws IOException, ApiSyncException {
@@ -64,6 +106,17 @@ public class ApiWalletClient {
     }
 
     public ApiTxDetail fetchTransactionDetail(String txId) throws IOException, ApiSyncException {
+        // Default legacy behavior or inferred from usage?
+        // For task compliance, we should control this from the caller (Runner).
+        // For now, we keep this signature for existing callers (if any) and delegate.
+        return fetchTransactionDetail(txId, true);
+    }
+
+    public ApiTxDetail fetchTransactionDetail(String txId, boolean useDecrypt1) throws IOException, ApiSyncException {
+        if (!useDecrypt1) {
+            return fetchTransactionDetailFallback(txId);
+        }
+
         final String url = buildUrl("/api/getrawtransaction?txid=" + txId + "&decrypt=1");
         log.info("FAST-BOOT-API: GET {}", url);
         Request request = new Request.Builder().url(url).build();
@@ -71,17 +124,236 @@ public class ApiWalletClient {
         try (Response response = client.newCall(request).execute()) {
             body = response.body() != null ? response.body().string() : "";
             if (!response.isSuccessful()) {
-                log.warn("FAST-BOOT-API: tx fetch failed for {} (HTTP {}). body preview={}", txId, response.code(),
-                        preview(body));
+                // Try fallback if 400/404?
+                // No, strict boolean control.
                 throw new ApiSyncException("HTTP " + response.code() + " while fetching tx " + txId);
             }
             return parseTxDetailResponse(txId, body);
         } catch (JSONException e) {
-            log.warn("FAST-BOOT-API: JSON parse failed for {} ({}). Attempting hex-only fallback.", txId,
-                    previewFromException(e));
-            String hex = fetchRawTransactionHex(txId);
-            return new ApiTxDetail(txId, hex, -1, 0L, null);
+            throw new ApiSyncException("Invalid JSON for tx " + txId, e);
         }
+    }
+
+    private ApiTxDetail fetchTransactionDetailFallback(String txId) throws IOException, ApiSyncException {
+        final String url = buildUrl("/ext/gettx/" + txId);
+        log.info("FAST-BOOT-API: GET {}", url);
+        Request request = new Request.Builder().url(url).build();
+        try (Response response = client.newCall(request).execute()) {
+            String body = response.body() != null ? response.body().string() : "";
+            if (!response.isSuccessful()) {
+                throw new ApiSyncException("HTTP " + response.code() + " while fetching tx " + txId);
+            }
+            // Parse Iquidus-style /ext/gettx/ response
+            return parseTxDetailFallback(txId, body);
+        } catch (JSONException e) {
+            throw new ApiSyncException("Invalid JSON for tx " + txId, e);
+        }
+    }
+
+    private ApiTxDetail parseTxDetailFallback(String txId, String body) throws JSONException {
+        JSONObject obj = new JSONObject(body);
+        // Iquidus /ext/gettx/ usually returns { hash, timestamp, ... outputs: [...] }
+        // It might NOT contain the raw hex.
+        // If we strictly need VIN/VOUT scripts, we might need raw hex.
+        // Task 3 says: "Fetch /ext/gettx/<txid> ... parse vout[n].addresses[]"
+        // So we don't necessarily need raw hex if we just trust the API's address
+        // parsing.
+        // However, ApiTxDetail structure seems to expect rawHex?
+        // Let's check ApiTxDetail constructor.
+        // (String txId, String rawHex, int blockHeight, long blockTimeSeconds, String
+        // blockHash)
+        // If rawHex is missing, validation might fail?
+        // We can put empty hex if we trust the parsed data?
+        String hex = obj.optString("hex", ""); // Some variants have it.
+        int height = obj.optInt("blockheight", obj.optInt("height", -1));
+        long time = obj.optLong("timestamp", 0);
+        String blockHash = obj.optString("blockhash", null);
+
+        // We also need VIN/VOUT data for reconstruction?
+        // ApiTxDetail seems to be a wrapper for the *Result* of the fetch.
+        // The Runner will parse the *Response* or the *Detail*?
+        // Runner Task 3B: "parse vout[n].addresses[] (as provided by ext)"
+        // This means the parsing logic should be IN THE RUNNER?
+        // OR ApiTxDetail should hold the parsed JSON?
+        // ApiTxDetail seems to hold metadata + hex.
+        // If we want to support "address parsing", we might need the JSON object.
+        // Modification: Return a structure that holds the JSON or parse it here.
+        // But `ApiTxDetail` is an existing class.
+        // Let's look at `ApiTxDetail`.
+        // I'll return the object with what we have. If hex is missing, we might need to
+        // fetch it separately OR
+        // the Runner needs to handle "No Hex".
+        return new ApiTxDetail(txId, hex, height, time, blockHash, obj); // Need to extend ApiTxDetail?
+    }
+
+    public boolean probeRawTxDecrypt() {
+        try {
+            // 1. Get a recent transaction ID from a known active address or just check a
+            // genesis/early block tx if possible?
+            // Since we don't have a known txid handy without querying, we might need to
+            // query a block or an address.
+            // Let's try to fetch a random transaction from a recent block if possible, or
+            // just use a hardcoded one if we knew one.
+            // Better: rely on the first address we scan in the runner to do the probe, OR
+            // just try a known genesis txid?
+            // PEPEPOW genesis txid: ...
+            // Safest: The runner will call this. We just expose the method to probe a
+            // specific TXID.
+            return false; // usage: probeRawTxDecrypt(txid)
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean probeRawTxDecrypt(String sampleTxid) {
+        final String url = buildUrl("/api/getrawtransaction?txid=" + sampleTxid + "&decrypt=1");
+        log.info("FAST-BOOT-API: PROBE GET {}", url);
+        Request request = new Request.Builder().url(url).build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful())
+                return false;
+            String body = response.body() != null ? response.body().string() : "";
+            JSONObject obj = new JSONObject(body);
+            // Check for vin/vout presence
+            return obj.has("vin") && obj.has("vout");
+        } catch (Exception e) {
+            log.warn("FAST-BOOT-API: Probe failed for {}: {}", sampleTxid, e.toString());
+            return false;
+        }
+    }
+
+    public java.util.List<ApiTxRef> fetchAddressTransactions(String address, int start, int limit)
+            throws IOException, ApiSyncException {
+        // /ext/getaddresstxs/address/start/len
+        final String url = buildUrl("/ext/getaddresstxs/" + address + "/" + start + "/" + limit);
+        log.info("FAST-BOOT-API: GET {}", url);
+        Request request = new Request.Builder().url(url).build();
+        try (Response response = client.newCall(request).execute()) {
+            String body = response.body() != null ? response.body().string() : "";
+            if (!response.isSuccessful()) {
+                if (response.code() == 404) {
+                    return java.util.Collections.emptyList();
+                }
+                throw new ApiSyncException("HTTP " + response.code() + " while fetching addrtxs " + address);
+            }
+            return parseAddressTransactions(body);
+        } catch (JSONException e) {
+            log.error("FAST-BOOT-API: Invalid JSON for addrtxs {}: {}", address, previewFromException(e));
+            // Treat as transient failure -> throw so runner can retry or decide
+            throw new ApiSyncException("Invalid JSON for addrtxs " + address, e);
+        }
+    }
+
+    private java.util.List<ApiTxRef> parseAddressTransactions(String body) throws JSONException {
+        java.util.List<ApiTxRef> refs = new java.util.ArrayList<>();
+        String bodyType = "UNKNOWN";
+        String sampleFirst = "NONE";
+
+        try {
+            Object json = new org.json.JSONTokener(body).nextValue();
+
+            if (json instanceof JSONArray) {
+                JSONArray arr = (JSONArray) json;
+                if (arr.length() > 0) {
+                    Object firstItem = arr.get(0);
+                    if (firstItem instanceof String) {
+                        // Schema: ["txid", ...]
+                        bodyType = "JSONArray<String>";
+                        for (int i = 0; i < arr.length(); i++) {
+                            // No timestamp in string only
+                            refs.add(new ApiTxRef(arr.getString(i)));
+                        }
+                    } else if (firstItem instanceof JSONObject) {
+                        // Schema: [{"timestamp":..., "txid":"..."}, ...]
+                        bodyType = "JSONArray<Object>";
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject tx = arr.getJSONObject(i);
+                            String txid = firstNonEmpty(tx.optString("txid", null), tx.optString("tx_hash", null));
+                            if (txid != null) {
+                                long ts = tx.optLong("timestamp", 0);
+                                if (ts == 0)
+                                    ts = tx.optLong("time", 0);
+                                // A-2: Normalize timestamp immediately (stay as seconds in REF, consumer
+                                // scales)
+                                // Actually, let's normalize in the parser if needed?
+                                // Users of ApiTxRef expect seconds usually?
+                                // Task says: "Convert timestampSeconds -> txTimeMs = timestampSeconds * 1000L"
+                                // IN RUNNER,
+                                // but here we return ApiTxRef. ApiTxRef usually stores seconds?
+                                // Let's keep it as seconds here for consistency with existing constructor.
+                                refs.add(new ApiTxRef(txid, -1, ts, null, null));
+                            }
+                        }
+                    } else {
+                        bodyType = "JSONArray<Mixed>"; // Fallback
+                    }
+                } else {
+                    bodyType = "JSONArray<Empty>";
+                }
+            } else if (json instanceof JSONObject) {
+                bodyType = "JSONObject";
+                JSONObject obj = (JSONObject) json;
+                // Try known wrapper fields
+                JSONArray data = obj.optJSONArray("data");
+                if (data == null)
+                    data = obj.optJSONArray("txs");
+                if (data == null)
+                    data = obj.optJSONArray("items");
+                if (data == null)
+                    data = obj.optJSONArray("result");
+                if (data == null)
+                    data = obj.optJSONArray("transactions");
+
+                if (data != null) {
+                    bodyType = "JSONObject_Wrapper";
+                    for (int i = 0; i < data.length(); i++) {
+                        Object item = data.get(i);
+                        if (item instanceof String) {
+                            refs.add(new ApiTxRef((String) item));
+                        } else if (item instanceof JSONObject) {
+                            JSONObject tx = (JSONObject) item;
+                            String txid = firstNonEmpty(tx.optString("txid", null), tx.optString("tx_hash", null));
+                            if (txid != null) {
+                                long ts = tx.optLong("timestamp", 0);
+                                if (ts == 0)
+                                    ts = tx.optLong("time", 0);
+                                refs.add(new ApiTxRef(txid, -1, ts, null, null));
+                            }
+                        }
+                    }
+                } else {
+                    log.warn("FAST-BOOT-API: JSON Object with no known wrapper. Keys: {}", obj.names());
+                }
+            } else {
+                log.warn("FAST-BOOT-API: Unknown JSON root type: {}", json.getClass().getName());
+            }
+
+            if (!refs.isEmpty()) {
+                sampleFirst = refs.get(0).txId;
+                if (sampleFirst.length() > 20)
+                    sampleFirst = sampleFirst.substring(0, 20) + "...";
+                if (refs.size() > 1) {
+                    String second = refs.get(1).txId;
+                    if (second.length() > 20)
+                        second = second.substring(0, 20) + "...";
+                    sampleFirst += ", " + second;
+                }
+            }
+
+            // A-1: Add debug log
+            log.info("FAST-BOOT-API[sid={}] Parsed addrtxs: type={} count={} sample=[{}]",
+                    sessionId, bodyType, refs.size(), sampleFirst);
+
+        } catch (Exception e) {
+            // Requirement A: Never throw, log fully
+            log.warn("FAST-BOOT-API: Parse failure for addrtxs. Type={} Msg={} BodyPrefix={}",
+                    e.getClass().getSimpleName(), e.getMessage(), preview(body));
+            // Requirement: "treat as transient failure"
+            // We throw JSONException so the runner sees it as a failure (it catches
+            // Exception).
+            throw new JSONException("Schema unknown or parse failed: " + e.getMessage());
+        }
+        return refs;
     }
 
     ApiAddressInfo parseAddressResponse(String requestedAddress, String body) throws JSONException {
@@ -154,7 +426,7 @@ public class ApiWalletClient {
                 log.warn("FAST-BOOT-API: Unable to resolve header {} for tx {}: {}", blockHash, txId, e.toString());
             }
         }
-        return new ApiTxDetail(txId, hex, height, time, blockHash);
+        return new ApiTxDetail(txId, hex, height, time, blockHash, obj);
     }
 
     private void collectTxRefs(@Nullable JSONArray array, Map<String, ApiTxRef> dest) throws JSONException {

@@ -67,4 +67,5 @@ public class ApiWalletClientTest {
         assertEquals(0L, detail.blockTimeSeconds);
         assertNotNull(detail);
     }
+
 }

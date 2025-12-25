@@ -255,6 +255,9 @@ public final class Constants {
 
     public static final MonetaryFormat LOCAL_FORMAT = new MonetaryFormat().noCode().minDecimals(2).optionalDecimals();
 
+    /** Monetary format with PEPEPOW as the currency code for UI display. */
+    public static final MonetaryFormat PEPEPOW_FORMAT = MonetaryFormat.BTC.code(0, "PEPEPOW ");
+
     public static final BaseEncoding HEX = BaseEncoding.base16().lowerCase();
 
     public static final String SOURCE_URL = "https://github.com/MattF42/pepepow-wallet";

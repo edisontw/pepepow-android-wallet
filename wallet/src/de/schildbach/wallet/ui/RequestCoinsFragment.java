@@ -261,7 +261,8 @@ public final class RequestCoinsFragment extends Fragment implements NfcAdapter.C
     }
 
     private void restoreInstanceState(final Bundle savedInstanceState) {
-        address = Address.fromPubKeyHash(Constants.NETWORK_PARAMETERS, savedInstanceState.getByteArray("receive_address"));
+        address = Address.fromPubKeyHash(Constants.NETWORK_PARAMETERS,
+                savedInstanceState.getByteArray("receive_address"));
     }
 
     @Override
@@ -278,7 +279,7 @@ public final class RequestCoinsFragment extends Fragment implements NfcAdapter.C
         }
     }
 
-   private boolean maybeStartBluetoothListening() {
+    private boolean maybeStartBluetoothListening() {
         final String bluetoothAddress = Bluetooth.getAddress(bluetoothAdapter);
         if (bluetoothAddress != null) {
             bluetoothMac = Bluetooth.compressMac(bluetoothAddress);
@@ -309,20 +310,20 @@ public final class RequestCoinsFragment extends Fragment implements NfcAdapter.C
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         switch (item.getItemId()) {
-        case R.id.request_coins_options_copy:
-            handleCopy();
-            return true;
+            case R.id.request_coins_options_copy:
+                handleCopy();
+                return true;
 
-        case R.id.request_coins_options_copy_address:
+            case R.id.request_coins_options_copy_address:
                 handleCopyAddress();
                 return true;
-        case R.id.request_coins_options_share:
-            handleShare();
-            return true;
+            case R.id.request_coins_options_share:
+                handleShare();
+                return true;
 
-        case R.id.request_coins_options_local_app:
-            handleLocalApp();
-            return true;
+            case R.id.request_coins_options_local_app:
+                handleLocalApp();
+                return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -330,21 +331,21 @@ public final class RequestCoinsFragment extends Fragment implements NfcAdapter.C
 
     private void handleCopy() {
         final Uri request = Uri.parse(determineBitcoinRequestStr(false));
-        clipboardManager.setPrimaryClip(ClipData.newRawUri("Dash payment request", request));
+        clipboardManager.setPrimaryClip(ClipData.newRawUri("PEPEPOW payment request", request));
         log.info("payment request copied to clipboard: {}", request);
         new Toast(activity).toast(R.string.request_coins_clipboard_msg);
     }
-    //Dash Specific
+
+    // Dash Specific
     private void handleCopyAddress() {
         try {
             final Uri request = Uri.parse(determineBitcoinRequestStr(false));
-            clipboardManager.setPrimaryClip(ClipData.newPlainText("Dash address", new BitcoinURI(request.toString()).getAddress().toString()));
+            clipboardManager.setPrimaryClip(ClipData.newPlainText("PEPEPOW address",
+                    new BitcoinURI(request.toString()).getAddress().toString()));
             log.info("address copied to clipboard: {}", request);
             new Toast(activity).toast(R.string.request_coins_clipboard_address_msg);
-        }
-        catch (BitcoinURIParseException x)
-        {
-            //should not happen
+        } catch (BitcoinURIParseException x) {
+            // should not happen
         }
     }
 
@@ -387,7 +388,7 @@ public final class RequestCoinsFragment extends Fragment implements NfcAdapter.C
         // update qr-code
         final String qrContent;
         if (config.getQrPaymentRequestEnabled())
-            qrContent = "DASH:-" + Qr.encodeBinary(paymentRequest);
+            qrContent = "PEPEPOW:-" + Qr.encodeBinary(paymentRequest);
         else
             qrContent = bitcoinRequest;
         qrCodeBitmap = new BitmapDrawable(getResources(), Qr.bitmap(qrContent));

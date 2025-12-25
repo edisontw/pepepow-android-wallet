@@ -596,6 +596,24 @@ public class WalletApplication extends MultiDexApplication implements ViewModelS
         return wallet;
     }
 
+    private volatile BlockchainService blockchainService;
+
+    public void setBlockchainService(BlockchainService service) {
+        this.blockchainService = service;
+    }
+
+    public BlockchainService getBlockchainService() {
+        return blockchainService;
+    }
+
+    public Wallet getActiveWallet() {
+        // Since ApiSessionWallet is no longer a bitcoinj.Wallet, we always return the
+        // canonical wallet here.
+        // UI components that need the session data should access the
+        // WalletUsabilityState or BlockchainService directly.
+        return getWallet();
+    }
+
     public synchronized Wallet getWalletOrNull() {
         return wallet;
     }

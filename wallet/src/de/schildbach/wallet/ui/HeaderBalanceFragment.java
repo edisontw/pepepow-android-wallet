@@ -51,6 +51,8 @@ import de.schildbach.wallet.rates.ExchangeRate;
 import de.schildbach.wallet.rates.ExchangeRatesViewModel;
 import de.schildbach.wallet.service.BlockchainState;
 import de.schildbach.wallet.service.BlockchainStateLoader;
+import de.schildbach.wallet.service.BlockchainService;
+import de.schildbach.wallet.service.BlockchainService.DataSource;
 import org.pepepow.wallet.R;
 
 public final class HeaderBalanceFragment extends Fragment {
@@ -71,6 +73,11 @@ public final class HeaderBalanceFragment extends Fragment {
 
     private boolean isSynced;
     private boolean showLocalBalance;
+
+    @Nullable
+    private BlockchainState blockchainState = null;
+    @Nullable
+    private Double lastSpvPct = null;
 
     private ExchangeRatesViewModel exchangeRatesViewModel;
 
@@ -119,7 +126,8 @@ public final class HeaderBalanceFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
         return inflater.inflate(R.layout.header_balance_fragment, container, false);
     }
 
@@ -176,6 +184,20 @@ public final class HeaderBalanceFragment extends Fragment {
         }
 
         updateView();
+
+        // Subscribe to Usability State for API_SESSION balance
+        if (activity != null) {
+            BlockchainService service = activity.getBlockchainService();
+            if (service != null) {
+                service.getWalletUsabilityLiveData().observe(this,
+                        new Observer<BlockchainService.WalletUsabilityState>() {
+                            @Override
+                            public void onChanged(BlockchainService.WalletUsabilityState state) {
+                                updateView();
+                            }
+                        });
+            }
+        }
     }
 
     @Override
@@ -189,8 +211,8 @@ public final class HeaderBalanceFragment extends Fragment {
 
     @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
     public void onEvent(SyncProgressEvent event) {
-        int percentage = (int) event.getPct();
-        isSynced = percentage == 100;
+        lastSpvPct = event != null ? event.getPct() : null;
+        isSynced = event != null && !event.getFailed() && event.getPct() >= 100.0;
         updateView();
     }
 
@@ -198,6 +220,8 @@ public final class HeaderBalanceFragment extends Fragment {
         View balances = view.findViewById(R.id.balances);
         TextView walletBalanceSyncMessage = view.findViewById(R.id.wallet_balance_sync_message);
         View balancesLayout = view.findViewById(R.id.balances_layout);
+        WalletReadiness.logUiGateWalletReadyOnlyOnce("HeaderBalanceFragment");
+        final boolean walletReady = WalletReadiness.isWalletReady(application, blockchainState);
 
         if (hideBalance) {
             balancesLayout.setVisibility(View.GONE);
@@ -217,28 +241,55 @@ public final class HeaderBalanceFragment extends Fragment {
             return;
         }
 
-        if (!isSynced) {
+        // [UI] Balance gated by SPV wallet state only, not FAST sync percentage.
+        // Show balance as soon as wallet is loaded and has chain state.
+        // This ensures FAST overlay never blocks balance display.
+
+        // Fix: Check authoritative data source
+        BlockchainService service = (activity != null) ? activity.getBlockchainService() : null;
+        boolean isApiSession = service != null && service.getUiDataSource() == DataSource.API_SESSION;
+        Coin displayBalance = balance;
+
+        if (isApiSession && service.getSessionWallet() != null) {
+            displayBalance = service.getSessionWallet().getBalance();
+        }
+
+        if (displayBalance == null) {
             balances.setVisibility(View.GONE);
+            walletBalanceSyncMessage.setText(R.string.sync_status_syncing_headers);
             walletBalanceSyncMessage.setVisibility(View.VISIBLE);
             return;
+        }
+        // Balance available - show it regardless of sync state
+        balances.setVisibility(View.VISIBLE);
+
+        // If API_SESSION, we are "Ready" by definition of the state switch.
+        // So we suppress syncing messages if we are on API session.
+        if (isApiSession) {
+            walletBalanceSyncMessage.setVisibility(View.GONE);
+        } else if (!walletReady) {
+            walletBalanceSyncMessage.setText(R.string.sync_status_syncing_headers);
+            walletBalanceSyncMessage.setVisibility(View.VISIBLE);
+        } else if (!isSynced && lastSpvPct != null) {
+            walletBalanceSyncMessage.setText(R.string.sync_status_spv_syncing_background);
+            walletBalanceSyncMessage.setVisibility(View.VISIBLE);
         } else {
-            balances.setVisibility(View.VISIBLE);
             walletBalanceSyncMessage.setVisibility(View.GONE);
         }
 
         if (!showLocalBalance)
             viewBalanceLocal.setVisibility(View.GONE);
 
-        if (balance != null) {
+        if (displayBalance != null) {
             viewBalanceDash.setVisibility(View.VISIBLE);
             viewBalanceDash.setFormat(config.getFormat().noCode());
-            viewBalanceDash.setAmount(balance);
+            viewBalanceDash.setAmount(displayBalance);
 
             if (showLocalBalance) {
                 if (exchangeRate != null) {
                     org.bitcoinj.utils.ExchangeRate rate = new org.bitcoinj.utils.ExchangeRate(Coin.COIN,
                             exchangeRate.getFiat());
-                    final Fiat localValue = rate.coinToFiat(balance);
+                    final Fiat localValue = rate.coinToFiat(displayBalance);
                     viewBalanceLocal.setVisibility(View.VISIBLE);
                     String currencySymbol = GenericUtils.currencySymbol(exchangeRate.getCurrencyCode());
                     viewBalanceLocal.setFormat(Constants.LOCAL_FORMAT.code(0, currencySymbol));
@@ -266,12 +317,15 @@ public final class HeaderBalanceFragment extends Fragment {
         }
 
         @Override
-        public void onLoadFinished(@NonNull final Loader<BlockchainState> loader, final BlockchainState blockchainState) {
+        public void onLoadFinished(@NonNull final Loader<BlockchainState> loader,
+                final BlockchainState blockchainState) {
+            HeaderBalanceFragment.this.blockchainState = blockchainState;
             updateView();
         }
 
         @Override
         public void onLoaderReset(@NonNull final Loader<BlockchainState> loader) {
+            HeaderBalanceFragment.this.blockchainState = null;
         }
     };
 
@@ -285,6 +339,9 @@ public final class HeaderBalanceFragment extends Fragment {
         public void onLoadFinished(@NonNull final Loader<Coin> loader, final Coin balance) {
             HeaderBalanceFragment.this.balance = balance;
 
+            // Only update view if SPV is authoritative OR if we are waiting for API
+            // (If API is authoritative, we might look at session balance instead inside
+            // updateView)
             updateView();
         }
 

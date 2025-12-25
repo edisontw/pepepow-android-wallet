@@ -91,6 +91,8 @@ public class Configuration {
     public static final String PREFS_KEY_LAST_WALLET_SNAPSHOT_TIME = "last_wallet_snapshot_time";
     public static final String PREFS_KEY_LAST_WALLET_SNAPSHOT_SUCCESS = "last_wallet_snapshot_success";
     public static final String PREFS_KEY_FAST_API_SYNC_FAILED = "fast_api_sync_failed";
+    private static final String PREFS_KEY_UTXO_SCAN_NEXT_CURSOR = "utxo_scan_next_cursor";
+    private static final String PREFS_KEY_UTXO_SCAN_STATE = "utxo_scan_state";
 
     private static final int PREFS_DEFAULT_BTC_SHIFT = 0;
     private static final int PREFS_DEFAULT_BTC_PRECISION = 4;
@@ -103,6 +105,10 @@ public class Configuration {
         this.res = res;
 
         this.lastVersionCode = prefs.getInt(PREFS_KEY_LAST_VERSION, 0);
+    }
+
+    public SharedPreferences getPrefs() {
+        return prefs;
     }
 
     @SuppressLint("ApplySharedPref")
@@ -148,7 +154,7 @@ public class Configuration {
         final int minPrecision = shift <= 3 ? 2 : 0;
         final int decimalRepetitions = (getBtcPrecision() - minPrecision) / 2;
         return new MonetaryFormat().shift(shift).minDecimals(minPrecision).repeatOptionalDecimals(2,
-                decimalRepetitions);
+                decimalRepetitions).code(0, "PEPEPOW");
     }
 
     public MonetaryFormat getMaxPrecisionFormat() {
@@ -595,5 +601,21 @@ public class Configuration {
 
     public void setWalletSnapshotStatus(org.dash.wallet.common.data.WalletSnapshotStatus status) {
         prefs.edit().putString(PREFS_KEY_WALLET_SNAPSHOT_STATUS, status.name()).apply();
+    }
+
+    public int getUtxoScanNextCursor() {
+        return prefs.getInt(PREFS_KEY_UTXO_SCAN_NEXT_CURSOR, 0);
+    }
+
+    public void setUtxoScanNextCursor(int cursor) {
+        prefs.edit().putInt(PREFS_KEY_UTXO_SCAN_NEXT_CURSOR, cursor).apply();
+    }
+
+    public String getUtxoScanState() {
+        return prefs.getString(PREFS_KEY_UTXO_SCAN_STATE, "IDLE");
+    }
+
+    public void setUtxoScanState(String state) {
+        prefs.edit().putString(PREFS_KEY_UTXO_SCAN_STATE, state).apply();
     }
 }

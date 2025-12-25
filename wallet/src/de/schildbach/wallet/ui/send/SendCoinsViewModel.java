@@ -61,7 +61,7 @@ public class SendCoinsViewModel extends AndroidViewModel {
     public SendCoinsViewModel(final Application application) {
         super(application);
         WalletApplication walletApplication = (WalletApplication) application;
-        wallet = walletApplication.getWallet();
+        wallet = walletApplication.getActiveWallet();
         blockchainState = new BlockchainStateLiveData(walletApplication);
         String currencyCode = walletApplication.getConfiguration().getExchangeCurrencyCode();
         exchangeRate = ExchangeRatesRepository.getInstance().getRate(currencyCode);

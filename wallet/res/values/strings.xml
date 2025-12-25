@@ -488,5 +488,7 @@
     <string name="sync_status_verifying_network">Verifying network…</string>
     <string name="sync_status_syncing_wallet">Syncing wallet data…</string>
     <string name="sync_status_complete">Sync complete (block %d)</string>
+    <string name="sync_status_wallet_ready_title">Wallet ready</string>
+    <string name="sync_status_spv_syncing_background">SPV syncing in background</string>
 
 </resources>

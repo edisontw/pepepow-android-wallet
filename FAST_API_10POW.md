@@ -1,147 +1,94 @@
-# FAST_API_10POW: Fast Bootstrap Overlay
+# FAST_API_10POW: Fast Usability Overlay (Tx→UTXO Snapshot)
 
 ## 1. Overview
 
-**FAST_API_10POW** is a fast-bootstrap **UI overlay** for the PepePow Android Wallet. It provides instant display of chain height, balance, and recent transactions while the canonical SPV sync runs in the background.
+**FAST_API_10POW** is a fast-bootstrap **overlay** for the PEPEPOW Android Wallet.
+
+It provides **immediate spendability** by building an in-memory **Session Wallet** from explorer API data, using a **Tx→UTXO snapshot** approach.
 
 > [!IMPORTANT]
-> **FAST_API_10POW is NOT a sync mode.** It does not write to the blockstore, modify chainHead, or affect SPV consensus state. Only `FULL_SPV` manages the canonical chain.
-
-### Key Principles
-
-| Aspect | Behavior |
-|--------|----------|
-| **Data Source** | Explorer API snapshot |
-| **Writes to Blockstore** | ❌ Never |
-| **Modifies ChainHead** | ❌ Never |
-| **Affects Wallet State** | ❌ Never |
-| **Purpose** | UI display overlay only |
+> **FAST_API_10POW is NOT a sync mode.**
+> It never writes to blockstore, never modifies chainHead, never performs rollback, and never touches `wallet.dat`.
 
 ---
 
-## 2. Architecture & Workflow
+## 2. Explorer API reality (constraints)
 
-### 2.1 Overlay Bootstrap Process
+Available:
 
-1. **API Height Discovery**  
-   Query explorer API for: current tip height, block hash, difficulty, chainwork
+- `/ext/getaddresstxs/<addr>/<start>/<len>` → txid list + timestamp
+- `/ext/gettx/<txid>` → vout(addresses, amount, confirmations)
 
-2. **Header Window Extraction (Tip−1000)**  
-   Download the most recent 1000 block headers from API
+Not available / unreliable:
 
-3. **Window Validation**  
-   - Structural validation for each header
-   - Parent→child linkage checks
-   - Difficulty target validation per header
-   - Cumulative chainwork reconstruction
+- No UTXO endpoint
+- No vin.prevout (cannot compute global spent)
+- rawtransaction decrypt unusable
 
-4. **PoW Spot-Verification (10 Random Blocks)**  
-   Select 10 random blocks within the window and perform full PoW hash validation
+Therefore:
 
-5. **Overlay Snapshot Created** *(not written to blockstore)*  
-   If PoW sampling passes, overlay data is stored in memory-only variables for UI display
-
-6. **FULL_SPV Runs Independently**  
-   SPV sync starts/continues regardless of overlay result — it is never affected by FAST bootstrap
-
-### 2.2 State Machine: FAST_BOOT_STATE
-
-```
-IDLE → RUNNING → SUCCEEDED
-              ↘ DISABLED_SESSION → DISABLED_COOLDOWN → IDLE
-```
-
-| State | Description |
-|-------|-------------|
-| `IDLE` | Not running, ready to attempt |
-| `RUNNING` | Bootstrap in progress |
-| `SUCCEEDED` | Overlay data available for UI |
-| `DISABLED_SESSION` | Failed this session, will not retry |
-| `DISABLED_COOLDOWN` | Cooldown period before next attempt |
+- **Global UTXO calculation is impossible**
+- This release supports **new wallets only** (birth-time scoped snapshot)
+- “Old wallet import/restore” is a **non-goal** until a server-side spent index exists
 
 ---
 
-## 3. Comparison With Traditional SPV
+## 3. Two independent overlay lanes
 
-| Feature | Traditional SPV | FAST_API_10POW Overlay |
-|---------|-----------------|------------------------|
-| Header Source | P2P only | API snapshot (UI only) |
-| Initial Display Speed | Slow, waits for sync | Instant |
-| PoW Verification | Per block | 10-block random spot-check |
-| Writes to Blockstore | ✅ Yes | ❌ No |
-| Canonical Chain | ✅ Yes | ❌ No (overlay only) |
-| Trust Model | Pure PoW trust | API-assisted display |
+### Lane A: PoW sampling (optional trust signal)
 
----
+- Download latest header window (e.g., 1000 headers)
+- Verify linkage / difficulty / chainwork (best effort)
+- Randomly spot-check PoW for 10 blocks (when possible)
+- Result affects only a trust indicator; must never block usability
 
-## 4. Security Model
+### Lane B: Tx→UTXO snapshot (required)
 
-### 4.1 Threat Scenarios
+For each wallet address:
 
-The main threat is a compromised API providing a fake 1000-header chain.
+1. Fetch txids via `getaddresstxs` with pagination
+2. Stop when `tx.timestamp < walletBirthTimeMs`
+3. For each txid, fetch `gettx`
+4. For each `vout[i]` where `addresses` contains our address:
+   - add outpoint `(txid, i)` to Session UTXO set
 
-To succeed, an attacker must:
-- **(A)** Forge valid difficulty-adjusted headers with correct parent→child linkage
-- **(B)** Pass 10 random PoW spot-verification checks
+**Spent (local only):**
+- When the app builds/signs an outgoing tx:
+  - mark used inputs as spent immediately
+  - add change outputs back into Session Wallet
+- Never rely on explorer vin data for spent
 
-### 4.2 Why This Is Safe
-
-- Forging a single valid PoW block is computationally expensive
-- Forging 10 random blocks simultaneously is **astronomically improbable**
-- Even if overlay is fooled, **SPV canonical chain is unaffected**
-- Worst case: UI shows incorrect data temporarily; SPV will correct it
-
-### 4.3 Why 1000 Headers?
-
-- Sufficient difficulty variation for meaningful validation
-- Meaningful chainwork reconstruction
-- Low correlation for random PoW selection
-- Comparable to Bitcoin SPV checkpoint spacing
+**0-conf policy:**
+- Incoming `confirmations == 0` → pending (not spendable)
+- Outgoing locks inputs immediately
 
 ---
 
-## 5. Common Misconceptions
+## 4. Session Wallet (in-memory only)
 
-> [!WARNING]
-> **Misconception**: "FAST success means SPV is synced to tip"  
-> **Reality**: FAST success only means overlay UI data is ready. SPV sync continues independently and may be behind.
+Used for:
 
-> [!WARNING]
-> **Misconception**: "FAST failure means I need to reset/reinstall/switch modes"  
-> **Reality**: FAST failure only disables the overlay for this session. SPV sync continues normally — no action required.
+- balance display
+- history display (incoming from snapshot + outgoing from local journal)
+- send enablement
+- build/sign/broadcast tx (may reuse canonical keychain for signing)
 
-> [!WARNING]
-> **Misconception**: "FAST writes the API headers to the blockstore"  
-> **Reality**: FAST never writes anything to the blockstore. Only `FULL_SPV` manages persistent chain state.
+Must NEVER:
 
----
-
-## 6. When to Use Each Mode
-
-| Use Case | Recommended Mode |
-|----------|------------------|
-| Normal wallet usage | `FAST_API_10POW` (overlay) + `FULL_SPV` (canonical) |
-| Validating historical PoW | `FULL_SPV` only |
-| Building archival nodes | `FULL_SPV` only |
-| Forensic analysis | `FULL_SPV` only |
-| Testing consensus changes | `FULL_SPV` only |
+- persist as canonical wallet state
+- write to blockstore
+- update SPV chain state
 
 ---
 
-## 7. Failure-Safe Contract
+## 5. Failure-safe contract
 
-FAST_API_10POW **MUST NEVER**:
-- Delete or recreate the blockstore
-- Reset chainHead to 0 or any other height
-- Stop or restart PeerGroup
-- Modify wallet lastSeenBlockHeight
-- Trigger rollback operations
+On overlay failure:
 
-On failure, FAST **MUST**:
-- Set state to `DISABLED_SESSION`
-- Log the failure clearly
-- Allow SPV to continue unimpeded
+- terminate the current attempt only
+- transition state to `FAILED_TRANSIENT` or `DISABLED_PERMANENT`
+- do NOT modify SPV state (even if SPV is enabled separately)
 
 ---
 
-🔚 *End of FAST_API_10POW Documentation*
+🔚 End of FAST_API_10POW documentation

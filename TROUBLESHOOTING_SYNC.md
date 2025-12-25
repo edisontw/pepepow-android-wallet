@@ -1,134 +1,120 @@
-# Troubleshooting: Sync Issues
+# Troubleshooting: Overlay / Sync Issues
 
-This guide helps diagnose sync-related issues in the PEPEPOW wallet.
+This guide helps diagnose **FAST/API overlay** issues versus **FULL_SPV** issues.
+
+> [!IMPORTANT]
+> In this release, **FULL_SPV may be gated and not auto-running by design**. If you do not explicitly enable it, you may not see any PeerGroup/SPV logs.
 
 ---
 
-## 1. "Sync Appears Stuck"
+## 1. “Balance / History looks wrong”
 
-### Check These Logs First
+### First: identify data source (API_SESSION vs SPV_CANONICAL)
+
+Search logs:
 
 ```bash
-adb logcat | grep -E "FASTBOOT|SPV|PeerGroup|BlockChain"
+adb logcat | grep -E "FASTBOOT|SNAPSHOT|DATA_SOURCE|SPV|PeerGroup|BlockChain"
 ```
 
-### Differentiate: API Overlay vs SPV Slow
+Typical patterns:
 
-| Symptom | Likely Cause | Solution |
-|---------|--------------|----------|
-| UI height stuck, logs show `FASTBOOT-4 result=FAILED` | Overlay failed, SPV still syncing | Wait for SPV; no action needed |
-| UI height stuck, logs show SPV height increasing | UI display bug | Check `onBlocksDownloaded` callback |
-| UI height stuck, no SPV logs after `FASTBOOT-5` | PeerGroup not started | Check `peerGroup.start()` is called |
-| UI height stuck, `peerGroupActive=false` in logs | PeerGroup stopped unexpectedly | Check for crashes, LLMQ NPEs |
+- **Overlay Session Wallet active**:
+  - `snapshotState=READY`
+  - `DATA_SOURCE=API_SESSION`
+- **SPV UI active**:
+  - `DATA_SOURCE=SPV_CANONICAL`
+  - PeerGroup / BlockChain logs may appear (only if FULL_SPV is enabled)
 
-### Key Log Patterns
+---
 
-**Healthy SPV sync:**
+## 2. “Overlay appears stuck / failed”
+
+### What “failed” means here
+
+Overlay failure is **safe**: it only disables the overlay for the current attempt/session (or until cooldown).
+It must never delete blockstore, rollback, or affect SPV state.
+
+Check for:
+
+```bash
+adb logcat | grep -E "\[FASTBOOT-4\]|SNAPSHOT_STATE|FASTBOOT-COOLDOWN"
+```
+
+Common causes:
+
+| Symptom | Likely cause | What to do |
+|--------|--------------|------------|
+| `SNAPSHOT_STATE=FAILED_TRANSIENT` | API timeout / IO / 5xx | Re-open app or onResume triggers retry |
+| `SNAPSHOT_STATE=DISABLED_PERMANENT` | schema mismatch / integrity failure / wrong network | Fix config or explorer compatibility |
+| `FASTBOOT-4 result=FAILED` | PoW sampling lane failed | Snapshot lane may still succeed; Send should still be possible if snapshot is READY |
+
+---
+
+## 3. “SPV appears stuck” (only when FULL_SPV is enabled)
+
+### Healthy SPV sync
 ```
 I/PeerGroup: Peer ... connected
 I/BlockChain: Block connected: height=<N>
 ```
 
-**Stuck sync (SPV not running):**
+### Stuck SPV (PeerGroup not running)
 ```
-# No logs after FASTBOOT-5, no PeerGroup activity
-```
-
-**Overlay failed but SPV healthy:**
-```
-W/BlockchainService: [FASTBOOT-4] result=FAILED ...
-I/BlockchainService: [FASTBOOT-5] spvRunning=true | peerGroupActive=true
-I/PeerGroup: Peer ... connected
+# No PeerGroup logs after enabling FULL_SPV
 ```
 
----
+Quick checks:
 
-## 2. Quick Diagnosis Commands
-
-### Check if PeerGroup is running:
 ```bash
 adb logcat | grep -i "PeerGroup"
-```
-
-### Check SPV height changes:
-```bash
-adb logcat | grep -E "chainHead|height="
-```
-
-### Check for FAST failures:
-```bash
-adb logcat | grep "FASTBOOT-4.*FAILED"
-```
-
-### Check for LLMQ/Quorum errors:
-```bash
-adb logcat | grep -E "Quorum|LLMQ|NullPointer"
+adb logcat | grep -E "chainHead|bestHeight|Block connected"
 ```
 
 ---
 
-## 3. Common Misunderstandings
+## 4. Quick diagnosis commands
 
-### ❌ "FAST failed, I need to reinstall"
-**Reality**: FAST failure only disables the overlay. SPV continues normally. Just wait.
+### Overlay-only (recommended)
+```bash
+adb logcat | grep -E "SNAPSHOT|SESSION_WALLET|DATA_SOURCE"
+```
 
-### ❌ "UI shows wrong height, sync is broken"
-**Reality**: UI may show overlay height (API) vs SPV height. Check both values.
+### FAST bootstrap lane (PoW sampling)
+```bash
+adb logcat | grep -E "\[FASTBOOT-[1-5]\]|FASTBOOT-STATE|FASTBOOT-COOLDOWN"
+```
 
-### ❌ "SPV is slow, I should clear blockstore"
-**Reality**: Clearing blockstore forces SPV to restart from genesis. Never do this.
-
-### ❌ "Switching to FULL_SPV will fix it"
-**Reality**: FULL_SPV is always running. Switching modes only affects the overlay.
+### FULL_SPV lane (if enabled)
+```bash
+adb logcat | grep -E "SPV|PeerGroup|BlockChain|chainHead"
+```
 
 ---
 
-## 4. ⛔ Things NOT to Do
+## 5. ⛔ Things NOT to do
 
 > [!CAUTION]
-> These actions will make things **worse**, not better.
+> These actions make things worse.
 
-| Action | Why It's Bad |
+| Action | Why it's bad |
 |--------|--------------|
-| Clear app data / reinstall | Loses all SPV progress, restarts from genesis |
-| Delete `*.spvchain` file | Same as above |
-| Force-switch sync mode mid-sync | Can cause state inconsistencies |
-| Kill app during sync | May corrupt blockstore |
-| Disable/re-enable network repeatedly | Disconnects peers, slows sync |
+| Clear app data / reinstall | Loses all canonical SPV progress and local overlay journals |
+| Delete `*.spvchain` file | Forces SPV from genesis (if you later enable FULL_SPV) |
+| Force-switch modes repeatedly | Makes debugging harder; overlay is safe but you’ll lose signal |
+| Kill the app during a write | Can corrupt canonical blockstore (FULL_SPV only) |
 
 ---
 
-## 5. When to Actually Worry
-
-These symptoms indicate real problems:
+## 6. When to actually worry
 
 | Symptom | Action |
-|---------|--------|
-| App crashes repeatedly | Check logcat for stack traces |
-| `NullPointerException` in `Quorum` | LLMQ not fully disabled; check `isLlmqEnabled()` |
-| `OverlappingFileLockException` | Multiple SPV threads; check initialization guards |
-| `UnreadableWalletException` | Wallet file corrupted; may need reset |
-| No peers connecting for 10+ minutes | Network issue or wrong seeds |
+|--------|--------|
+| App crashes repeatedly | Check logcat stack traces |
+| `OverlappingFileLockException` | Multiple SPV instances; ensure strict guards |
+| `UnreadableWalletException` | Wallet file corrupted; may require reset |
+| Send fails repeatedly | Verify explorer availability + broadcast endpoint + fees |
 
 ---
 
-## 6. Useful Logcat Filters
-
-### All sync-related logs:
-```bash
-adb logcat | grep -E "FASTBOOT|SPV|PeerGroup|BlockChain|chainHead"
-```
-
-### Errors and warnings only:
-```bash
-adb logcat *:E | grep -E "wallet|spv|peer|block"
-```
-
-### Specific session:
-```bash
-adb logcat | grep "session=<YOUR_SESSION_ID>"
-```
-
----
-
-🔚 *End of Troubleshooting Guide*
+🔚 End of Troubleshooting Guide
