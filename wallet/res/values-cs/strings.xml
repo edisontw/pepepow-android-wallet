@@ -234,11 +234,11 @@
     <string name="preferences_category_labs">Laboratoř</string>
     <string name="preferences_precision_title">Denominace a přesnost</string>
     <string name="preferences_precision_summary">Jednotka pro zobrazování částek. Neovlivnuje výpočty.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 desetinných míst</string>
-    <string name="preferences_precision_labels_6">DASH, 6 desetinných míst</string>
-    <string name="preferences_precision_labels_4">DASH, 4 desetinná místa</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 desetinná místa</string>
-    <string name="preferences_precision_labels_0_6">µDASH, žádná desetinná místa</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 desetinných míst</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 desetinných míst</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 desetinná místa</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 desetinná místa</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, žádná desetinná místa</string>
     <string name="preferences_own_name_title">Vlastní jméno</string>
     <string name="preferences_own_name_summary">Vaše jméno, které se bude zobrazovat u žádostí o platbu. Buďte struční.</string>
     <string name="preferences_send_coins_autoclose_title">Automaticky zavírat dialogové okno při odesílání částky</string>

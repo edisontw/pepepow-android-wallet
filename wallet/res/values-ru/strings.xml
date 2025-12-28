@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Лаборатория</string>
     <string name="preferences_precision_title">Деноминация и точность</string>
     <string name="preferences_precision_summary">Единицы, в которых отображаются суммы. Не влияет на вычисления.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 знаков после запятой</string>
-    <string name="preferences_precision_labels_6">DASH, 6 знаков после запятой</string>
-    <string name="preferences_precision_labels_4">DASH, 4 знаков после запятой</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 знака после запятой</string>
-    <string name="preferences_precision_labels_0_6">µDASH, без знаков после запятой</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 знаков после запятой</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 знаков после запятой</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 знаков после запятой</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 знака после запятой</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, без знаков после запятой</string>
     <string name="preferences_own_name_title">Ваше имя</string>
     <string name="preferences_own_name_summary">Ваше имя, которое добавится в запрос платежа. Старайтесь указывать кратко.</string>
     <string name="preferences_send_coins_autoclose_title">Автоматически закрывать диалог отправки</string>

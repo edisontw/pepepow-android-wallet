@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">실험실</string>
     <string name="preferences_precision_title">액면 변경 및 표시할 자리수 </string>
     <string name="preferences_precision_summary">금액을 표시하기 위한 단위입니다. 이는 계산에 영향을 미치지 않습니다.</string>
-    <string name="preferences_precision_labels_8">DASH, 소수 8자리</string>
-    <string name="preferences_precision_labels_6">DASH, 소수 6자리</string>
-    <string name="preferences_precision_labels_4">DASH, 소수 4자리</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 소수 2자리</string>
-    <string name="preferences_precision_labels_0_6">µDASH, 소수 표시안함</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 소수 8자리</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 소수 6자리</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 소수 4자리</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 소수 2자리</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, 소수 표시안함</string>
     <string name="preferences_own_name_title">이름</string>
     <string name="preferences_own_name_summary">결제 요청에 추가될 당신의 이름입니다. 짧게 입력해주세요.</string>
     <string name="preferences_send_coins_autoclose_title">송금 대화창을 자동으로 닫기</string>

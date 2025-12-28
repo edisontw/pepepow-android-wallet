@@ -127,6 +127,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private static final int DIALOG_LOW_STORAGE_ALERT = 5;
     private static final int AUTH_REQUEST_CODE_VIEW_RECOVERYPHRASE = 100;
     private static final int ID_BLOCKCHAIN_STATE_LOADER = 100;
+    public static final String EXTRA_PIN_UNLOCK = "extra_pin_unlock";
 
     public static Intent createIntent(Context context) {
         return new Intent(context, WalletActivity.class);
@@ -178,11 +179,31 @@ public final class WalletActivity extends AbstractBindServiceActivity
     private ClipboardManager clipboardManager;
 
     private boolean showBackupWalletDialog = false;
+    private final java.util.List<String> pendingUiRefreshReasons = new java.util.ArrayList<>();
 
     private final android.content.BroadcastReceiver fastSyncFailureReceiver = new android.content.BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             showFastSyncFailedDialog();
+        }
+    };
+
+    // Objective B: Receiver for immediate UI refresh on session state changes
+    private final android.content.BroadcastReceiver apiSessionChangedReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String reason = intent.getStringExtra("reason");
+            log.info("UI_REFRESH_TRIGGER src=API_SESSION reason={}", reason != null ? reason : "API_SESSION_CHANGED");
+            updateBalance();
+            updateSendButtonState();
+
+            BlockchainService service = getBlockchainService();
+            if (service != null && service.getWalletUsabilityLiveData().getValue() != null) {
+                BlockchainService.WalletUsabilityState state = service.getWalletUsabilityLiveData().getValue();
+                log.info("UI_HOME_BALANCE_RENDER amount={} source={} utxoCount={} histSize={}",
+                        state.sessionBalance, state.balanceSource, state.sessionUtxoCount,
+                        state.sessionHistory != null ? state.sessionHistory.size() : 0);
+            }
         }
     };
 
@@ -233,12 +254,14 @@ public final class WalletActivity extends AbstractBindServiceActivity
         DecryptSeedSharedModel decryptSeedSharedModel = ViewModelProviders.of(this).get(DecryptSeedSharedModel.class);
         decryptSeedSharedModel.getOnDecryptSeedCallback().observe(this,
                 new Observer<Pair<Integer, DeterministicSeed>>() {
+
                     @Override
                     public void onChanged(Pair<Integer, DeterministicSeed> data) {
                         if (data.getFirst() == AUTH_REQUEST_CODE_VIEW_RECOVERYPHRASE) {
                             startViewSeedActivity(data.getSecond());
                         }
                     }
+
                 });
     }
 
@@ -384,6 +407,9 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
         LocalBroadcastManager.getInstance(this).registerReceiver(fastSyncFailureReceiver,
                 new IntentFilter("de.schildbach.wallet.service.ACTION_FAST_SYNC_FAILED"));
+        // Objective B: Register for API_SESSION_CHANGED broadcast
+        LocalBroadcastManager.getInstance(this).registerReceiver(apiSessionChangedReceiver,
+                new IntentFilter(BlockchainService.ACTION_API_SESSION_CHANGED));
 
         handler.postDelayed(new Runnable() {
             @Override
@@ -402,9 +428,12 @@ public final class WalletActivity extends AbstractBindServiceActivity
 
         // Fix C: Ensure Send Button state is refreshed on Resume
         handler.post(() -> {
-            log.info("UI[sid={}] onResume: forcing updateSendButtonState", WalletReadiness.UI_SESSION_ID);
+            log.info("UI[sid={}] onResume: forcing updateSendButtonState", fastbootSessionIdForLog());
             updateSendButtonState();
         });
+
+        requestUiRefresh("ON_RESUME");
+        handlePinUnlockIntent(getIntent());
 
         // Fix B: Start 20s foreground poll for balance/history refresh
         handler.postDelayed(homePollRunnable, HOME_POLL_INTERVAL_MS);
@@ -421,7 +450,34 @@ public final class WalletActivity extends AbstractBindServiceActivity
                     ? ("usabilityStream(" + latestWalletUsabilityState.balanceSource + ")")
                     : "readinessFallback";
             log.info("UI[sid={}] updateSendButtonState: enabled={} source={}",
-                    WalletReadiness.UI_SESSION_ID, enabled, source);
+                    fastbootSessionIdForLog(), enabled, source);
+        }
+    }
+
+    private void requestUiRefresh(final String reason) {
+        BlockchainService service = getBlockchainService();
+        if (service instanceof BlockchainServiceImpl) {
+            ((BlockchainServiceImpl) service).requestUiRefresh(reason);
+        } else {
+            pendingUiRefreshReasons.add(reason);
+        }
+    }
+
+    private String fastbootSessionIdForLog() {
+        BlockchainService service = getBlockchainService();
+        if (service != null && service.getSessionWallet() != null) {
+            return service.getSessionWallet().getSessionId();
+        }
+        return WalletReadiness.UI_SESSION_ID;
+    }
+
+    private void handlePinUnlockIntent(final Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        if (intent.getBooleanExtra(EXTRA_PIN_UNLOCK, false)) {
+            requestUiRefresh("PIN_UNLOCK");
+            intent.removeExtra(EXTRA_PIN_UNLOCK);
         }
     }
 
@@ -435,7 +491,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
         BlockchainService.WalletUsabilityState state = service.getWalletUsabilityLiveData().getValue();
 
         log.info("UI-REFRESH[sid={}] source={} bal={} hist={} reason=timer",
-                WalletReadiness.UI_SESSION_ID,
+                fastbootSessionIdForLog(),
                 source,
                 state != null ? state.sessionBalance : "null",
                 state != null && state.sessionHistory != null ? state.sessionHistory.size() : 0);
@@ -451,25 +507,28 @@ public final class WalletActivity extends AbstractBindServiceActivity
     }
 
     private boolean canOpenSendScreen() {
-        // Unified Logic (Task B)
+        // Objective C: Always allow opening Send screen regardless of balance.
         // Delegate to BlockchainService which now holds the single source of truth for
         // Send Gating.
         if (application != null) {
             BlockchainService service = application.getBlockchainService();
             if (service != null && service instanceof BlockchainServiceImpl) {
-                // Cast to Impl to access the new method (if interface doesn't have it yet, we
-                // might need to cast or add to interface)
-                // Assuming we add it to interface or cast. Let's try casting first.
-                return ((BlockchainServiceImpl) service).canOpenSendScreen();
+                BlockchainServiceImpl impl = (BlockchainServiceImpl) service;
+
+                // Show non-blocking message if session not ready
+                if (impl.getSessionWallet() != null && !impl.getSessionWallet().isReady()) {
+                    android.widget.Toast.makeText(this, "Wallet is syncing, please wait…",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
+
+                // Always delegate to service (which now always returns true)
+                return impl.canOpenSendScreen();
             }
         }
 
-        // Fallback if service not ready (should strictly be false or legacy logic)
-        Wallet wallet = application.getWallet();
-        if (wallet == null)
-            return false;
-
-        return WalletReadiness.canSendCoins(application, latestBlockchainState, wallet);
+        // Fallback: always return true (Objective C)
+        log.info("UI_HOME_SEND_TAP src=WalletActivity fallback=true");
+        return true;
     }
 
     @Override
@@ -477,6 +536,13 @@ public final class WalletActivity extends AbstractBindServiceActivity
         super.onServiceConnected(service);
         if (service != null) {
             service.getWalletUsabilityLiveData().observe(this, walletUsabilityObserver);
+            if (!pendingUiRefreshReasons.isEmpty()) {
+                java.util.List<String> reasons = new java.util.ArrayList<>(pendingUiRefreshReasons);
+                pendingUiRefreshReasons.clear();
+                for (String reason : reasons) {
+                    requestUiRefresh(reason);
+                }
+            }
         }
     }
 
@@ -500,6 +566,8 @@ public final class WalletActivity extends AbstractBindServiceActivity
         handler.removeCallbacks(homePollRunnable);
         handler.removeCallbacksAndMessages(null);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(fastSyncFailureReceiver);
+        // Objective B: Unregister API_SESSION_CHANGED receiver
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(apiSessionChangedReceiver);
 
         super.onPause();
     }
@@ -508,6 +576,7 @@ public final class WalletActivity extends AbstractBindServiceActivity
     protected void onNewIntent(final Intent intent) {
         super.onNewIntent(intent);
         handleIntent(intent);
+        handlePinUnlockIntent(intent);
     }
 
     private void handleIntent(final Intent intent) {

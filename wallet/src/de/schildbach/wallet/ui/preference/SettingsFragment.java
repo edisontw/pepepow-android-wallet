@@ -33,6 +33,7 @@ import org.pepepow.wallet.BuildConfig;
 import org.pepepow.wallet.R;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -62,6 +63,25 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     private de.schildbach.wallet.ui.ExplorerStatsViewModel viewModel;
 
     private final Handler handler = new Handler();
+
+    private static class ToastThrottler {
+        private static String lastMessage = null;
+        private static long lastTime = 0;
+        private static final long MIN_INTERVAL_MS = 5000;
+
+        static void show(android.content.Context context, String message) {
+            long now = System.currentTimeMillis();
+            if (message.equals(lastMessage) && (now - lastTime < MIN_INTERVAL_MS)) {
+                return;
+            }
+            lastMessage = message;
+            lastTime = now;
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+            LoggerFactory.getLogger(ToastThrottler.class)
+                    .info("EXPLORER_RESTART_MSG_SHOWN shown=true method=toast msg=\"{}\"", message);
+        }
+    }
+
     private HandlerThread backgroundThread;
     private Handler backgroundHandler;
 
@@ -70,7 +90,7 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     private Preference trustedPeerOnlyPreference;
     private CheckBoxPreference developerModePreference;
     private android.preference.ListPreference syncModePreference;
-    private Preference apiBaseUrlPreference;
+    private android.preference.ListPreference apiExplorerPreference;
 
     private static final Logger log = LoggerFactory.getLogger(SettingsFragment.class);
 
@@ -90,26 +110,88 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
 
         addPreferencesFromResource(R.xml.preference_settings);
 
+        // Hide non-essential preferences based on user request
+        Preference tpPref = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER);
+        if (tpPref != null) {
+            getPreferenceScreen().removePreference(tpPref);
+            log.info("SettingsFragment: removePreferenceIfPresent key=trusted_peer");
+        }
+        Preference tpoPref = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER_ONLY);
+        if (tpoPref != null) {
+            getPreferenceScreen().removePreference(tpoPref);
+            log.info("SettingsFragment: removePreferenceIfPresent key=trusted_peer_only");
+        }
+        Preference bePref = findPreference("block_explorer");
+        if (bePref != null) {
+            getPreferenceScreen().removePreference(bePref);
+            log.info("SettingsFragment: removePreferenceIfPresent key=block_explorer");
+        }
+
+        log.info(
+                "SettingsFragment: hidden_preferences_applied keys=[trusted_peer, skip_peer_discovery, block_explorer]");
+
         backgroundThread = new HandlerThread("backgroundThread", Process.THREAD_PRIORITY_BACKGROUND);
         backgroundThread.start();
         backgroundHandler = new Handler(backgroundThread.getLooper());
 
         btcPrecisionPreference = findPreference(Configuration.PREFS_KEY_BTC_PRECISION);
-        btcPrecisionPreference.setOnPreferenceChangeListener(this);
+        if (btcPrecisionPreference != null) {
+            btcPrecisionPreference.setOnPreferenceChangeListener(this);
+        }
 
         trustedPeerPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER);
-        ((EditTextPreference) trustedPeerPreference).getEditText().setSingleLine();
-        trustedPeerPreference.setOnPreferenceChangeListener(this);
+        if (trustedPeerPreference instanceof EditTextPreference) {
+            ((EditTextPreference) trustedPeerPreference).getEditText().setSingleLine();
+            trustedPeerPreference.setOnPreferenceChangeListener(this);
+        }
 
         trustedPeerOnlyPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER_ONLY);
-        trustedPeerOnlyPreference.setOnPreferenceChangeListener(this);
+        if (trustedPeerOnlyPreference != null) {
+            trustedPeerOnlyPreference.setOnPreferenceChangeListener(this);
+        }
 
         final Preference dataUsagePreference = findPreference(Configuration.PREFS_KEY_DATA_USAGE);
         dataUsagePreference.setEnabled(pm.resolveActivity(dataUsagePreference.getIntent(), 0) != null);
 
         developerModePreference = (CheckBoxPreference) findPreference(Configuration.PREFS_KEY_DEVELOPER_MODE);
         syncModePreference = (android.preference.ListPreference) findPreference(Configuration.PREFS_KEY_SYNC_MODE);
-        apiBaseUrlPreference = findPreference("developer_api_base_url");
+        apiExplorerPreference = (android.preference.ListPreference) findPreference("developer_api_base_url");
+        if (apiExplorerPreference != null) {
+            // Set initial value from config
+            String currentUrl = config.getApiBaseUrl();
+            apiExplorerPreference.setValue(currentUrl);
+            apiExplorerPreference.setSummary(getExplorerLabel(currentUrl));
+            apiExplorerPreference.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String newUrl = (String) newValue;
+                    final String oldUrl = config.getApiBaseUrl();
+                    final String sid = de.schildbach.wallet.util.ExplorerConfig.getSessionId();
+                    final String overlayState = de.schildbach.wallet.util.ExplorerConfig.getOverlayStateSnapshot();
+                    final boolean overlayActive = de.schildbach.wallet.util.ExplorerConfig.isOverlayActive();
+
+                    // Required log: EXPLORER_PREF_UI changed (Objective A)
+                    log.info("EXPLORER_PREF_UI changed key=developer_api_base_url old={} new={}", oldUrl, newUrl);
+                    log.info(
+                            "EXPLORER_SWITCH prefChanged key=developer_api_base_url selected={} storedIn=default_prefs appliedOnNextLaunch=true",
+                            newUrl);
+                    log.info("EXPLORER_PREF_CHANGED old={} new={} restartRequired=true", oldUrl, newUrl);
+
+                    // Mark pending change for logging on restart
+                    de.schildbach.wallet.util.ExplorerConfig.markExplorerChangePending(activity, newUrl);
+
+                    // Show reliable restart-required message (Objective A)
+                    ToastThrottler.show(activity, "Block explorer changed. Will take effect after restart");
+
+                    // Persist immediately (Objective A)
+                    config.setApiBaseUrl(newUrl);
+                    apiExplorerPreference.setValue(newUrl);
+                    apiExplorerPreference.setSummary(getExplorerLabel(newUrl));
+
+                    return true;
+                }
+            });
+        }
 
         if (developerModePreference != null) {
             config.setDeveloperModeEnabled(developerModePreference.isChecked());
@@ -154,14 +236,23 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
 
     @Override
     public void onDestroy() {
-        trustedPeerOnlyPreference.setOnPreferenceChangeListener(null);
-        trustedPeerPreference.setOnPreferenceChangeListener(null);
-        btcPrecisionPreference.setOnPreferenceChangeListener(null);
+        if (trustedPeerOnlyPreference != null) {
+            trustedPeerOnlyPreference.setOnPreferenceChangeListener(null);
+        }
+        if (trustedPeerPreference != null) {
+            trustedPeerPreference.setOnPreferenceChangeListener(null);
+        }
+        if (btcPrecisionPreference != null) {
+            btcPrecisionPreference.setOnPreferenceChangeListener(null);
+        }
         if (developerModePreference != null) {
             developerModePreference.setOnPreferenceChangeListener(null);
         }
         if (syncModePreference != null) {
             syncModePreference.setOnPreferenceChangeListener(null);
+        }
+        if (apiExplorerPreference != null) {
+            apiExplorerPreference.setOnPreferenceChangeListener(null);
         }
 
         backgroundThread.getLooper().quit();
@@ -178,10 +269,10 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
             public void run() {
                 if (preference.equals(btcPrecisionPreference)) {
                     WalletBalanceWidgetProvider.updateWidgets(activity, application.getWallet());
-                } else if (preference.equals(trustedPeerPreference)) {
+                } else if (trustedPeerPreference != null && preference.equals(trustedPeerPreference)) {
                     application.stopBlockchainService();
                     updateTrustedPeer();
-                } else if (preference.equals(trustedPeerOnlyPreference)) {
+                } else if (trustedPeerOnlyPreference != null && preference.equals(trustedPeerOnlyPreference)) {
                     application.stopBlockchainService();
                 }
             }
@@ -191,9 +282,18 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     }
 
     private void updateApiPreferences(ApiStatus status) {
-        if (apiBaseUrlPreference != null) {
-            apiBaseUrlPreference.setSummary(config.getApiBaseUrl());
+        if (apiExplorerPreference != null) {
+            String currentUrl = config.getApiBaseUrl();
+            apiExplorerPreference.setSummary(getExplorerLabel(currentUrl));
         }
+    }
+
+    private String getExplorerLabel(String url) {
+        if (url == null)
+            return "explorer.pepepow.net";
+        if (url.contains("pepepow.org"))
+            return "explorer.pepepow.org";
+        return "explorer.pepepow.net";
     }
 
     private String formatApiState(ApiStatus.State state) {
@@ -224,13 +324,21 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     private void updateTrustedPeer() {
         final String trustedPeer = config.getTrustedPeerHost();
 
+        if (trustedPeerPreference == null) {
+            return;
+        }
+
         if (trustedPeer == null) {
             trustedPeerPreference.setSummary(R.string.preferences_trusted_peer_summary);
-            trustedPeerOnlyPreference.setEnabled(false);
+            if (trustedPeerOnlyPreference != null) {
+                trustedPeerOnlyPreference.setEnabled(false);
+            }
         } else {
             trustedPeerPreference.setSummary(
                     trustedPeer + "\n[" + getString(R.string.preferences_trusted_peer_resolve_progress) + "]");
-            trustedPeerOnlyPreference.setEnabled(true);
+            if (trustedPeerOnlyPreference != null) {
+                trustedPeerOnlyPreference.setEnabled(true);
+            }
 
             new ResolveDnsTask(backgroundHandler) {
                 @Override

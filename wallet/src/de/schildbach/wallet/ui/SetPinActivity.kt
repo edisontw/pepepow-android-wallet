@@ -98,8 +98,6 @@ class SetPinActivity : AppCompatActivity() {
         actionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
-            setLogo(R.drawable.ic_pepepow_logo)
-            setDisplayUseLogoEnabled(true)
         }
 
         setTitle(intent.getIntExtra(EXTRA_TITLE_RES_ID, R.string.set_pin_create_new_wallet))

@@ -172,7 +172,8 @@ public class ApiSessionTransactionsAdapter
             }
 
             if (isSent) {
-                primaryStatusView.setText(R.string.transaction_row_status_sent);
+                primaryStatusView.setText(item.isSelfSend ? context.getString(R.string.history_send_to_self_title)
+                        : context.getString(R.string.transaction_row_status_sent));
                 primaryStatusView.setTextColor(colorPrimaryStatus);
                 valueView.setTextColor(colorValueNegative);
                 signalView.setTextColor(colorValueNegative);
@@ -191,20 +192,27 @@ public class ApiSessionTransactionsAdapter
                 valueView.setAmount(item.valueDelta);
             }
 
+            if (item.isSelfSend) {
+                android.util.Log.i("History", "[history] bind_self_transfer txid=" + item.txId + " isSelfSend=true");
+            }
+
             signalView.setVisibility(View.VISIBLE);
             valueView.setVisibility(View.VISIBLE);
             dashSymbolView.setVisibility(View.VISIBLE);
 
             // Secondary Status (Confirmations)
+            StringBuilder status = new StringBuilder();
             if (item.confirmations == 0) {
-                secondaryStatusView.setText("Pending (0 confirmations)");
+                status.append(context.getString(R.string.transaction_row_status_processing));
             } else {
-                // Or just hide it if we want to mimic "standard" look which often shows nothing
-                // for confirmed
-                // But typically it shows address or "Received via..."
-                // For now, let's just show confirmation count to be informative/debuggy
-                secondaryStatusView.setText(item.confirmations + " confirmations");
+                status.append(context.getString(R.string.transaction_row_status_confirmations, item.confirmations));
             }
+            if (item.isSelfSend) {
+                status.append("\n").append(context.getString(R.string.history_send_to_self_note));
+                android.util.Log.d("ApiSessionTransactionsAdapter",
+                        "[history] self_send_annotated txid=" + item.txId + " outgoingLocal=true outputsToUs=true");
+            }
+            secondaryStatusView.setText(status.toString());
             secondaryStatusView.setTextColor(colorSecondaryStatus);
         }
     }

@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Lab</string>
     <string name="preferences_precision_title">Satuan dan ketelitian</string>
     <string name="preferences_precision_summary">Unit untuk menunjukkan jumlah. Ini tidak mempengaruhi perhitungan.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 tempat desimal</string>
-    <string name="preferences_precision_labels_6">DASH, 6 tempat desimal</string>
-    <string name="preferences_precision_labels_4">DASH, 4 tempat desimal</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 tempat desimal</string>
-    <string name="preferences_precision_labels_0_6">µDASH, tidak ada tempat desimal</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 tempat desimal</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 tempat desimal</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 tempat desimal</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 tempat desimal</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, tidak ada tempat desimal</string>
     <string name="preferences_own_name_title">Nama sendiri</string>
     <string name="preferences_own_name_summary">Nama diri Anda, yang akan ditambahkan ke permintaan pembayaran. Cobalah untuk tetap pendek.</string>
     <string name="preferences_send_coins_autoclose_title">Tutup otomatis dialog pengiriman koin</string>

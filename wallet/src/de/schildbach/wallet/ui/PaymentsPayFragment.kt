@@ -44,7 +44,7 @@ class PaymentsPayFragment : Fragment() {
             val old = globalSendEnabled
             globalSendEnabled = state.sendEnabled
             if (old != globalSendEnabled) {
-                log.info("PAYMENTS-SEND[sid=${de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID}] globalSendEnabled changed to $globalSendEnabled, refreshing UI")
+                log.info("PAYMENTS-SEND[sid=${fastbootSessionId()}] globalSendEnabled changed to $globalSendEnabled, refreshing UI")
                 handlePaste(false)
             }
         }
@@ -66,13 +66,13 @@ class PaymentsPayFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (org.pepepow.wallet.BuildConfig.DEBUG) {
-            log.info("NAV: PaymentsPayFragment created (startDestination reached)")
-        }
+        val sid = fastbootSessionId()
         
         // Observe usability state for global send enablement
         val application = activity?.application as? de.schildbach.wallet.WalletApplication
         application?.blockchainService?.walletUsabilityLiveData?.observe(viewLifecycleOwner, usabilityObserver)
+        (application?.blockchainService as? de.schildbach.wallet.service.BlockchainServiceImpl)
+                ?.requestUiRefresh("ON_RESUME")
 
         // Fix C: Register clipboard listener for live UI updates
         val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -84,13 +84,22 @@ class PaymentsPayFragment : Fragment() {
         }
         cm.addPrimaryClipChangedListener(clipboardListener)
         
+        // BUG FIX #4: Explicitly refresh send button state on onResume
+        // This ensures that after send completion, the button is re-enabled
+        val enabled = canUserSendCoins()
+        log.info("PaymentsUI[sid=$sid] onResume refreshSendButtonState enabled=$enabled")
+        
+        // FORCE UPDATE: Immediately update button state (ignore delay)
+        try {
+            handlePaste(false)
+        } catch (e: Exception) {
+             // Ignore (e.g. background restriction), will retry in tryAutoPaste
+        }
+        
         // Fix A: Delay auto-paste to allow window focus, only attempt once per instance
         if (!hasAttemptedAutoPaste) {
             hasAttemptedAutoPaste = true
             view?.postDelayed({ tryAutoPaste() }, 250)
-        } else {
-            // Just refresh button state without auto-paste
-            manageStateOfPayToAddressButton(null)
         }
     }
 
@@ -111,7 +120,7 @@ class PaymentsPayFragment : Fragment() {
      * Called with delay after onResume to ensure window focus.
      */
     private fun tryAutoPaste() {
-        val sid = de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID
+        val sid = fastbootSessionId()
         try {
             val input = getClipboardTextNow()
             if (input != null) {
@@ -145,7 +154,7 @@ class PaymentsPayFragment : Fragment() {
 
     private fun canUserSendCoins(): Boolean {
         val application = activity?.application as? de.schildbach.wallet.WalletApplication
-        val sid = de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID
+        val sid = fastbootSessionId()
         
         // Rule A: Respect the global usability stream if available
         if (globalSendEnabled) {
@@ -158,8 +167,9 @@ class PaymentsPayFragment : Fragment() {
         val sessionWallet = blockchainService?.sessionWallet
         if (sessionWallet != null && sessionWallet.isReady) {
             val sessionSpendable = sessionWallet.spendableBalance
+            val sessionBalance = sessionWallet.balance
             val enabled = sessionSpendable.signum() > 0
-            log.info("PAYMENTS-SEND[sid=$sid] src=API_SESSION enabled=$enabled reason=sessionSpendable=${sessionSpendable.toFriendlyString()}")
+            log.info("PAYMENTS-SEND[sid=$sid] src=API_SESSION enabled=$enabled spendable=${sessionSpendable.toFriendlyString()} total=${sessionBalance.toFriendlyString()}")
             return enabled
         }
 
@@ -171,7 +181,7 @@ class PaymentsPayFragment : Fragment() {
         }
         val balance = wallet.getBalance(org.bitcoinj.wallet.Wallet.BalanceType.AVAILABLE)
         val enabled = balance.signum() > 0
-        log.info("PAYMENTS-SEND[sid=$sid] src=SPV enabled=$enabled reason=balance=${balance.toFriendlyString()}")
+        log.info("PAYMENTS-SEND[sid=$sid] src=SPV enabled=$enabled balance=${balance.toFriendlyString()}")
         return enabled
     }
 
@@ -181,7 +191,7 @@ class PaymentsPayFragment : Fragment() {
         val addressValid = paymentIntent != null
         val canClick = balanceEnabled && addressValid
         
-        log.info("PAYMENTS-SEND[sid=${de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID}] manageState: balanceEnabled=$balanceEnabled addressValid=$addressValid canClick=$canClick")
+        log.info("PAYMENTS-SEND[sid=${fastbootSessionId()}] manageState: balanceEnabled=$balanceEnabled addressValid=$addressValid canClick=$canClick")
         
         pay_to_address.setActive(canClick)
 
@@ -281,6 +291,12 @@ class PaymentsPayFragment : Fragment() {
 
         val text = clip.getItemAt(0).coerceToText(requireContext())?.toString()?.trim()
         return if (text.isNullOrEmpty()) null else text
+    }
+
+    private fun fastbootSessionId(): String {
+        val application = activity?.application as? de.schildbach.wallet.WalletApplication
+        val sessionWallet = application?.blockchainService?.sessionWallet
+        return sessionWallet?.sessionId ?: de.schildbach.wallet.ui.WalletReadiness.UI_SESSION_ID
     }
 
 

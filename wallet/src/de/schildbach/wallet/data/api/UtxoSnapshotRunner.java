@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 public class UtxoSnapshotRunner {
     private static final Logger log = LoggerFactory.getLogger(UtxoSnapshotRunner.class);
 
-    private final ApiWalletClient walletClient;
+    private volatile ApiWalletClient walletClient;
     private final ApiSessionWallet sessionWallet;
     private final Wallet canonicalWallet;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -92,6 +92,35 @@ public class UtxoSnapshotRunner {
 
     public void setListener(Listener listener) {
         this.listener = listener;
+    }
+
+    /**
+     * Update the wallet client for explorer switch.
+     * Called when user switches explorer in Developer Options.
+     */
+    public synchronized void updateWalletClient(ApiWalletClient newClient) {
+        if (newClient != null) {
+            this.walletClient = newClient;
+            log.info("FAST_SNAPSHOT[sid={}] client_updated", sessionId);
+        }
+    }
+
+    /**
+     * Safe abort for explorer switch.
+     * Aborts any running/pending snapshot, sets state to IDLE.
+     */
+    public synchronized void abortForExplorerSwitch() {
+        SnapshotState oldState = state;
+        // Cancel any pending scheduled callbacks
+        handler.removeCallbacksAndMessages(null);
+        // Set state to IDLE (not FAILED_TRANSIENT - this is intentional abort)
+        if (state != SnapshotState.DISABLED_PERMANENT) {
+            state = SnapshotState.IDLE;
+        }
+        log.info("FAST_SNAPSHOT[sid={}] ABORT reason=explorer_changed state={} -> IDLE", sessionId, oldState);
+        if (listener != null) {
+            handler.post(() -> listener.onSnapshotStateChanged(SnapshotState.IDLE));
+        }
     }
 
     public synchronized SnapshotState getState() {
@@ -442,16 +471,16 @@ public class UtxoSnapshotRunner {
                         }
                     }
 
-                    // Actually, let's just use a accumulator in the main loop above.
-                    // But I cannot easily edit the exact lines inside the big block I just replaced
-                    // in previous step without context.
-                    // I will perform a separate loop here for history construction to ensure
-                    // correctness without messy nested replaces.
-                    long txValEu = 0;
+                    // Bug C: Enhanced history classification with self-transfer detection
+                    // Track outputs to self vs external
+                    long totalValueToUs = 0;
+                    long totalValueToExternal = 0;
+                    int outputsToUs = 0;
+                    int outputsToExternal = 0;
+
                     if (vouts != null) {
                         for (int i = 0; i < vouts.length(); i++) {
                             JSONObject out = vouts.getJSONObject(i);
-                            // Quick check address match
                             boolean isMine = false;
                             JSONObject spk = out.optJSONObject("scriptPubKey");
                             if (spk != null) {
@@ -469,40 +498,31 @@ public class UtxoSnapshotRunner {
                                         isMine = true;
                                 }
                             }
-                            if (isMine) {
-                                long v = out.optLong("valueSat", -1);
-                                if (v == -1 && out.has("value")) {
-                                    try {
-                                        v = Coin.parseCoin(out.getString("value")).value;
-                                    } catch (Exception ignore) {
-                                    }
+
+                            // Extract value
+                            long v = out.optLong("valueSat", -1);
+                            if (v == -1 && out.has("value")) {
+                                try {
+                                    v = Coin.parseCoin(out.getString("value")).value;
+                                } catch (Exception ignore) {
                                 }
-                                if (v > 0)
-                                    txValEu += v;
+                            }
+                            if (v <= 0)
+                                continue;
+
+                            if (isMine) {
+                                totalValueToUs += v;
+                                outputsToUs++;
+                            } else {
+                                totalValueToExternal += v;
+                                outputsToExternal++;
                             }
                         }
                     }
 
-                    if (txValEu > 0) {
-                        // Add to history
-                        // Sort by time?
-                        // The list 'txList' came from 'allTxids'. 'allTxids' is a Set, so order is
-                        // undefined?
-                        // 'txList' = new ArrayList(allTxids). Undefined order.
-                        // We will sort 'history' before passing to session wallet? Or assume UI sorts?
-                        // UI (WalletTransactionsFragment) usually sorts.
-                        // SessionTxItem needs timeMs.
-                        long timeMs = detail.blockTimeSeconds * 1000L;
-                        // SessionTxItem(String txId, long timeMs, Coin valueDelta, int confirmations)
-                        // We interpret 'txValEu' as positive (Receive).
-                        // Use ApiSessionWallet.SessionTxItem
-                        // Note: We need to import or fully qualify SessionTxItem.
-                        // UtxoSnapshotRunner imports ApiSessionWallet.
-                        sessionWalletHistory
-                                .add(new ApiSessionWallet.SessionTxItem(txid, timeMs, Coin.valueOf(txValEu), conf));
-                    }
-
-                    // Parse VINs -> Spent
+                    // Check if we spent any inputs (self-send detection)
+                    boolean spentFromUs = false;
+                    long inputValueFromUs = 0;
                     JSONArray vins = json.optJSONArray("vin");
                     if (vins != null) {
                         for (int i = 0; i < vins.length(); i++) {
@@ -511,8 +531,76 @@ public class UtxoSnapshotRunner {
                             int inVout = in.optInt("vout", -1);
                             if (inTxid != null && inVout >= 0) {
                                 spentPrevouts.add(inTxid + ":" + inVout);
+
+                                // Check if this input address is ours
+                                String vinAddr = in.optString("addr", null);
+                                if (vinAddr == null && in.has("addresses")) {
+                                    JSONArray vinAddrs = in.optJSONArray("addresses");
+                                    if (vinAddrs != null && vinAddrs.length() > 0) {
+                                        vinAddr = vinAddrs.getString(0);
+                                    }
+                                }
+                                if (vinAddr != null && findAddress(scanKey, vinAddr) != null) {
+                                    spentFromUs = true;
+                                    long inputVal = in.optLong("valueSat", 0);
+                                    if (inputVal == 0 && in.has("value")) {
+                                        try {
+                                            inputVal = Coin.parseCoin(in.getString("value")).value;
+                                        } catch (Exception ignore) {
+                                        }
+                                    }
+                                    inputValueFromUs += inputVal;
+                                }
                             }
                         }
+                    }
+
+                    // Self-transfer: we spent inputs AND all outputs go to us
+                    boolean isSelfTransfer = spentFromUs && outputsToExternal == 0 && outputsToUs > 0;
+
+                    // Calculate display value and direction
+                    long displayedAmount;
+                    ApiSessionWallet.TxDirection direction;
+                    long estimatedFee = 0;
+
+                    if (isSelfTransfer) {
+                        // Self-transfer: display as -fee or 0
+                        if (inputValueFromUs > 0) {
+                            estimatedFee = inputValueFromUs - totalValueToUs;
+                            if (estimatedFee < 0)
+                                estimatedFee = 0;
+                            displayedAmount = -estimatedFee;
+                        } else {
+                            displayedAmount = 0;
+                        }
+                        direction = ApiSessionWallet.TxDirection.SENT;
+                    } else if (spentFromUs && outputsToExternal > 0) {
+                        // Normal outgoing
+                        displayedAmount = -totalValueToExternal;
+                        direction = ApiSessionWallet.TxDirection.SENT;
+                    } else if (!spentFromUs && outputsToUs > 0) {
+                        // Normal incoming
+                        displayedAmount = totalValueToUs;
+                        direction = ApiSessionWallet.TxDirection.RECEIVED;
+                    } else {
+                        displayedAmount = totalValueToUs;
+                        direction = totalValueToUs > 0
+                                ? ApiSessionWallet.TxDirection.RECEIVED
+                                : ApiSessionWallet.TxDirection.SENT;
+                    }
+
+                    // Bug C: Required classification log
+                    log.info(
+                            "API_HISTORY_CLASSIFY txid={} isSelfTransfer={} sentToOthers={} received={} fee={} displayed={} direction={}",
+                            txid, isSelfTransfer, totalValueToExternal, totalValueToUs, estimatedFee, displayedAmount,
+                            direction);
+
+                    // Add history item
+                    if (displayedAmount != 0 || outputsToUs > 0 || spentFromUs) {
+                        long timeMs = detail.blockTimeSeconds * 1000L;
+                        sessionWalletHistory.add(new ApiSessionWallet.SessionTxItem(
+                                txid, timeMs, Coin.valueOf(displayedAmount), conf, direction, conf == 0,
+                                isSelfTransfer));
                     }
                 }
 

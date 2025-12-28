@@ -502,7 +502,10 @@ public class Configuration {
     }
 
     public void setApiBaseUrl(String url) {
+        String oldUrl = getApiBaseUrl();
         prefs.edit().putString(PREFS_KEY_API_BASE_URL, url).apply();
+        // BUG FIX #5 logging: Track explorer switch
+        log.info("ExplorerConfig switched explorer={} previous={}", url, oldUrl);
     }
 
     public boolean getLastFastBootstrapSuccess() {

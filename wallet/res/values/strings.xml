@@ -293,11 +293,11 @@
     <string name="preferences_category_labs">Labs</string>
     <string name="preferences_precision_title">Denomination and precision</string>
     <string name="preferences_precision_summary">Unit to show amounts in. This does not affect computations.</string>
-    <string name="preferences_precision_labels_8">PEPEPOW, 8 decimal places</string>
-    <string name="preferences_precision_labels_6">PEPEPOW, 6 decimal places</string>
-    <string name="preferences_precision_labels_4">PEPEPOW, 4 decimal places</string>
-    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 decimal places</string>
-    <string name="preferences_precision_labels_0_6">繕PEPEPOW, no decimal places</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 digits</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 digits</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 digits</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 digits</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, 0 digits</string>
     <string name="preferences_own_name_title">Own name</string>
     <string name="preferences_own_name_summary">Name of yourself, to be added to payment requests. Try to keep it short.</string>
     <string name="preferences_send_coins_autoclose_title">Auto-close send coins dialog</string>
@@ -491,4 +491,7 @@
     <string name="sync_status_wallet_ready_title">Wallet ready</string>
     <string name="sync_status_spv_syncing_background">SPV syncing in background</string>
 
+    <string name="history_send_to_self_note">This transaction was sent to yourself (internal transfer); the amount may not represent actual external spending.</string>
+    <string name="history_send_to_self_title">Sent (to yourself)</string>
+    <string name="transaction_row_status_confirmations">%d confirmations</string>
 </resources>

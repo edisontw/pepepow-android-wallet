@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import de.schildbach.wallet.Constants;
 import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.data.api.ApiSessionWallet;
+import de.schildbach.wallet.util.ExplorerConfig;
 import de.schildbach.wallet.util.Toast;
 
 /**
@@ -44,15 +45,14 @@ public class SessionTransactionDetailsBottomSheet extends BottomSheetDialogFragm
     private static final String ARG_AMOUNT_SAT = "amount_sat";
     private static final String ARG_CONFIRMATIONS = "confirmations";
     private static final String ARG_DIRECTION = "direction";
-
-    // Correct transaction explorer URL
-    private static final String TX_BROWSER_BASE = "https://explorer.pepepow.net/tx/";
+    private static final String ARG_IS_SELF_SEND = "is_self_send";
 
     private String txId;
     private long timeMs;
     private long amountSat;
     private int confirmations;
     private String direction;
+    private boolean isSelfSend;
 
     public static SessionTransactionDetailsBottomSheet newInstance(ApiSessionWallet.SessionTxItem item) {
         SessionTransactionDetailsBottomSheet fragment = new SessionTransactionDetailsBottomSheet();
@@ -62,6 +62,7 @@ public class SessionTransactionDetailsBottomSheet extends BottomSheetDialogFragm
         args.putLong(ARG_AMOUNT_SAT, item.valueDelta.value);
         args.putInt(ARG_CONFIRMATIONS, item.confirmations);
         args.putString(ARG_DIRECTION, item.direction != null ? item.direction.name() : "RECEIVED");
+        args.putBoolean(ARG_IS_SELF_SEND, item.isSelfSend);
         fragment.setArguments(args);
         return fragment;
     }
@@ -75,6 +76,7 @@ public class SessionTransactionDetailsBottomSheet extends BottomSheetDialogFragm
             amountSat = getArguments().getLong(ARG_AMOUNT_SAT, 0L);
             confirmations = getArguments().getInt(ARG_CONFIRMATIONS, 0);
             direction = getArguments().getString(ARG_DIRECTION, "RECEIVED");
+            isSelfSend = getArguments().getBoolean(ARG_IS_SELF_SEND, false);
         }
     }
 
@@ -150,6 +152,12 @@ public class SessionTransactionDetailsBottomSheet extends BottomSheetDialogFragm
         // Transaction ID
         txIdView.setText(txId);
 
+        // Self-send Note
+        if (isSelfSend) {
+            String existingStatus = statusText.getText().toString();
+            statusText.setText(existingStatus + "\n\n" + getString(R.string.history_send_to_self_note));
+        }
+
         // Copy button
         copyButton.setOnClickListener(v -> {
             ClipboardManager clipboard = (ClipboardManager) requireContext()
@@ -165,11 +173,12 @@ public class SessionTransactionDetailsBottomSheet extends BottomSheetDialogFragm
         // View on Explorer
         viewExplorerButton.setOnClickListener(v -> {
             try {
-                // Use hardcoded correct explorer URL
-                Uri txUri = Uri.parse(TX_BROWSER_BASE + txId);
+                // BUG FIX #5: Use ExplorerConfig for dynamic explorer URL
+                String txUrl = ExplorerConfig.getTxBrowserUrl(txId);
+                Uri txUri = Uri.parse(txUrl);
                 Intent intent = new Intent(Intent.ACTION_VIEW, txUri);
                 startActivity(intent);
-                log.info("TX_DETAILS opening explorer: {}", TX_BROWSER_BASE + txId);
+                log.info("TX_DETAILS opening explorer: {}", txUrl);
             } catch (Exception e) {
                 log.warn("TX_DETAILS failed to open explorer: {}", e.getMessage());
             }

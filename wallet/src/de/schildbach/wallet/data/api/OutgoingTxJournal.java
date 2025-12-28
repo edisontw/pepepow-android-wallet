@@ -66,22 +66,71 @@ public class OutgoingTxJournal {
     }
 
     /**
+     * Represents a local change outpoint created by our outgoing tx.
+     */
+    public static class ChangeOutpoint {
+        public final String txid;
+        public final int vout;
+        public final long valueSat;
+        public final String address;
+        public final String scriptPubKey;
+
+        public ChangeOutpoint(String txid, int vout, long valueSat, String address, String scriptPubKey) {
+            this.txid = txid;
+            this.vout = vout;
+            this.valueSat = valueSat;
+            this.address = address != null ? address : "";
+            this.scriptPubKey = scriptPubKey != null ? scriptPubKey : "";
+        }
+
+        public String getKey() {
+            return txid + ":" + vout;
+        }
+
+        public JSONObject toJson() throws JSONException {
+            JSONObject obj = new JSONObject();
+            obj.put("txid", txid);
+            obj.put("vout", vout);
+            obj.put("valueSat", valueSat);
+            obj.put("address", address);
+            obj.put("scriptPubKey", scriptPubKey);
+            return obj;
+        }
+
+        public static ChangeOutpoint fromJson(JSONObject obj) throws JSONException {
+            return new ChangeOutpoint(
+                    obj.getString("txid"),
+                    obj.getInt("vout"),
+                    obj.optLong("valueSat", 0),
+                    obj.optString("address", ""),
+                    obj.optString("scriptPubKey", ""));
+        }
+    }
+
+    /**
      * Journal entry for one outgoing transaction.
      */
     public static class JournalEntry {
         public final String txid;
         public final long timestampMs;
         public final List<SpentOutpoint> spentOutpoints;
+        public final List<ChangeOutpoint> changeOutpoints;
         public final String toAddress; // UI display only
         public final long amountSat; // UI display only
 
         public JournalEntry(String txid, long timestampMs, List<SpentOutpoint> spentOutpoints,
-                String toAddress, long amountSat) {
+                List<ChangeOutpoint> changeOutpoints, String toAddress, long amountSat) {
             this.txid = txid;
             this.timestampMs = timestampMs;
             this.spentOutpoints = spentOutpoints != null ? spentOutpoints : new ArrayList<>();
+            this.changeOutpoints = changeOutpoints != null ? changeOutpoints : new ArrayList<>();
             this.toAddress = toAddress;
             this.amountSat = amountSat;
+        }
+
+        public JournalEntry(String txid, long timestampMs, List<SpentOutpoint> spentOutpoints,
+                String toAddress, long amountSat) {
+            this(txid, timestampMs, spentOutpoints, new ArrayList<>(), toAddress, amountSat);
         }
 
         public JSONObject toJson() throws JSONException {
@@ -96,6 +145,12 @@ public class OutgoingTxJournal {
                 spentArr.put(sp.toJson());
             }
             obj.put("spentOutpoints", spentArr);
+
+            JSONArray changeArr = new JSONArray();
+            for (ChangeOutpoint cp : changeOutpoints) {
+                changeArr.put(cp.toJson());
+            }
+            obj.put("changeOutpoints", changeArr);
 
             return obj;
         }
@@ -114,7 +169,15 @@ public class OutgoingTxJournal {
                 }
             }
 
-            return new JournalEntry(txid, timestampMs, spentOutpoints, toAddress, amountSat);
+            List<ChangeOutpoint> changeOutpoints = new ArrayList<>();
+            JSONArray changeArr = obj.optJSONArray("changeOutpoints");
+            if (changeArr != null) {
+                for (int i = 0; i < changeArr.length(); i++) {
+                    changeOutpoints.add(ChangeOutpoint.fromJson(changeArr.getJSONObject(i)));
+                }
+            }
+
+            return new JournalEntry(txid, timestampMs, spentOutpoints, changeOutpoints, toAddress, amountSat);
         }
     }
 
@@ -146,8 +209,9 @@ public class OutgoingTxJournal {
             current.add(entry);
             saveEntries(prefs, current);
 
-            log.info("OUTGOING_TX_JOURNAL record txid={} spentInputs={} toAddr={} amount={} total={}",
-                    entry.txid, entry.spentOutpoints.size(), entry.toAddress,
+            log.info(
+                    "OUTGOING_TX_JOURNAL record txid={} spentInputs={} changeOutpoints={} toAddr={} amount={} total={}",
+                    entry.txid, entry.spentOutpoints.size(), entry.changeOutpoints.size(), entry.toAddress,
                     entry.amountSat, current.size());
         } catch (Exception e) {
             log.warn("OUTGOING_TX_JOURNAL record failed: {}", e.getMessage());
@@ -197,6 +261,27 @@ public class OutgoingTxJournal {
             }
         } catch (Exception e) {
             log.warn("OUTGOING_TX_JOURNAL remove failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Check if a specific txid is present in the journal.
+     */
+    public static synchronized boolean isTxInJournal(Context context, String txid) {
+        if (context == null || txid == null) {
+            return false;
+        }
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            List<JournalEntry> entries = loadEntries(prefs);
+            for (JournalEntry entry : entries) {
+                if (entry.txid.equals(txid)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
         }
     }
 

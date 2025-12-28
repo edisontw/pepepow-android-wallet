@@ -18,7 +18,8 @@
     <color name="black_text">#ff171717</color>
 
     <!-- foreground -->
-    <color name="fg_significant">#66000000</color>
+    <!-- BUG FIX #3: Increased opacity from 40% (#66) to 87% (#DE) for better readability in Address Book -->
+    <color name="fg_significant">#DE000000</color>
     <color name="fg_less_significant">#ff666666</color>
     <color name="fg_insignificant">#ffbbbbbb</color>
     <color name="fg_value_positive">@color/colorPrimaryDark</color>

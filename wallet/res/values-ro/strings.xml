@@ -224,11 +224,11 @@
     <string name="preferences_category_labs">Laboratoare</string>
     <string name="preferences_precision_title">Denominație și precizie</string>
     <string name="preferences_precision_summary">Unitatea pentru afișarea sumelor. Aceasta nu afectează calculele.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 zecimale</string>
-    <string name="preferences_precision_labels_6">DASH, 6 zecimale</string>
-    <string name="preferences_precision_labels_4">DASH, 4 zecimale</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 zecimale</string>
-    <string name="preferences_precision_labels_0_6">µDASH, fara zecimale</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 zecimale</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 zecimale</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 zecimale</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 zecimale</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, fara zecimale</string>
     <string name="preferences_own_name_title">Nume propriu</string>
     <string name="preferences_own_name_summary">Numele tau, care va fi adăugat cererii de plată. Incearcă sa păstrezi numele scurt</string>
     <string name="preferences_send_coins_autoclose_title">Auto-închide dialogul pentru cererea monedelor</string>

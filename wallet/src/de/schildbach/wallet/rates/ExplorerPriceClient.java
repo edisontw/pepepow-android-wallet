@@ -14,12 +14,14 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.schildbach.wallet.util.ExplorerConfig;
 import retrofit2.Call;
 import retrofit2.converter.moshi.MoshiConverterFactory;
 import retrofit2.http.GET;
 
 /**
- * Fetches the current USDT price from explorer.pepepow.net.
+ * Fetches the current USDT price from the configured explorer.
+ * BUG FIX #5: Uses ExplorerConfig for dynamic explorer URL.
  */
 public class ExplorerPriceClient extends RetrofitClient implements ExchangeRatesClient {
 
@@ -32,10 +34,17 @@ public class ExplorerPriceClient extends RetrofitClient implements ExchangeRates
         return instance;
     }
 
+    /**
+     * Force recreation of the singleton to pick up new explorer URL.
+     */
+    public static void resetInstance() {
+        instance = null;
+    }
+
     private final ExplorerPriceService service;
 
     private ExplorerPriceClient() {
-        super("https://explorer.pepepow.net/");
+        super(ExplorerConfig.getExplorerBaseUrl() + "/");
         moshiBuilder.add(new BigDecimalAdapter());
         Moshi moshi = moshiBuilder.build();
         retrofit = retrofitBuilder.addConverterFactory(MoshiConverterFactory.create(moshi)).build();

@@ -190,9 +190,6 @@ public class SessionSendManager {
                         sessionId, tx.getTxId(), tx.unsafeBitcoinSerialize().length, tx.getInputs().size(),
                         tx.getOutputs().size(), (buildEnd - buildStart));
 
-                // Record to journal BEFORE broadcast (persist for restart survival)
-                recordToJournal(tx, destination, amount);
-
                 // Create pending tx entry
                 PendingTx pendingTx = new PendingTx(tx);
                 pendingTx.state = BroadcastState.BROADCASTING;
@@ -206,8 +203,11 @@ public class SessionSendManager {
                     case BROADCASTED:
                         // Success - commit to session wallet
                         pendingTx.state = BroadcastState.BROADCASTED;
-                        sessionWallet.commitTransaction(tx);
+                        ApiSessionWallet.CommitResult commitResult = sessionWallet.commitTransaction(tx);
+                        recordToJournal(tx, destination, amount, commitResult.localChangeOutpoints);
                         pendingTxMap.remove(pendingTx.txId); // Remove from pending
+                        log.info("SESSION-SEND[sid={}] broadcast_state=BROADCASTED lockedInputsAdded={} localChangeAdded={}",
+                                sessionId, commitResult.lockedInputsAdded, commitResult.localChangeOutpoints.size());
 
                         final String successMsg = "Sent (broadcasted)";
                         log.info("SESSION-SEND[sid={}] SUCCESS txid={} message=\"{}\"",
@@ -226,8 +226,11 @@ public class SessionSendManager {
                         pendingTx.state = BroadcastState.BROADCAST_PENDING;
                         pendingTx.reason = result.getReason();
                         // Commit to session wallet to lock inputs (prevents double-spend attempts)
-                        sessionWallet.commitTransaction(tx);
+                        ApiSessionWallet.CommitResult pendingCommit = sessionWallet.commitTransaction(tx);
+                        recordToJournal(tx, destination, amount, pendingCommit.localChangeOutpoints);
                         // Keep in pendingTxMap for retry
+                        log.info("SESSION-SEND[sid={}] broadcast_state=BROADCAST_PENDING lockedInputsAdded={} localChangeAdded={}",
+                                sessionId, pendingCommit.lockedInputsAdded, pendingCommit.localChangeOutpoints.size());
 
                         final String pendingMsg = "Queued (will retry when online)";
                         log.info("SESSION-SEND[sid={}] PENDING txid={} reason=\"{}\" message=\"{}\"",
@@ -247,6 +250,12 @@ public class SessionSendManager {
                         pendingTx.reason = result.getReason();
                         pendingTxMap.remove(pendingTx.txId);
                         // Don't commit - inputs should be unlocked for retry with different tx
+                        sessionWallet.rollbackTransaction(tx);
+                        if (appContext != null) {
+                            OutgoingTxJournal.remove(appContext, tx.getTxId().toString());
+                        }
+                        log.info("SESSION-SEND[sid={}] broadcast_state=REJECTED txid={} reason={}",
+                                sessionId, tx.getTxId(), result.getReason());
 
                         final String rejectMsg = "Rejected: " + result.getReason();
                         log.error("SESSION-SEND[sid={}] REJECTED txid={} reason=\"{}\" message=\"{}\"",
@@ -288,7 +297,8 @@ public class SessionSendManager {
      * Record outgoing transaction to persistent journal for restart survival.
      * Extracts spent inputs and stores metadata for history reconstruction.
      */
-    private void recordToJournal(Transaction tx, Address destination, Coin amount) {
+    private void recordToJournal(Transaction tx, Address destination, Coin amount,
+            @Nullable List<OutgoingTxJournal.ChangeOutpoint> changeOutpoints) {
         if (appContext == null) {
             log.warn("SESSION-SEND[sid={}] cannot record journal: no appContext", sessionId);
             return;
@@ -320,15 +330,18 @@ public class SessionSendManager {
                     tx.getTxId().toString(),
                     System.currentTimeMillis(),
                     spentOutpoints,
+                    changeOutpoints,
                     destination.toString(),
                     amount.value);
 
             OutgoingTxJournal.record(appContext, entry);
-            log.info("SESSION-SEND[sid={}] journal recorded txid={} spentInputs={}",
-                    sessionId, tx.getTxId(), spentOutpoints.size());
+            int changeCount = changeOutpoints != null ? changeOutpoints.size() : 0;
+            log.info("SESSION-SEND[sid={}] journal recorded txid={} spentInputs={} localChangeAdded={}",
+                    sessionId, tx.getTxId(), spentOutpoints.size(), changeCount);
         } catch (Exception e) {
             // Journal failure is non-fatal - tx still broadcasts
-            log.warn("SESSION-SEND[sid={}] journal record failed: {}", sessionId, e.getMessage());
+            log.warn("SESSION-SEND[sid={}] journal record failed ex={} msg={}",
+                    sessionId, e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
@@ -372,13 +385,14 @@ public class SessionSendManager {
                     case BROADCASTED:
                         pending.state = BroadcastState.BROADCASTED;
                         pendingTxMap.remove(pending.txId);
-                        log.info("SESSION-SEND[sid={}] RETRY SUCCESS txid={}", sessionId, pending.txId);
+                        log.info("SESSION-SEND[sid={}] RETRY SUCCESS txid={} broadcast_state=BROADCASTED",
+                                sessionId, pending.txId);
                         break;
 
                     case BROADCAST_PENDING:
                         pending.state = BroadcastState.BROADCAST_PENDING;
                         pending.reason = result.getReason();
-                        log.warn("SESSION-SEND[sid={}] RETRY STILL PENDING txid={} reason={}",
+                        log.warn("SESSION-SEND[sid={}] RETRY STILL PENDING txid={} broadcast_state=BROADCAST_PENDING reason={}",
                                 sessionId, pending.txId, result.getReason());
                         break;
 
@@ -386,7 +400,11 @@ public class SessionSendManager {
                         pending.state = BroadcastState.REJECTED;
                         pending.reason = result.getReason();
                         pendingTxMap.remove(pending.txId);
-                        log.error("SESSION-SEND[sid={}] RETRY REJECTED txid={} reason={}",
+                        sessionWallet.rollbackTransaction(pending.tx);
+                        if (appContext != null) {
+                            OutgoingTxJournal.remove(appContext, pending.txId);
+                        }
+                        log.error("SESSION-SEND[sid={}] RETRY REJECTED txid={} broadcast_state=REJECTED reason={}",
                                 sessionId, pending.txId, result.getReason());
                         break;
                 }

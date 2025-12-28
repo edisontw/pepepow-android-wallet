@@ -24,20 +24,24 @@
     <EditTextPreference
         android:key="trusted_peer"
         android:summary="@string/preferences_trusted_peer_summary"
-        android:title="@string/preferences_trusted_peer_title" />
+        android:title="@string/preferences_trusted_peer_title"
+        android:visible="false" />
 
     <CheckBoxPreference
         android:defaultValue="false"
         android:key="trusted_peer_only"
         android:summary="@string/preferences_trusted_peer_only_summary"
-        android:title="@string/preferences_trusted_peer_only_title" />
+        android:title="@string/preferences_trusted_peer_only_title"
+        android:visible="false" />
 
     <ListPreference
+        android:defaultValue="https://explorer.pepepow.net"
         android:entries="@array/preferences_block_explorer_labels"
         android:entryValues="@array/preferences_block_explorer_values"
         android:key="block_explorer"
         android:summary="@string/preferences_block_explorer_summary"
-        android:title="@string/preferences_block_explorer_title" />
+        android:title="@string/preferences_block_explorer_title"
+        android:visible="false" />
 
     <Preference
         android:key="data_usage"
@@ -91,7 +95,10 @@
 
 
 
-        <Preference
+        <ListPreference
+            android:defaultValue="https://explorer.pepepow.net"
+            android:entries="@array/preferences_api_explorer_labels"
+            android:entryValues="@array/preferences_api_explorer_values"
             android:key="developer_api_base_url"
             android:summary="@string/preferences_api_base_url_summary"
             android:title="@string/preferences_api_base_url_title" />

@@ -458,8 +458,14 @@ public class WalletTransactionsFragment extends Fragment implements LoaderManage
                 }
                 apiAdapter.replace(history);
                 int appended = newCount - oldCount;
-                log.info("HISTORY[sid={}] changed={} oldCount={} newCount={} appended={}",
-                        sid, state.historyChanged, oldCount, newCount, appended > 0 ? appended : 0);
+                if (state.historyChanged) {
+                    android.util.Log.i("History",
+                            "[history] FORCE_UI_REFRESH reason=" + state.reason + " historyChanged=true");
+                }
+                // Objective B: HISTORY_UI_REFRESH log
+                log.info("HISTORY_UI_REFRESH reason={} oldCount={} newCount={} appended={} changed={}",
+                        state.reason != null ? state.reason : "API_SESSION_CHANGED",
+                        oldCount, newCount, appended > 0 ? appended : 0, state.historyChanged);
 
                 if (history == null || history.isEmpty()) {
                     showEmptyView();

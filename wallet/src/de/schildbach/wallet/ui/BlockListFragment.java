@@ -37,6 +37,7 @@ import de.schildbach.wallet.WalletApplication;
 import de.schildbach.wallet.data.BlockInfo;
 import de.schildbach.wallet.service.BlockchainService;
 import de.schildbach.wallet.service.BlockchainServiceImpl;
+import de.schildbach.wallet.util.ExplorerConfig;
 import org.pepepow.wallet.R;
 
 import android.app.Activity;
@@ -243,9 +244,9 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 									Toast.LENGTH_SHORT).show();
 							return true;
 						}
-						startActivity(new Intent(Intent.ACTION_VIEW, Uri.withAppendedPath(
-								Uri.parse("https://explorer.pepepow.net"),
-								"block/" + block.getHeader().getHashAsString())));
+						// BUG FIX #5: Use ExplorerConfig for dynamic explorer URL
+						String blockUrl = ExplorerConfig.getBlockBrowserUrl(block.getHeader().getHashAsString());
+						startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(blockUrl)));
 						return true;
 				}
 				return false;
@@ -262,7 +263,8 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 
 	private boolean shouldForceSpvUiSource() {
 		final SyncMode mode = config != null ? config.getSyncMode() : null;
-		final boolean disabledSession = mode == SyncMode.FAST_API_10POW && config != null && config.isFastApiSyncFailed();
+		final boolean disabledSession = mode == SyncMode.FAST_API_10POW && config != null
+				&& config.isFastApiSyncFailed();
 		if (lastForcedSpvUiSource == null || lastForcedSpvUiSource.booleanValue() != disabledSession) {
 			lastForcedSpvUiSource = disabledSession;
 			final String fastBootState = disabledSession ? "DISABLED_SESSION" : "ACTIVE";
@@ -342,7 +344,8 @@ public final class BlockListFragment extends Fragment implements BlockListAdapte
 						if (status == org.dash.wallet.common.data.WalletSnapshotStatus.FAILED) {
 							description = getString(R.string.network_monitor_blocks_hint_fast_api_snapshot_failed);
 						} else if (status == org.dash.wallet.common.data.WalletSnapshotStatus.EMPTY_OK) {
-							description = getString(R.string.network_monitor_blocks_hint_fast_api) + " (Empty snapshot)";
+							description = getString(R.string.network_monitor_blocks_hint_fast_api)
+									+ " (Empty snapshot)";
 						} else {
 							description = getString(R.string.network_monitor_blocks_hint_fast_api);
 						}

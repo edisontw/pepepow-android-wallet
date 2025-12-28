@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Labs</string>
     <string name="preferences_precision_title">Waarde en precisie</string>
     <string name="preferences_precision_summary">Grootheid om waarden in te tonen. Dit heeft geen invloed op berekeningen.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 cijfers achter de komma</string>
-    <string name="preferences_precision_labels_6">DASH, 6 cijfers achter de komma</string>
-    <string name="preferences_precision_labels_4">DASH, 4 cijfers achter de komma</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 cijfers achter de komma</string>
-    <string name="preferences_precision_labels_0_6">µDASH, geen cijfers achter de komma</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 cijfers achter de komma</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 cijfers achter de komma</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 cijfers achter de komma</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 cijfers achter de komma</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, geen cijfers achter de komma</string>
     <string name="preferences_own_name_title">Eigen naam</string>
     <string name="preferences_own_name_summary">Uw eigen naam; deze zal worden toegevoegd aan betaalverzoeken. Probeer uw naam zo kort mogelijk te houden.</string>
     <string name="preferences_send_coins_autoclose_title">Sluit automatisch het dialoogvenster voor verzenden</string>

@@ -35,6 +35,7 @@ public class ApiWalletClient {
 
     public void setSessionIdForLogs(String sessionId) {
         this.sessionId = sessionId;
+        log.info("API_BASE_URL[sid={}] applied={}", this.sessionId, this.baseUrl);
     }
 
     public ApiWalletClient(String baseUrl, @Nullable ApiHeaderClient headerClient) {

@@ -68,9 +68,9 @@ class BlockInfoActivity : BaseMenuActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             } else {
-                val explorer = Uri.parse("https://explorer.pepepow.net")
-                val blockPath = "block/${blockInfo.hash}"
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.withAppendedPath(explorer, blockPath)))
+                // BUG FIX #5: Use ExplorerConfig for dynamic explorer URL
+                val blockUrl = de.schildbach.wallet.util.ExplorerConfig.getBlockBrowserUrl(blockInfo.hash)
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(blockUrl)))
             }
         }
     }

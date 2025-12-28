@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">實驗室功能</string>
     <string name="preferences_precision_title">顯示單位</string>
     <string name="preferences_precision_summary">改變顯示單位，但不影響計算。</string>
-    <string name="preferences_precision_labels_8">PEPEW，小數點後8位</string>
-    <string name="preferences_precision_labels_6">PEPEW，小數點後6位</string>
-    <string name="preferences_precision_labels_4">PEPEW，小數點後4位</string>
-    <string name="preferences_precision_labels_2_3">mPEPEW，小數點後2位</string>
-    <string name="preferences_precision_labels_0_6">µPEPEW，沒有小數位</string>
+    <string name="preferences_precision_labels_8">PEPEPOW，小數點後8位</string>
+    <string name="preferences_precision_labels_6">PEPEPOW，小數點後6位</string>
+    <string name="preferences_precision_labels_4">PEPEPOW，小數點後4位</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW，小數點後2位</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW，沒有小數位</string>
     <string name="preferences_own_name_title">自己的名字</string>
     <string name="preferences_own_name_summary">為自己起名，可在支付請求中顯示。請盡量簡短。</string>
     <string name="preferences_send_coins_autoclose_title">自動關閉發送錢幣對話框</string>
@@ -377,4 +377,7 @@
     <string name="menu_api_status">API 狀態</string>
     <string name="menu_developer_options">開發者選項</string>
 
+    <string name="history_send_to_self_note">此交易為寄給自己（內部轉帳），金額可能不代表實際對外支出</string>
+    <string name="history_send_to_self_title">寄給自己</string>
+    <string name="transaction_row_status_confirmations">%d 次確認</string>
 </resources>

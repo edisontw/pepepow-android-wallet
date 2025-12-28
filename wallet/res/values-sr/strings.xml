@@ -223,11 +223,11 @@
     <string name="preferences_category_labs">Laboratorije</string>
     <string name="preferences_precision_title">Moneta i preciznost</string>
     <string name="preferences_precision_summary">Jedinica u kojoj se prikazuju iznosi. Ovo nema uticaj na izračunavanje.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 decimalnih mesta</string>
-    <string name="preferences_precision_labels_6">DASH, 6 decimalnih mesta</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 decimalnih mesta</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 decimalnih mesta</string>
     <string name="preferences_precision_labels_4">DASh, 4 decimalna mesta</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 decimalna mesta</string>
-    <string name="preferences_precision_labels_0_6">µDASH, bez decimalnih mesta</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 decimalna mesta</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, bez decimalnih mesta</string>
     <string name="preferences_own_name_title">Vlastito ime</string>
     <string name="preferences_own_name_summary">Vaše ime, biće dodato uz zahteve za uplatu. Neka bude kratko.</string>
     <string name="preferences_send_coins_autoclose_title">Automatski zatvori dijalog za slanje novčića</string>

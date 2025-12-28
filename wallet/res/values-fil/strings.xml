@@ -226,11 +226,11 @@
     <string name="preferences_category_labs">Labs</string>
     <string name="preferences_precision_title">Denominasyon at pagiging tumpak</string>
     <string name="preferences_precision_summary">Ang unit na nagpapakita ng halaga sa. Ito ay hindi nakakaapekto sa mga pagkukwenta.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 decimal places</string>
-    <string name="preferences_precision_labels_6">DASH, 6 decimal places</string>
-    <string name="preferences_precision_labels_4">DASH, 4 decimal places</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 decimal places</string>
-    <string name="preferences_precision_labels_0_6">µDASH, walang decimal places</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 decimal places</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 decimal places</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 decimal places</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 decimal places</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, walang decimal places</string>
     <string name="preferences_own_name_title">Sariling pangalan</string>
     <string name="preferences_own_name_summary">Pangalan ng iyong sarili, ito ay idadagdag sa mga hiniling na bayad. Subukan itong paikliin lang.</string>
     <string name="preferences_send_coins_autoclose_title">Auto-close na pag-send ng coins dialog</string>

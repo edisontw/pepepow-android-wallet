@@ -407,8 +407,8 @@ public class WalletUtils {
 
     public static void viewOnBlockExplorer(Context context, Transaction.Purpose txPurpose,
             String txHash) {
-        // Force PepePoW explorer
-        String explorerUrl = "https://explorer.pepepow.net";
+        // BUG FIX #5: Use ExplorerConfig for consistent explorer URL
+        String explorerUrl = ExplorerConfig.getExplorerBaseUrl();
         Uri blockExplorer = Uri.parse(explorerUrl);
 
         Uri keyRotationUri = Uri.parse("https://bitcoin.org/en/alert/2013-08-11-android");

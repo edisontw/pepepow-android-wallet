@@ -2,11 +2,11 @@
 <resources>
 
 	<string-array name="preferences_precision_labels">
-		<item>DASH, 8 Dezimalen</item>
-		<item>DASH, 6 Dezimalen</item>
-		<item>DASH, 4 Dezimalen</item>
-		<item>mDASH, 2 Dezimalen</item>
-		<item>µDASH, keine Dezimalen</item>
+		<item>PEPEPOW, 8 Dezimalen</item>
+		<item>PEPEPOW, 6 Dezimalen</item>
+		<item>PEPEPOW, 4 Dezimalen</item>
+		<item>mPEPEPOW, 2 Dezimalen</item>
+		<item>µPEPEPOW, keine Dezimalen</item>
 	</string-array>
 
 </resources>

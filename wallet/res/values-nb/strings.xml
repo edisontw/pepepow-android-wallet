@@ -215,11 +215,11 @@
 	<string name="preferences_category_labs">Laboratoriet</string>
 	<string name="preferences_precision_title">Benevnelse og presisjon</string>
 	<string name="preferences_precision_summary">Enhet som beløp vises i. Dette påvirker ikke beregninger.</string>
-	<string name="preferences_precision_labels_8">DASH, 8 desimaler</string>
-	<string name="preferences_precision_labels_6">DASH, 6 desimaler</string>
-	<string name="preferences_precision_labels_4">DASH, 4 desimaler</string>
-	<string name="preferences_precision_labels_2_3">mDASH, 2 desimaler</string>
-	<string name="preferences_precision_labels_0_6">µDASH, ingen desimaler</string>
+	<string name="preferences_precision_labels_8">PEPEPOW, 8 desimaler</string>
+	<string name="preferences_precision_labels_6">PEPEPOW, 6 desimaler</string>
+	<string name="preferences_precision_labels_4">PEPEPOW, 4 desimaler</string>
+	<string name="preferences_precision_labels_2_3">mPEPEPOW, 2 desimaler</string>
+	<string name="preferences_precision_labels_0_6">µPEPEPOW, ingen desimaler</string>
 	<string name="preferences_own_name_title">Ditt navn</string>
 	<string name="preferences_own_name_summary">Ditt navn, som skal legges til betalingsforespørsler. Prøv å holde det kort.</string>
 	<string name="preferences_connectivity_notification_title">Tilkoblingsindikator</string>

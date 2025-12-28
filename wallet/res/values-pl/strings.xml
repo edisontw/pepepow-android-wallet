@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Eksperymentalne</string>
     <string name="preferences_precision_title">Waluta i precyzja</string>
     <string name="preferences_precision_summary">Jednostka w której ma być podawana ilość. Nie wpływa na obliczenia.</string>
-    <string name="preferences_precision_labels_8">DASH 8 miejsc po przecinku</string>
-    <string name="preferences_precision_labels_6">DASH, 6 miejsc po przecinku</string>
-    <string name="preferences_precision_labels_4">DASH, 4 miejsc po przecinku</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 miejsca po przecinku</string>
-    <string name="preferences_precision_labels_0_6">µDASH, bez miejsc po przecinku</string>
+    <string name="preferences_precision_labels_8">PEPEPOW 8 miejsc po przecinku</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 miejsc po przecinku</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 miejsc po przecinku</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 miejsca po przecinku</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, bez miejsc po przecinku</string>
     <string name="preferences_own_name_title">Podpis</string>
     <string name="preferences_own_name_summary">Twój podpis. Będzie on dołączany do żądań płatności.</string>
     <string name="preferences_send_coins_autoclose_title">Okno szybkiej płatności</string>

@@ -234,11 +234,11 @@
     <string name="preferences_category_labs">ห้องปฏิบัติการ</string>
     <string name="preferences_precision_title">หน่วยเงินและความแม่นยำ</string>
     <string name="preferences_precision_summary">หน่วยที่แสดงจำนวนเงิน ไม่มีผลต่อการคำนวณ</string>
-    <string name="preferences_precision_labels_8">DASH, ทศนิยม 8 ตำแหน่ง</string>
-    <string name="preferences_precision_labels_6">DASH, ทศนิยม 6 ตำแหน่ง</string>
-    <string name="preferences_precision_labels_4">DASH, ทศนิยม 4 ตำแหน่ง</string>
-    <string name="preferences_precision_labels_2_3">mDASH, ทศนิยม 2 ตำแหน่ง</string>
-    <string name="preferences_precision_labels_0_6">µDASH, ไม่มีทศนิยม</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, ทศนิยม 8 ตำแหน่ง</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, ทศนิยม 6 ตำแหน่ง</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, ทศนิยม 4 ตำแหน่ง</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, ทศนิยม 2 ตำแหน่ง</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, ไม่มีทศนิยม</string>
     <string name="preferences_own_name_title">ชื่อของตัวเอง</string>
     <string name="preferences_own_name_summary">ใส่ชื่อของคุณ เพื่อเพิ่มลงในคำขอการชำระเงิน พยายามทำให้สั้น</string>
     <string name="preferences_send_coins_autoclose_title">ปิดการส่งเหรียญอัตโนมัติ</string>

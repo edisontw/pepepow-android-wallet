@@ -138,29 +138,6 @@ android {
         }
     }
 
-    // Release signing (required for producing a non-unsigned prodRelease APK)
-    // Values should be provided via ~/.gradle/gradle.properties or environment variables:
-    //   PEPEPOW_RELEASE_STORE_FILE, PEPEPOW_RELEASE_STORE_PASSWORD,
-    //   PEPEPOW_RELEASE_KEY_ALIAS, PEPEPOW_RELEASE_KEY_PASSWORD
-    signingConfigs {
-        release {
-            def storeFilePath = project.findProperty("PEPEPOW_RELEASE_STORE_FILE") ?: System.getenv("PEPEPOW_RELEASE_STORE_FILE")
-            def storePass     = project.findProperty("PEPEPOW_RELEASE_STORE_PASSWORD") ?: System.getenv("PEPEPOW_RELEASE_STORE_PASSWORD")
-            def keyAliasName  = project.findProperty("PEPEPOW_RELEASE_KEY_ALIAS") ?: System.getenv("PEPEPOW_RELEASE_KEY_ALIAS")
-            def keyPass       = project.findProperty("PEPEPOW_RELEASE_KEY_PASSWORD") ?: System.getenv("PEPEPOW_RELEASE_KEY_PASSWORD")
-
-            if (storeFilePath == null || storePass == null || keyAliasName == null || keyPass == null) {
-                throw new GradleException("Missing release signing properties. Define PEPEPOW_RELEASE_STORE_FILE/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD in ~/.gradle/gradle.properties or environment variables.")
-            }
-
-            storeFile file(storeFilePath.toString())
-            storePassword storePass.toString()
-            keyAlias keyAliasName.toString()
-            keyPassword keyPass.toString()
-        }
-    }
-
-
     buildTypes {
         all {
             minifyEnabled true
@@ -170,13 +147,7 @@ android {
         debug {
             debuggable true
         }
-    
-        release {
-            // Ensure release variants are signed (e.g., assembleProdRelease)
-            signingConfig signingConfigs.release
-            debuggable false
-        }
-}
+    }
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'

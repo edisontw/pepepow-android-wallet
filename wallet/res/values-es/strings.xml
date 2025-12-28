@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Laboratorio</string>
     <string name="preferences_precision_title">Denominación y precisión</string>
     <string name="preferences_precision_summary">Unidad para mostrar cantidad. No afecta a los cálculos.</string>
-    <string name="preferences_precision_labels_8">DASH, 8  décimas</string>
-    <string name="preferences_precision_labels_6">DASH. 6 décimas</string>
-    <string name="preferences_precision_labels_4">DASH, 4 décimas</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 décimas</string>
-    <string name="preferences_precision_labels_0_6">µDASH, sin décimas</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8  décimas</string>
+    <string name="preferences_precision_labels_6">PEPEPOW. 6 décimas</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 décimas</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 décimas</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, sin décimas</string>
     <string name="preferences_own_name_title">Tu nombre</string>
     <string name="preferences_own_name_summary">Tu nombre, para añadirlo a las peticiones de pago. Intenta que sea corto.</string>
     <string name="preferences_send_coins_autoclose_title">Diálogo de envio de monedas auto-cerrado</string>

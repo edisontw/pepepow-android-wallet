@@ -537,11 +537,12 @@ public final class SendCoinsFragment extends Fragment {
             }
 
             // Use new P2P broadcast-only SessionSendManager
+            String sessionId = (sessionWallet != null) ? sessionWallet.getSessionId() : "UNKNOWN";
             de.schildbach.wallet.data.SessionSendManager sendManager = new de.schildbach.wallet.data.SessionSendManager(
                     sessionWallet,
                     wallet,
                     broadcastManager,
-                    "FASTBOOT"); // sessionId for logging
+                    sessionId); // sessionId for logging
             sendManager.setContext(activity); // For journal persistence
 
             // Wire up peer connect listener for automatic broadcast retry
@@ -620,6 +621,13 @@ public final class SendCoinsFragment extends Fragment {
     // Extracted Success Method
     private void onSendSuccess(Transaction transaction, Coin finalAmount, Wallet wallet, boolean isSession) {
         setState(SendCoinsViewModel.State.SENDING);
+
+        if (isSession) {
+            BlockchainService service = application.getBlockchainService();
+            if (service instanceof de.schildbach.wallet.service.BlockchainServiceImpl) {
+                ((de.schildbach.wallet.service.BlockchainServiceImpl) service).requestUiRefresh("SEND_SUCCESS");
+            }
+        }
 
         final Address refundAddress = viewModel.paymentIntent.standard == Standard.BIP70
                 ? wallet.freshAddress(KeyPurpose.REFUND)

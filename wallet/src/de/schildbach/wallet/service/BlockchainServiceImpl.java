@@ -18,6 +18,7 @@
 package de.schildbach.wallet.service;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -36,6 +37,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Process;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.SystemClock;
@@ -129,6 +131,7 @@ import de.schildbach.wallet.util.BlockchainStateUtils;
 import de.schildbach.wallet.util.CrashReporter;
 import de.schildbach.wallet.util.ThrottlingWalletChangeListener;
 import de.schildbach.wallet.util.WalletUtils;
+import de.schildbach.wallet.util.ExplorerConfig;
 import de.schildbach.wallet.data.api.ApiHeaderClient;
 import de.schildbach.wallet.data.api.HeaderVerifier;
 import de.schildbach.wallet.data.api.HeaderDto;
@@ -174,6 +177,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     private de.schildbach.wallet.data.api.ApiSessionWallet sessionWallet;
     private de.schildbach.wallet.data.BroadcastOnlyPeerManager broadcastOnlyPeerManager;
     private de.schildbach.wallet.data.api.UtxoSnapshotRunner utxoSnapshotRunner;
+    private volatile String lastApiBaseUrl = null;
     private de.schildbach.wallet.service.DataSourceRouter dataSourceRouter;
     private de.schildbach.wallet.service.UiUsabilityRouter uiRouter;
     private volatile String utxoScanAddressFingerprint = null;
@@ -201,6 +205,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     private volatile ApiPowBootstrapper.BootstrapResult lastBootstrapResult;
     private volatile ApiWalletSnapshotBootstrapper.Result lastWalletSnapshotResult;
     private volatile boolean walletSnapshotAttempted = false;
+    private boolean journalApplied = false;
 
     // FAST_BOOT State Machine
     public enum FastBootState {
@@ -211,6 +216,8 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
 
     private volatile DataSource currentUiDataSource = DataSource.SPV_CANONICAL;
     private volatile boolean apiSessionAuthoritative = false;
+    private volatile int lastHistoryCount = -1;
+    private volatile int lastHistoryHash = 0;
 
     @Override
     public DataSource getUiDataSource() {
@@ -252,7 +259,6 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     private final MutableLiveData<BlockchainService.WalletUsabilityState> walletUsabilityLiveData = new MutableLiveData<>();
     private volatile BlockchainService.WalletUsabilityState lastEmittedUsabilityState = null;
     // Fix C: Track last history count to determine if history changed
-    private volatile int lastHistoryCount = 0;
 
     // Throttled UI state emission: coalesce within 200ms to prevent UI spam
     private static final long UI_STATE_THROTTLE_MS = 200L;
@@ -278,7 +284,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     private static final int MAX_NOTIFIED_TX_ENTRIES = 200;
 
     // Task E: In-memory set for API session sound trigger (process lifetime)
-    private final java.util.Set<String> lastSeenIncomingConfirmedTxIds = new java.util.HashSet<>();
+    private final java.util.Set<String> lastSeenIncomingConfirmedOutpoints = new java.util.HashSet<>();
 
     private int apiBestChainHeight = 0;
     private Date apiBestChainDate = new Date(0);
@@ -514,8 +520,10 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
                     final boolean isReplayedTx = confidenceType == ConfidenceType.BUILDING
                             && (replaying || isRestoringBackup);
 
-                    if (isReceived && !isReplayedTx)
-                        notifyCoinsReceived(address, amount, tx.getExchangeRate());
+                    if (isReceived && !isReplayedTx) {
+                        log.info("UI_REFRESH_TRIGGER reason=tx_in src=SPV_OR_API screen=Home");
+                        notifyCoinsReceived(address, amount, tx.getExchangeRate(), true);
+                    }
                 }
             });
         }
@@ -528,7 +536,20 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     };
 
     private void notifyCoinsReceived(@Nullable final Address address, final Coin amount,
-            @Nullable ExchangeRate exchangeRate) {
+            @Nullable ExchangeRate exchangeRate, final boolean allowApiSession) {
+        // BUG FIX #1: Gate coins-received notification by data source
+        // In API_SESSION mode, suppress notification + sound to avoid spurious alerts
+        // during snapshot refresh
+        if (currentUiDataSource == DataSource.API_SESSION && !allowApiSession) {
+            log.info("UI[sid={}] coinsReceivedNotify: suppressed source=API_SESSION amount={}",
+                    FASTBOOT_SESSION_ID, amount != null ? amount.toFriendlyString() : "null");
+            return;
+        }
+        log.info("UI[sid={}] coinsReceivedNotify: allowed source={} amount={}",
+                FASTBOOT_SESSION_ID,
+                currentUiDataSource != null ? currentUiDataSource.name() : "unknown",
+                amount != null ? amount.toFriendlyString() : "null");
+
         if (notificationCount == 1)
             nm.cancel(Constants.NOTIFICATION_ID_COINS_RECEIVED);
 
@@ -632,6 +653,70 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
                 stopPeerGroup(application.getWallet(), "sync_mode_changed");
                 // Re-initialize the pipeline with the new mode
                 initSyncPipeline();
+            } else if (Configuration.PREFS_KEY_API_BASE_URL.equals(key)
+                    || ExplorerConfig.PREFS_KEY_DEV_API_BASE_URL.equals(key)) {
+                String oldBaseUrl = lastApiBaseUrl != null ? lastApiBaseUrl : ExplorerConfig.getBaseUrl();
+                String newBaseUrl = ExplorerConfig.onExplorerChanged(sharedPreferences);
+                String procName = resolveProcessName();
+                String threadName = Thread.currentThread().getName();
+                log.info("EXPLORER_SWITCH[sid={}] PREF_CHANGED key={} old={} new={} proc={} thread={}",
+                        FASTBOOT_SESSION_ID, key, oldBaseUrl, newBaseUrl, procName, threadName);
+
+                if (ExplorerConfig.consumeSuppressNextPreferenceHandling()) {
+                    lastApiBaseUrl = newBaseUrl;
+                    log.info("EXPLORER_SWITCH[sid={}] suppressed=true baseUrl={}", FASTBOOT_SESSION_ID, newBaseUrl);
+                    return;
+                }
+
+                if (newBaseUrl.equals(oldBaseUrl)) {
+                    log.info("EXPLORER_SWITCH[sid={}] ignored: same URL {}", FASTBOOT_SESSION_ID, newBaseUrl);
+                    lastApiBaseUrl = newBaseUrl;
+                    return;
+                }
+
+                ExplorerConfig.beginExplorerSwitchIfNeeded(oldBaseUrl, newBaseUrl);
+                lastApiBaseUrl = newBaseUrl;
+
+                de.schildbach.wallet.data.api.UtxoSnapshotRunner.SnapshotState snapshotState = null;
+                if (utxoSnapshotRunner != null) {
+                    snapshotState = utxoSnapshotRunner.getState();
+                }
+                boolean overlayActive = false;
+                if (snapshotState == de.schildbach.wallet.data.api.UtxoSnapshotRunner.SnapshotState.RUNNING
+                        || snapshotState == de.schildbach.wallet.data.api.UtxoSnapshotRunner.SnapshotState.READY) {
+                    overlayActive = true;
+                }
+                if (currentUiDataSource == DataSource.API_SESSION) {
+                    overlayActive = true;
+                }
+                if (fastBootState == FastBootState.RUNNING) {
+                    overlayActive = true;
+                }
+
+                boolean aborting = overlayActive && utxoSnapshotRunner != null;
+                log.info("EXPLORER_SWITCH[sid={}] overlayActive={} snapshotState={} aborting={}",
+                        FASTBOOT_SESSION_ID,
+                        overlayActive,
+                        snapshotState != null ? snapshotState.name() : "null",
+                        aborting);
+
+                if (!overlayActive) {
+                    return;
+                }
+
+                if (aborting) {
+                    utxoSnapshotRunner.abortForExplorerSwitch();
+                }
+
+                String appliedBaseUrl = ExplorerConfig.getBaseUrl();
+                rebuildApiClients(appliedBaseUrl, "explorer_switch");
+                log.info("EXPLORER_SWITCH[sid={}] REBUILD_CLIENTS walletBaseUrl={} headerBaseUrl={}",
+                        FASTBOOT_SESSION_ID, appliedBaseUrl, appliedBaseUrl);
+
+                if (utxoSnapshotRunner != null) {
+                    log.info("FAST_SNAPSHOT[sid={}] RESTART reason=explorer_switch_restart", FASTBOOT_SESSION_ID);
+                    utxoSnapshotRunner.startAttemptWindow("explorer_switch_restart");
+                }
             }
         }
 
@@ -1368,6 +1453,50 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
 
         application = (WalletApplication) getApplication();
         config = application.getConfiguration();
+        ExplorerConfig.setSessionId(FASTBOOT_SESSION_ID);
+
+        // BUG FIX #6: Register overlay state callback for explorer switch visibility
+        // logging
+        ExplorerConfig.setOverlayStateCallback(new ExplorerConfig.OverlayStateCallback() {
+            @Override
+            public boolean isOverlayActive() {
+                // Overlay is active if ANY of these conditions are true:
+                // 1. fastBootState == RUNNING
+                // 2. snapshotState == RUNNING or READY
+                // 3. currentUiDataSource == API_SESSION
+                if (fastBootState == FastBootState.RUNNING) {
+                    return true;
+                }
+                if (utxoSnapshotRunner != null) {
+                    UtxoSnapshotRunner.SnapshotState ss = utxoSnapshotRunner.getState();
+                    if (ss == UtxoSnapshotRunner.SnapshotState.RUNNING ||
+                            ss == UtxoSnapshotRunner.SnapshotState.READY) {
+                        return true;
+                    }
+                }
+                if (currentUiDataSource == DataSource.API_SESSION) {
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public String getOverlayStateSnapshot() {
+                String fs = fastBootState != null ? fastBootState.name() : "null";
+                String ss = "IDLE";
+                if (utxoSnapshotRunner != null) {
+                    UtxoSnapshotRunner.SnapshotState state = utxoSnapshotRunner.getState();
+                    ss = state != null ? state.name() : "null";
+                }
+                // pow status: SUCCEEDED, ATTEMPTED, or NONE
+                String pow = fastApiBootstrapSucceeded ? "SUCCEEDED"
+                        : (fastApiBootstrapAttempted ? "ATTEMPTED" : "NONE");
+                return "fast=" + fs + ", snapshot=" + ss + ", pow=" + pow;
+            }
+        });
+
+        lastApiBaseUrl = ExplorerConfig.getExplorerBaseUrl();
+        log.info("API_BASE_URL[sid={}] applied={} reason=startup_load", FASTBOOT_SESSION_ID, lastApiBaseUrl);
         // Wallet is NOT loaded here yet. It will be loaded in startAfterBootstrapAsync.
         // final Wallet wallet = application.getWallet();
         selectedSyncMode = config.getSyncMode();
@@ -1378,6 +1507,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         emitWalletUsabilityState("service_onCreate");
 
         peerConnectivityListener = new PeerConnectivityListener();
+        log.info("EXPLORER_SWITCH[sid={}] listenerRegistered=true prefs=default", FASTBOOT_SESSION_ID);
 
         broadcastPeerState(0);
 
@@ -2161,7 +2291,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         log.info("[FAST-BOOT] switchSyncMode(): {}", mode);
 
         // Clear session tracking when switching modes
-        lastSeenIncomingConfirmedTxIds.clear();
+        lastSeenIncomingConfirmedOutpoints.clear();
 
         final boolean fastDisabledThisSession = mode == SyncMode.FAST_API_10POW
                 && FASTBOOT_SESSION_STATE.get() == FastBootState.DISABLED_SESSION;
@@ -2208,12 +2338,21 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         return uiRouter;
     }
 
+    /**
+     * Objective C: Always allow opening Send screen regardless of balance.
+     * Actual balance checks happen at send submit time.
+     */
     public boolean canOpenSendScreen() {
-        if (uiRouter != null) {
-            return uiRouter.getUiState().canSend;
-        }
-        // Fallback
-        return WalletReadiness.isWalletReady(application, getBlockchainState());
+        // Log the tap for debugging (Objective C required logging)
+        boolean sessionReady = (sessionWallet != null && sessionWallet.isReady());
+        Coin spendable = sessionReady ? sessionWallet.getSpendableBalance() : Coin.ZERO;
+        Coin total = sessionReady ? sessionWallet.getBalance() : Coin.ZERO;
+
+        log.info("UI_HOME_SEND_TAP src=BlockchainServiceImpl sessionReady={} spendable={} total={}",
+                sessionReady, spendable.toFriendlyString(), total.toFriendlyString());
+
+        // ALWAYS return true - Send button is always clickable
+        return true;
     }
 
     private void maybeSwitchUiSource() {
@@ -2250,27 +2389,18 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         if (sessionWallet == null || !sessionWallet.isReady())
             return;
 
-        List<ApiSessionWallet.SessionTxItem> history = sessionWallet.getHistory();
-        if (history == null)
+        List<de.schildbach.wallet.data.api.SessionUtxo> newIncoming = sessionWallet
+                .drainNewConfirmedIncomingUtxos();
+        if (newIncoming == null || newIncoming.isEmpty()) {
             return;
+        }
 
-        for (ApiSessionWallet.SessionTxItem tx : history) {
-            // Criteria: Incoming, Confirmed or 0-conf (if robust), Not previously
-            // seen/notified
-            // Rule: "Notify... with confirmations == 0 or >0... timestamp >
-            // lastNotified..."
-            // SeenIncomingTxStore handles the "newness" check.
-            if (tx.valueDelta.signum() > 0) {
-                // Check persistent store
-                if (de.schildbach.wallet.data.api.SeenIncomingTxStore.shouldNotifyAndMark(getApplicationContext(),
-                        tx.txId, tx.timeMs)) {
-                    // Play sound
-                    log.info("SFX[sid={}] coins_received txid={} conf={} (NEW persistent)", FASTBOOT_SESSION_ID,
-                            tx.txId, tx.confirmations);
-
-                    // Simple trigger:
-                    handler.post(() -> notifyCoinsReceived(null, tx.valueDelta, null));
-                }
+        for (de.schildbach.wallet.data.api.SessionUtxo utxo : newIncoming) {
+            String outpoint = utxo.getKey();
+            if (lastSeenIncomingConfirmedOutpoints.add(outpoint)) {
+                log.info("SOUND_TRIGGER[sid={}] outpoint={} amount={}",
+                        FASTBOOT_SESSION_ID, outpoint, utxo.value.toPlainString());
+                handler.post(() -> notifyCoinsReceived(null, utxo.value, null, true));
             }
         }
     }
@@ -3242,6 +3372,11 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         return walletUsabilityLiveData;
     }
 
+    public void requestUiRefresh(final String reason) {
+        log.info("UI-REFRESH[sid={}] reason={}", FASTBOOT_SESSION_ID, reason);
+        emitWalletUsabilityState(reason);
+    }
+
     /**
      * Throttled UI state emission entry point.
      * Coalesces rapid state changes within UI_STATE_THROTTLE_MS to prevent UI spam
@@ -3259,6 +3394,19 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     private void doEmitWalletUsabilityState(final String reason) {
         final BlockchainService.WalletUsabilityState state = computeWalletUsabilityState(reason);
         walletUsabilityLiveData.postValue(state);
+
+        // Objective B: UI_REFRESH_TRIGGER log
+        log.info("UI_REFRESH_TRIGGER reason={} screen=Home balance={}", reason,
+                (state != null) ? state.sessionBalance : "unknown");
+
+        // Objective B: Optional extra emission for immediate UI refresh if reason is
+        // SESSION_WALLET_CHANGED
+        if ("SESSION_WALLET_CHANGED".equals(reason)) {
+            final Intent broadcast = new Intent(ACTION_API_SESSION_CHANGED);
+            broadcast.setPackage(getPackageName());
+            LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+            log.info("API_SESSION_CHANGED emit reason=SESSION_WALLET_CHANGED");
+        }
 
         final BlockchainService.WalletUsabilityState prev = lastEmittedUsabilityState;
         if (prev == null || !prev.equivalentForLog(state)) {
@@ -3279,8 +3427,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     }
 
     /**
-     * Fix D helper removed - handled by SeenIncomingTxStore in
-     * checkApiIncomingSound
+     * Incoming sound handled by in-memory outpoint dedupe in checkApiIncomingSound.
      */
 
     /**
@@ -3384,10 +3531,19 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
                     sendEnabled, decidedSource, spvBalance.toFriendlyString());
         }
 
-        // Fix C: Determine if history changed by comparing counts
+        // Fix C: Determine if history changed by comparing counts and content
+        // (isSelfSend/confirmations)
         int currentHistoryCount = (sessionHistory != null) ? sessionHistory.size() : 0;
-        boolean historyChanged = (currentHistoryCount != lastHistoryCount);
+        int currentHistoryHash = 0;
+        if (sessionHistory != null) {
+            for (de.schildbach.wallet.data.api.ApiSessionWallet.SessionTxItem item : sessionHistory) {
+                currentHistoryHash = 31 * currentHistoryHash
+                        + (item.txId.hashCode() ^ item.confirmations ^ (item.isSelfSend ? 1 : 0));
+            }
+        }
+        boolean historyChanged = (currentHistoryCount != lastHistoryCount) || (currentHistoryHash != lastHistoryHash);
         lastHistoryCount = currentHistoryCount;
+        lastHistoryHash = currentHistoryHash;
 
         return new BlockchainService.WalletUsabilityState(
                 runnerState.name(),
@@ -3553,6 +3709,115 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
         delayHandler.postDelayed(autoRefreshRunnable, 30000);
     }
 
+    private String resolveApiBaseUrl(@Nullable String baseUrl) {
+        String resolved = (baseUrl == null || baseUrl.isEmpty())
+                ? ExplorerConfig.getExplorerBaseUrl()
+                : baseUrl;
+        return resolved.endsWith("/") ? resolved.substring(0, resolved.length() - 1) : resolved;
+    }
+
+    private String resolveProcessName() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                String name = android.app.Application.getProcessName();
+                if (name != null) {
+                    return name;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            int pid = Process.myPid();
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+                if (procs != null) {
+                    for (ActivityManager.RunningAppProcessInfo proc : procs) {
+                        if (proc.pid == pid) {
+                            return proc.processName;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "unknown";
+    }
+
+    private de.schildbach.wallet.data.api.UtxoSnapshotRunner.Listener createSnapshotListener() {
+        return new de.schildbach.wallet.data.api.UtxoSnapshotRunner.Listener() {
+            @Override
+            public void onSnapshotStateChanged(
+                    de.schildbach.wallet.data.api.UtxoSnapshotRunner.SnapshotState newState) {
+                log.info("FASTBOOT[sid={}] Snapshot state changed to {}", FASTBOOT_SESSION_ID, newState);
+                // Determine if we need to switch UI source
+                maybeSwitchUiSource();
+            }
+
+            @Override
+            public void onDataUpdated() {
+                // Task C: Immediate History/Balance refresh on data arrival
+                log.info("FASTBOOT[sid={}] Snapshot data updated -> emitting usability state", FASTBOOT_SESSION_ID);
+                log.info("UI-REFRESH[sid={}] reason=SNAPSHOT_READY", FASTBOOT_SESSION_ID);
+
+                // TASK 1: Save balance to cache for immediate display on next app start
+                if (sessionWallet != null) {
+                    Coin available = sessionWallet.getBalance();
+                    Coin spendable = sessionWallet.getSpendableBalance();
+                    Coin pending = available.subtract(spendable);
+                    LastKnownSessionCache.save(BlockchainServiceImpl.this, available, spendable, pending,
+                            sessionWallet.utxoCount(), sessionWallet.getHistory());
+
+                    boolean ready = sessionWallet.isReady();
+                    String reason = ready ? "SNAPSHOT_READY" : "SNAPSHOT_PARTIAL";
+                    log.info(
+                            "BALANCE_UI_PUSH sid={} source=API_SESSION lastKnownAvailable={} lastKnownSpendable={} ready={} reason={}",
+                            FASTBOOT_SESSION_ID,
+                            available.toFriendlyString(),
+                            spendable.toFriendlyString(),
+                            ready,
+                            reason);
+                }
+
+                maybeSwitchUiSource(); // Ensure routing is correct
+                // Bug B: Use SNAPSHOT_CHANGED reason for immediate balance UI refresh
+                emitWalletUsabilityState("SNAPSHOT_CHANGED");
+            }
+        };
+    }
+
+    private void rebuildApiClients(@Nullable String baseUrl, String reason) {
+        if (sessionWallet == null || application == null) {
+            log.warn("API_BASE_URL[sid={}] applied=SKIPPED reason={} ex={} msg={}",
+                    FASTBOOT_SESSION_ID, reason, IllegalStateException.class.getSimpleName(),
+                    "sessionWallet or application is null");
+            return;
+        }
+        String appliedBaseUrl = resolveApiBaseUrl(baseUrl);
+        log.info("API_BASE_URL[sid={}] applied={} reason={}", FASTBOOT_SESSION_ID, appliedBaseUrl, reason);
+
+        de.schildbach.wallet.data.api.ApiWalletClient client = new de.schildbach.wallet.data.api.ApiWalletClient(
+                appliedBaseUrl);
+        client.setSessionIdForLogs(FASTBOOT_SESSION_ID);
+        de.schildbach.wallet.data.api.ApiHeaderClient headerClient = new de.schildbach.wallet.data.api.ApiHeaderClient(
+                appliedBaseUrl);
+        headerClient.setSessionIdForLogs(FASTBOOT_SESSION_ID);
+
+        if (utxoSnapshotRunner == null) {
+            de.schildbach.wallet.data.api.ApiWalletSnapshotBootstrapper bootstrapper = new de.schildbach.wallet.data.api.ApiWalletSnapshotBootstrapper(
+                    client, headerClient, config, Constants.NETWORK_PARAMETERS);
+            bootstrapper.setSessionIdForLogs(FASTBOOT_SESSION_ID);
+
+            utxoSnapshotRunner = new de.schildbach.wallet.data.api.UtxoSnapshotRunner(client, sessionWallet,
+                    application.getWallet(), bootstrapper);
+            utxoSnapshotRunner.setSessionId(FASTBOOT_SESSION_ID);
+            utxoSnapshotRunner.setContext(this); // For overlay address access
+            utxoSnapshotRunner.setListener(createSnapshotListener());
+        } else {
+            utxoSnapshotRunner.updateWalletClient(client);
+        }
+    }
+
     // Unified UI Router for Send Gating (Task B) - REMOVED DUPLICATE
     // public boolean canOpenSendScreen() { ... } derived from earlier tool call
 
@@ -3581,6 +3846,10 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
 
             if (cacheValid) {
                 sessionWallet.setCachedBalance(cachedBalance.available, cachedBalance.spendable);
+                // Restore history from cache
+                sessionWallet.initializeHistory(cachedBalance.history);
+                log.info("[history] CACHE_HISTORY_LOAD items="
+                        + (cachedBalance.history != null ? cachedBalance.history.size() : 0));
             }
 
             // Task B: Publish last-known snapshot immediately after journal load
@@ -3589,57 +3858,8 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
             handler.post(() -> emitWalletUsabilityState("session_wallet_init_cached"));
         }
         if (utxoSnapshotRunner == null) {
-            de.schildbach.wallet.data.api.ApiWalletClient client = new de.schildbach.wallet.data.api.ApiWalletClient(
-                    config.getApiBaseUrl());
-            de.schildbach.wallet.data.api.ApiHeaderClient headerClient = new de.schildbach.wallet.data.api.ApiHeaderClient(
-                    config.getApiBaseUrl());
-            headerClient.setSessionIdForLogs(FASTBOOT_SESSION_ID);
-
-            de.schildbach.wallet.data.api.ApiWalletSnapshotBootstrapper bootstrapper = new de.schildbach.wallet.data.api.ApiWalletSnapshotBootstrapper(
-                    client, headerClient, config, Constants.NETWORK_PARAMETERS);
-            bootstrapper.setSessionIdForLogs(FASTBOOT_SESSION_ID);
-
-            utxoSnapshotRunner = new de.schildbach.wallet.data.api.UtxoSnapshotRunner(client, sessionWallet,
-                    application.getWallet(), bootstrapper);
-            utxoSnapshotRunner.setSessionId(FASTBOOT_SESSION_ID);
-            utxoSnapshotRunner.setContext(this); // For overlay address access
-            utxoSnapshotRunner.setListener(new de.schildbach.wallet.data.api.UtxoSnapshotRunner.Listener() {
-                @Override
-                public void onSnapshotStateChanged(
-                        de.schildbach.wallet.data.api.UtxoSnapshotRunner.SnapshotState newState) {
-                    log.info("FASTBOOT[sid={}] Snapshot state changed to {}", FASTBOOT_SESSION_ID, newState);
-                    // Determine if we need to switch UI source
-                    maybeSwitchUiSource();
-                }
-
-                @Override
-                public void onDataUpdated() {
-                    // Task C: Immediate History/Balance refresh on data arrival
-                    log.info("FASTBOOT[sid={}] Snapshot data updated -> emitting usability state", FASTBOOT_SESSION_ID);
-
-                    // TASK 1: Save balance to cache for immediate display on next app start
-                    if (sessionWallet != null) {
-                        Coin available = sessionWallet.getBalance();
-                        Coin spendable = sessionWallet.getSpendableBalance();
-                        Coin pending = Coin.ZERO; // Pending calculated separately if needed
-                        LastKnownSessionCache.save(BlockchainServiceImpl.this, available, spendable, pending,
-                                sessionWallet.utxoCount());
-
-                        boolean ready = sessionWallet.isReady();
-                        String reason = ready ? "SNAPSHOT_READY" : "SNAPSHOT_PARTIAL";
-                        log.info(
-                                "BALANCE_UI_PUSH sid={} source=API_SESSION lastKnownAvailable={} lastKnownSpendable={} ready={} reason={}",
-                                FASTBOOT_SESSION_ID,
-                                available.toFriendlyString(),
-                                spendable.toFriendlyString(),
-                                ready,
-                                reason);
-                    }
-
-                    maybeSwitchUiSource(); // Ensure routing is correct
-                    emitWalletUsabilityState("api_data_updated");
-                }
-            });
+            String baseUrl = (lastApiBaseUrl != null) ? lastApiBaseUrl : ExplorerConfig.getExplorerBaseUrl();
+            rebuildApiClients(baseUrl, "session_wallet_init");
             dataSourceRouter = new de.schildbach.wallet.service.DataSourceRouter(FASTBOOT_SESSION_ID);
         }
     }
@@ -3651,6 +3871,11 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
     private void loadJournalIntoSessionWallet() {
         if (sessionWallet == null)
             return;
+        if (journalApplied) {
+            log.info("JOURNAL_LOAD[sid={}] skipped reason=already_applied", FASTBOOT_SESSION_ID);
+            return;
+        }
+        journalApplied = true;
 
         try {
             java.util.List<de.schildbach.wallet.data.api.OutgoingTxJournal.JournalEntry> entries = de.schildbach.wallet.data.api.OutgoingTxJournal
@@ -3665,6 +3890,7 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
 
             int spentLocks = 0;
             int historyEntries = 0;
+            int localChangeUtxos = 0;
 
             for (de.schildbach.wallet.data.api.OutgoingTxJournal.JournalEntry entry : entries) {
                 // Apply spent locks
@@ -3680,20 +3906,27 @@ public class BlockchainServiceImpl extends LifecycleService implements Blockchai
                         org.bitcoinj.core.Coin.valueOf(-entry.amountSat), // Negative for outgoing
                         0, // confirmations = 0 initially (will be updated by snapshot)
                         de.schildbach.wallet.data.api.ApiSessionWallet.TxDirection.SENT,
-                        true // pending = true
+                        true, // pending = true
+                        entry.amountSat == 0 // isSelfSend
                 );
 
                 // Add to session wallet history (merge-safe via internal tracking)
                 sessionWallet.addJournalHistoryEntry(historyItem);
                 historyEntries++;
+
+                if (entry.changeOutpoints != null && !entry.changeOutpoints.isEmpty()) {
+                    localChangeUtxos += sessionWallet.addLocalChangeFromJournal(entry.changeOutpoints);
+                }
             }
 
             log.info("OUTGOING_TX_JOURNAL applyLocks outpoints={}", spentLocks);
-            log.info("HISTORY-MERGE sentAdded={} changeHidden=0", historyEntries);
-            log.info("JOURNAL_LOAD[sid={}] complete entries={} spentLocks={} historyEntries={}",
-                    FASTBOOT_SESSION_ID, entries.size(), spentLocks, historyEntries);
+            log.info("OUTGOING_TX_JOURNAL applyLocalChange utxos={}", localChangeUtxos);
+            log.info("HISTORY-MERGE sentAdded={} localChangeAdded={}", historyEntries, localChangeUtxos);
+            log.info("JOURNAL_LOAD[sid={}] complete entries={} spentLocks={} historyEntries={} localChangeUtxos={}",
+                    FASTBOOT_SESSION_ID, entries.size(), spentLocks, historyEntries, localChangeUtxos);
         } catch (Exception e) {
-            log.warn("JOURNAL_LOAD[sid={}] failed: {}", FASTBOOT_SESSION_ID, e.getMessage());
+            log.warn("JOURNAL_LOAD[sid={}] failed ex={} msg={}",
+                    FASTBOOT_SESSION_ID, e.getClass().getSimpleName(), e.getMessage());
         }
     }
 

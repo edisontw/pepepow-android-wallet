@@ -236,11 +236,11 @@
     <string name="preferences_category_labs">Εργαστήρια</string>
     <string name="preferences_precision_title">Ονομασία και ακρίβεια</string>
     <string name="preferences_precision_summary">Μονάδα απεικόνισης ποσών. Δεν επηρεάζει τους υπολογισμούς.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 δεκαδικά σημεία</string>
-    <string name="preferences_precision_labels_6">DASH, 6 δεκαδικά σημεία</string>
-    <string name="preferences_precision_labels_4">DASH, 4 δεκαδικά σημεία</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 δεκαδικά σημεία</string>
-    <string name="preferences_precision_labels_0_6">μDASH, χωρίς δεκαδικά σημεία</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 δεκαδικά σημεία</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 δεκαδικά σημεία</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 δεκαδικά σημεία</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 δεκαδικά σημεία</string>
+    <string name="preferences_precision_labels_0_6">μPEPEPOW, χωρίς δεκαδικά σημεία</string>
     <string name="preferences_own_name_title">Το όνομά σας</string>
     <string name="preferences_own_name_summary">Ονομάστε τον εαυτό σας για να προστεθεί στις εντολές πληρωμής. Προσπαθήστε να είναι μικρό το όνομα.</string>
     <string name="preferences_send_coins_autoclose_title">Αυτόματο-κλείσιμο διαλόγου αποστολής νομισμάτων</string>

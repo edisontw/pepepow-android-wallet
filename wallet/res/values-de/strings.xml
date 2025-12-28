@@ -255,11 +255,11 @@
     <string name="preferences_category_labs">Labor</string>
     <string name="preferences_precision_title">Stückelung und Genauigkeit</string>
     <string name="preferences_precision_summary">Maßeinheit für die Anzeige von Werten. Dies beeinflußt keine Berechnungen.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 Dezimalen</string>
-    <string name="preferences_precision_labels_6">DASH, 6 Dezimalen</string>
-    <string name="preferences_precision_labels_4">DASH, 4 Dezimalen</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 Dezimalen</string>
-    <string name="preferences_precision_labels_0_6">µDASH, keine Dezimalen</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 Dezimalen</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 Dezimalen</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 Dezimalen</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 Dezimalen</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, keine Dezimalen</string>
     <string name="preferences_own_name_title">Eigener Name</string>
     <string name="preferences_own_name_summary">Dein eigener Name, der zu Zahlungsanforderungen hinzugefügt wird. Versuche ihn kurz zu halten.</string>
     <string name="preferences_send_coins_autoclose_title">Coin-Versandformular automatisch beenden</string>

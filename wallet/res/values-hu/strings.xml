@@ -215,11 +215,11 @@
 	<string name="preferences_category_labs">Labor</string>
 	<string name="preferences_precision_title">Pontosítás és egyszerűsítés</string>
 	<string name="preferences_precision_summary">Egység, amelyben mutatja az összeget. Ez nem érinti a számításokat.</string>
-	<string name="preferences_precision_labels_8">DASH, 8 tizedeshely</string>
-	<string name="preferences_precision_labels_6">DASH, 6 tizedeshely</string>
-	<string name="preferences_precision_labels_4">DASH, 4 tizedeshely</string>
-	<string name="preferences_precision_labels_2_3">mDASH, 2 tizedeshely</string>
-	<string name="preferences_precision_labels_0_6">µDASH, nincs tizedeshely</string>
+	<string name="preferences_precision_labels_8">PEPEPOW, 8 tizedeshely</string>
+	<string name="preferences_precision_labels_6">PEPEPOW, 6 tizedeshely</string>
+	<string name="preferences_precision_labels_4">PEPEPOW, 4 tizedeshely</string>
+	<string name="preferences_precision_labels_2_3">mPEPEPOW, 2 tizedeshely</string>
+	<string name="preferences_precision_labels_0_6">µPEPEPOW, nincs tizedeshely</string>
 	<string name="preferences_own_name_title">Saját név</string>
 	<string name="preferences_own_name_summary">Saját elnevezésed, ami a fizetési kérelemhez adódik. Próbáld röviden.</string>
 	<string name="preferences_connectivity_notification_title">Kapcsolódásjelző</string>

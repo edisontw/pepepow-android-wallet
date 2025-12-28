@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Labs</string>
     <string name="preferences_precision_title">Деноминация и прецизност</string>
     <string name="preferences_precision_summary">Единица за показване на наличност. Това не засяга изчисляването.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 десетични знака</string>
-    <string name="preferences_precision_labels_6">DASH, 6 десетични знака</string>
-    <string name="preferences_precision_labels_4">DASH, 4 десетични знака</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 десетични знака</string>
-    <string name="preferences_precision_labels_0_6">µDASH, без десетични знаци</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 десетични знака</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 десетични знака</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 десетични знака</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 десетични знака</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, без десетични знаци</string>
     <string name="preferences_own_name_title">Собствено име</string>
     <string name="preferences_own_name_summary">Вашето име , ще бъде добавено към заявката за плащане. Опитайте се да бъде кратко.</string>
     <string name="preferences_send_coins_autoclose_title">Автоматично затваряне на диалоговия прозорец</string>

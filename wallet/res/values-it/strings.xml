@@ -254,11 +254,11 @@
     <string name="preferences_category_labs">Laboratori</string>
     <string name="preferences_precision_title">Denominazione e precisione</string>
     <string name="preferences_precision_summary">Unità per mostrare gli importi. Questo non effettua calcoli.</string>
-    <string name="preferences_precision_labels_8">DASH, 8 decimali</string>
-    <string name="preferences_precision_labels_6">DASH, 6 decimali</string>
-    <string name="preferences_precision_labels_4">DASH, 4 decimali</string>
-    <string name="preferences_precision_labels_2_3">mDASH, 2 decimali</string>
-    <string name="preferences_precision_labels_0_6">µDASH, no decimali</string>
+    <string name="preferences_precision_labels_8">PEPEPOW, 8 decimali</string>
+    <string name="preferences_precision_labels_6">PEPEPOW, 6 decimali</string>
+    <string name="preferences_precision_labels_4">PEPEPOW, 4 decimali</string>
+    <string name="preferences_precision_labels_2_3">mPEPEPOW, 2 decimali</string>
+    <string name="preferences_precision_labels_0_6">µPEPEPOW, no decimali</string>
     <string name="preferences_own_name_title">Nome</string>
     <string name="preferences_own_name_summary">Aggiungi Il tuo nome alle richieste di pagamento. Prova a mantenerlo corto.</string>
     <string name="preferences_send_coins_autoclose_title">Ciudi automaticamente la finestra di invio "coins"</string>

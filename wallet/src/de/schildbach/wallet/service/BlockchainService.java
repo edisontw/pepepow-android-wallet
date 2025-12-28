@@ -49,6 +49,11 @@ public interface BlockchainService {
                         + ".broadcast_transaction";
         public static final String ACTION_BROADCAST_TRANSACTION_HASH = "hash";
 
+        // Action broadcast when API session state changes (snapshot merge, tx commit,
+        // etc.)
+        public static final String ACTION_API_SESSION_CHANGED = BlockchainService.class.getPackage().getName()
+                        + ".api_session_changed";
+
         BlockchainState getBlockchainState();
 
         @Nullable

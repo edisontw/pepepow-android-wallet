@@ -36,7 +36,22 @@ public class ApiSessionWallet {
     private final NetworkParameters params;
     // Map key: "txid:index"
     private final Map<String, SessionUtxo> utxos = new HashMap<>();
-    private String sessionId = "UNKNOWN";
+    // API-derived confirmed UTXOs
+    private final Map<String, SessionUtxo> apiUtxos = new HashMap<>();
+    // Local-derived change UTXOs (in-memory only)
+    private final Map<String, LocalChangeUtxo> localChangeUtxos = new HashMap<>();
+    private String sessionId = "--------";
+    private int lastHistoryHash = 0;
+
+    private static class LocalChangeUtxo {
+        final SessionUtxo utxo;
+        boolean spendable;
+
+        LocalChangeUtxo(SessionUtxo utxo, boolean spendable) {
+            this.utxo = utxo;
+            this.spendable = spendable;
+        }
+    }
 
     private boolean ready = false;
     private Coin cachedBalance = Coin.ZERO;
@@ -46,6 +61,9 @@ public class ApiSessionWallet {
     // Owned addresses for isMine detection (base58 strings)
     // Populated from snapshot addresses + registered change addresses
     private final Set<String> ownedAddresses = new HashSet<>();
+
+    // Newly confirmed incoming outpoints (for sound trigger)
+    private final List<SessionUtxo> newlyConfirmedIncoming = new ArrayList<>();
 
     // Application context for persistence operations
     @Nullable
@@ -57,6 +75,10 @@ public class ApiSessionWallet {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public synchronized String getSessionId() {
+        return sessionId;
     }
 
     public synchronized void setCachedBalance(Coin available, Coin spendable) {
@@ -118,25 +140,27 @@ public class ApiSessionWallet {
     public static class SessionTxItem {
         public final String txId;
         public final long timeMs;
-        public final Coin valueDelta;
-        public final int confirmations;
-        public final TxDirection direction;
-        public final boolean pending;
+        public Coin valueDelta;
+        public int confirmations;
+        public TxDirection direction;
+        public boolean pending;
+        public boolean isSelfSend;
 
         public SessionTxItem(String txId, long timeMs, Coin valueDelta, int confirmations) {
             this(txId, timeMs, valueDelta, confirmations,
                     valueDelta.isNegative() ? TxDirection.SENT : TxDirection.RECEIVED,
-                    confirmations == 0);
+                    confirmations == 0, false);
         }
 
         public SessionTxItem(String txId, long timeMs, Coin valueDelta, int confirmations,
-                TxDirection direction, boolean pending) {
+                TxDirection direction, boolean pending, boolean isSelfSend) {
             this.txId = txId;
             this.timeMs = timeMs;
             this.valueDelta = valueDelta;
             this.confirmations = confirmations;
             this.direction = direction;
             this.pending = pending;
+            this.isSelfSend = isSelfSend;
         }
     }
 
@@ -146,6 +170,23 @@ public class ApiSessionWallet {
 
     public synchronized List<SessionTxItem> getHistory() {
         return new ArrayList<>(history);
+    }
+
+    /**
+     * Initialize history from cache on startup.
+     */
+    public synchronized void initializeHistory(List<SessionTxItem> cachedHistory) {
+        if (cachedHistory == null || cachedHistory.isEmpty())
+            return;
+
+        history.clear();
+        historyByTxId.clear();
+        for (SessionTxItem item : cachedHistory) {
+            history.add(item);
+            historyByTxId.put(item.txId, item);
+        }
+        // Objective B: Mandatory logging for cached history loading
+        log.info("SESSION-WALLET[sid={}] initializeHistory loaded={} items from cache", sessionId, history.size());
     }
 
     /**
@@ -184,21 +225,124 @@ public class ApiSessionWallet {
         recalculateBalances();
     }
 
+    public synchronized void unlockOutpoint(String outpoint) {
+        if (lockedOutpoints.remove(outpoint)) {
+            recalculateBalances();
+        }
+    }
+
+    public static class CommitResult {
+        public final int lockedInputsAdded;
+        public final List<OutgoingTxJournal.ChangeOutpoint> localChangeOutpoints;
+
+        CommitResult(int lockedInputsAdded, List<OutgoingTxJournal.ChangeOutpoint> localChangeOutpoints) {
+            this.lockedInputsAdded = lockedInputsAdded;
+            this.localChangeOutpoints = localChangeOutpoints != null ? localChangeOutpoints : new ArrayList<>();
+        }
+    }
+
     public synchronized boolean isOutpointLocked(String outpoint) {
         return lockedOutpoints.contains(outpoint);
     }
 
     private void recalculateBalances() {
+        Coin newTotal = Coin.ZERO;
         Coin newSpendable = Coin.ZERO;
-        for (SessionUtxo u : utxos.values()) {
-            // Filter if spent locally (locked)
+
+        for (SessionUtxo u : apiUtxos.values()) {
             if (lockedOutpoints.contains(u.getKey())) {
                 continue;
             }
+            newTotal = newTotal.add(u.value);
             newSpendable = newSpendable.add(u.value);
         }
+
+        for (LocalChangeUtxo local : localChangeUtxos.values()) {
+            SessionUtxo u = local.utxo;
+            if (lockedOutpoints.contains(u.getKey())) {
+                continue;
+            }
+            newTotal = newTotal.add(u.value);
+            if (local.spendable) {
+                newSpendable = newSpendable.add(u.value);
+            }
+        }
+
+        this.cachedBalance = newTotal;
         this.spendableBalance = newSpendable;
         this.updatedAtMs = System.currentTimeMillis();
+    }
+
+    private void rebuildUtxoView() {
+        utxos.clear();
+        utxos.putAll(apiUtxos);
+        for (LocalChangeUtxo local : localChangeUtxos.values()) {
+            utxos.put(local.utxo.getKey(), local.utxo);
+        }
+    }
+
+    public synchronized boolean isLocalChangeOutpoint(String outpointKey) {
+        return localChangeUtxos.containsKey(outpointKey);
+    }
+
+    public synchronized int getLocalChangeUtxoCount() {
+        return localChangeUtxos.size();
+    }
+
+    public synchronized int getApiUtxoCount() {
+        return apiUtxos.size();
+    }
+
+    public synchronized List<SessionUtxo> drainNewConfirmedIncomingUtxos() {
+        if (newlyConfirmedIncoming.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<SessionUtxo> result = new ArrayList<>(newlyConfirmedIncoming);
+        newlyConfirmedIncoming.clear();
+        return result;
+    }
+
+    private void addLocalChangeUtxo(SessionUtxo utxo, boolean spendable) {
+        localChangeUtxos.put(utxo.getKey(), new LocalChangeUtxo(utxo, spendable));
+        utxos.put(utxo.getKey(), utxo);
+    }
+
+    public synchronized int addLocalChangeFromJournal(List<OutgoingTxJournal.ChangeOutpoint> changeOutpoints) {
+        if (changeOutpoints == null || changeOutpoints.isEmpty()) {
+            return 0;
+        }
+        int added = 0;
+        for (OutgoingTxJournal.ChangeOutpoint change : changeOutpoints) {
+            if (change == null) {
+                continue;
+            }
+            String outpointKey = change.getKey();
+            if (localChangeUtxos.containsKey(outpointKey) || apiUtxos.containsKey(outpointKey)
+                    || utxos.containsKey(outpointKey)) {
+                continue;
+            }
+            try {
+                Address addr = Address.fromString(params, change.address);
+                SessionUtxo utxo = new SessionUtxo(
+                        Sha256Hash.wrap(change.txid),
+                        change.vout,
+                        Coin.valueOf(change.valueSat),
+                        addr,
+                        change.scriptPubKey != null ? change.scriptPubKey : "",
+                        0,
+                        -1);
+                registerOwnedAddress(change.address);
+                addLocalChangeUtxo(utxo, true);
+                added++;
+            } catch (Exception e) {
+                log.warn("SESSION-WALLET[sid={}] addLocalChangeFromJournal failed ex={} msg={}",
+                        sessionId, e.getClass().getSimpleName(), e.getMessage());
+            }
+        }
+        if (added > 0) {
+            recalculateBalances();
+        }
+        return added;
     }
 
     /**
@@ -243,34 +387,40 @@ public class ApiSessionWallet {
 
         // Check for duplicate / update existing
         if (historyByTxId.containsKey(item.txId)) {
+            // Objective C: Self-send classification stability
+            // If txid is in outgoingJournal AND snapshot indicates outputsToUs -> SELF (net
+            // 0)
+            boolean isJournalSent = isTxInJournal(item.txId);
+            boolean isSelf = false;
+
+            if (isJournalSent && item.direction == TxDirection.RECEIVED) {
+                // If it was sent by us (in journal) but API says RECEIVED (outputs to us), it's
+                // a SELF send
+                isSelf = true;
+                log.info("HISTORY_CLASSIFY txid={} journalOut=true outputsToUs=true -> SELF net=0", item.txId);
+            }
+
             SessionTxItem existing = historyByTxId.get(item.txId);
-            // Deduplication logic:
-            // If existing is less informative (e.g. 0 conf) and new one has more info?
-            // Usually journal loads first, then API.
-            // But if journal reloads?
-            // Merge logic: keep max confirmations.
-            int conf = Math.max(existing.confirmations, item.confirmations);
-            // If existing was pending/sent and now we have journal info?
-            // Usually they are same source (journal).
-
-            // If confirmations changed, update it.
-            if (conf != existing.confirmations) {
-                SessionTxItem merged = new SessionTxItem(
-                        existing.txId, existing.timeMs, existing.valueDelta,
-                        conf,
-                        existing.direction,
-                        conf == 0);
-
-                // Replace in list
-                int idx = history.indexOf(existing);
-                if (idx >= 0) {
-                    history.set(idx, merged);
+            if (existing != null) {
+                // Update confirmations and block state
+                existing.confirmations = item.confirmations;
+                existing.pending = item.pending;
+                if (isSelf) {
+                    existing.valueDelta = Coin.ZERO;
+                    existing.direction = TxDirection.SENT; // Classify as SENT but value 0 for SELF
+                    existing.isSelfSend = true;
+                    log.info("[history] mark_self_transfer txid=" + item.txId + " journal=true outputsToUs=true");
                 }
-                historyByTxId.put(merged.txId, merged);
                 log.info("SESSION-WALLET[sid={}] journalEntry updated already exists: {} conf={}->{}", sessionId,
-                        item.txId, existing.confirmations, conf);
+                        item.txId, existing.confirmations, item.confirmations);
             } else {
-                log.debug("SESSION-WALLET[sid={}] journal entry already exists: {}", sessionId, item.txId);
+                if (isSelf) {
+                    item.valueDelta = Coin.ZERO;
+                    item.direction = TxDirection.SENT;
+                    item.isSelfSend = true;
+                }
+                history.add(0, item);
+                historyByTxId.put(item.txId, item);
             }
             return;
         }
@@ -279,6 +429,12 @@ public class ApiSessionWallet {
         historyByTxId.put(item.txId, item);
         log.info("SESSION-WALLET[sid={}] journalEntry added txid={} amount={}",
                 sessionId, item.txId, item.valueDelta);
+    }
+
+    private boolean isTxInJournal(String txId) {
+        if (appContext == null)
+            return false;
+        return OutgoingTxJournal.isTxInJournal(appContext, txId);
     }
 
     /**
@@ -370,75 +526,71 @@ public class ApiSessionWallet {
      * Full replacement of UTXO set from API.
      */
     public synchronized boolean updateFromApi(List<SessionUtxo> newUtxos, List<SessionTxItem> newHistory) {
-        Map<String, SessionUtxo> newMap = new HashMap<>();
+        final List<SessionUtxo> apiList = (newUtxos != null) ? newUtxos : new ArrayList<>();
+        final List<SessionTxItem> historyList = (newHistory != null) ? newHistory : new ArrayList<>();
 
-        // Local Spent Tracking: Re-verify locked outpoints against pending transactions
-        // (Clean up locks for confirmed txs if needed, or just keep them until
-        // restart?)
-        // For Route B stabilization: simplistic approach - clear locks that are no
-        // longer referenced by pending?
-        // Or just trust pendingTransactions map.
-        // Actually, we should probably clear lockedOutpoints and rebuild from
-        // pendingTransactions to be safe?
-        // Let's do that to ensure consistency.
-        lockedOutpoints.clear();
-        for (Transaction tx : pendingTransactions.values()) {
-            for (TransactionInput input : tx.getInputs()) {
-                String outpoint = input.getOutpoint().getHash().toString() + ":" + input.getOutpoint().getIndex();
-                lockedOutpoints.add(outpoint);
-            }
-        }
+        final Coin prevTotal = cachedBalance;
+        final Coin prevSpendable = spendableBalance;
+        final int prevHistorySize = history.size();
+        final Set<String> prevApiKeys = new HashSet<>(apiUtxos.keySet());
+        final Set<String> existingKeys = new HashSet<>(utxos.keySet());
 
-        Coin newBalance = Coin.ZERO;
-        Coin newSpendable = Coin.ZERO;
+        Map<String, SessionUtxo> newApi = new HashMap<>();
+        List<SessionUtxo> newConfirmedIncoming = new ArrayList<>();
+        Set<String> seenApiKeys = new HashSet<>();
 
-        for (SessionUtxo u : newUtxos) {
-            newMap.put(u.getKey(), u);
-            newBalance = newBalance.add(u.value);
-
-            // Check lock
-            if (lockedOutpoints.contains(u.getKey())) {
+        for (SessionUtxo u : apiList) {
+            if (u == null) {
                 continue;
             }
-            // RAPID USABILITY: All API UTXOs are considered spendable immediately
-            newSpendable = newSpendable.add(u.value);
+            String key = u.getKey();
+            if (!seenApiKeys.add(key)) {
+                continue;
+            }
+            newApi.put(key, u);
+            if (!existingKeys.contains(key)) {
+                newConfirmedIncoming.add(u);
+            }
         }
 
-        // Note: We are not clearing pendingTransactions here.
-        // Doing so would require checking if they are in the historical tx list (which
-        // we haven't fetched in full detail here, just UTXOs).
-        // For Route B, we assume if we sent it, it stays pending until app restart?
-        // Or we should clear it if we see it propagated?
-        // This is a known limitation for this pass. "Efficiency trade-off".
-        // Pending txs in memory are fleeting (SessionWallet is in-memory).
-        // If app restarts, they are gone, and API truth prevails. Correct.
-
-        boolean changed = !newMap.keySet().equals(this.utxos.keySet());
-        if (!changed) {
-            changed = !newBalance.equals(this.cachedBalance) || !newSpendable.equals(this.spendableBalance);
+        int localRemoved = 0;
+        for (String key : newApi.keySet()) {
+            if (localChangeUtxos.containsKey(key)) {
+                localChangeUtxos.remove(key);
+                localRemoved++;
+            }
         }
 
-        // Check history change (simple size/head check or just assume if UTXOs change,
-        // history might too)
-        if (!changed && newHistory.size() != this.history.size()) {
-            changed = true;
-        }
+        // Compute robust changed flag (Objective B)
+        final boolean balanceChanged = !prevTotal.equals(cachedBalance) || !prevSpendable.equals(spendableBalance);
+        final boolean historySizeChanged = historyList.size() != prevHistorySize;
 
-        this.utxos.clear();
-        this.utxos.putAll(newMap);
+        // Simple history content hash for change detection
+        int historyContentHash = 0;
+        for (SessionTxItem item : historyList) {
+            historyContentHash = 31 * historyContentHash + (item.txId.hashCode() ^ item.confirmations);
+        }
+        boolean historyContentChanged = (historyContentHash != lastHistoryHash);
+        lastHistoryHash = historyContentHash;
+
+        boolean changed = !apiList.isEmpty() && (!newApi.keySet().equals(prevApiKeys) || balanceChanged
+                || historySizeChanged || historyContentChanged || localRemoved > 0);
+
+        apiUtxos.clear();
+        apiUtxos.putAll(newApi);
+        rebuildUtxoView();
+        recalculateBalances();
 
         // Merge API history with existing local history (preserving SENT entries)
         // Build map of incoming API history items
         Map<String, SessionTxItem> apiHistoryMap = new HashMap<>();
-        if (newHistory != null) {
-            for (SessionTxItem item : newHistory) {
-                // Ensure all API-sourced items are marked as RECEIVED (unless already SENT)
-                SessionTxItem withDirection = new SessionTxItem(
-                        item.txId, item.timeMs, item.valueDelta, item.confirmations,
-                        item.valueDelta.isNegative() ? TxDirection.SENT : TxDirection.RECEIVED,
-                        item.confirmations == 0);
-                apiHistoryMap.put(item.txId, withDirection);
-            }
+        for (SessionTxItem item : historyList) {
+            // Ensure all API-sourced items are marked as RECEIVED (unless already SENT)
+            SessionTxItem withDirection = new SessionTxItem(
+                    item.txId, item.timeMs, item.valueDelta, item.confirmations,
+                    item.valueDelta.isNegative() ? TxDirection.SENT : TxDirection.RECEIVED,
+                    item.confirmations == 0, item.isSelfSend);
+            apiHistoryMap.put(item.txId, withDirection);
         }
 
         // Preserve local SENT entries not yet in API response
@@ -470,18 +622,36 @@ public class ApiSessionWallet {
                     // Use API time if confirmed.
                     long time = (apiItem.confirmations > 0 && apiItem.timeMs > 0) ? apiItem.timeMs : localItem.timeMs;
 
+                    Coin localValue = localItem.valueDelta;
+                    Coin apiValue = apiItem.valueDelta;
+                    boolean isSelfSend = false;
+
+                    // Goal C: Canonical self-send detection
+                    // If local SENT is 0 (excluding fee, which is handled in commitTransaction)
+                    // or if API sees 0 (all outputs mine), it is a SELF_TRANSFER.
+                    if (localValue.isZero() || (apiValue != null && apiValue.isZero())) {
+                        isSelfSend = true;
+                        log.info("[history] mark_self_transfer txid=" + localItem.txId
+                                + " outgoingLocal=true outputsToUs=true");
+                    }
+
+                    log.info("HIST_MERGE txid={} localDir={} localValue={} apiValue={} isSelfSend={} -> using={}",
+                            localItem.txId, localItem.direction, localValue.toFriendlyString(),
+                            apiValue != null ? apiValue.toFriendlyString() : "null",
+                            isSelfSend, isSelfSend ? "ZERO" : "LOCAL");
+
                     SessionTxItem merged = new SessionTxItem(
-                            localItem.txId, time, localItem.valueDelta,
+                            localItem.txId, time, isSelfSend ? Coin.ZERO : localValue,
                             Math.max(localItem.confirmations, apiItem.confirmations),
                             TxDirection.SENT,
-                            apiItem.confirmations == 0);
+                            apiItem.confirmations == 0, isSelfSend);
 
                     mergedHistory.add(merged);
                     newHistoryByTxId.put(merged.txId, merged);
                     apiHistoryMap.remove(localItem.txId); // Don't add again
 
-                    log.info("HISTORY_DEDUP[sid={}] merged SENT txid={} conf={} (was {})",
-                            sessionId, merged.txId, merged.confirmations, localItem.confirmations);
+                    log.info("HISTORY_DEDUP[sid={}] merged SENT txid={} conf={} (was {}) self={}",
+                            sessionId, merged.txId, merged.confirmations, localItem.confirmations, isSelfSend);
                 } else {
                     // Still pending/not seen by API - keep local entry
                     mergedHistory.add(localItem);
@@ -504,20 +674,30 @@ public class ApiSessionWallet {
         this.historyByTxId.clear();
         this.historyByTxId.putAll(newHistoryByTxId);
 
-        this.cachedBalance = newBalance;
-        this.spendableBalance = newSpendable;
-        this.updatedAtMs = System.currentTimeMillis();
         this.ready = true;
 
         // Task C: Save cache for fast startup
         if (appContext != null) {
-            LastKnownSessionCache.save(appContext, cachedBalance, spendableBalance, org.bitcoinj.core.Coin.ZERO,
-                    utxoCount());
+            Coin pending = cachedBalance.subtract(spendableBalance);
+            LastKnownSessionCache.save(appContext, cachedBalance, spendableBalance, pending, utxoCount(), getHistory());
+        }
+
+        for (SessionUtxo u : newConfirmedIncoming) {
+            if (!localChangeUtxos.containsKey(u.getKey())) {
+                newlyConfirmedIncoming.add(u);
+            }
+        }
+
+        if (changed) {
+            log.info("UI_REFRESH_TRIGGER reason=snapshot_ready src=API_SESSION screen=Home");
+            log.info("API_SESSION_CHANGED emit reason=SESSION_WALLET_CHANGED total={} spendable={} txCount={}",
+                    cachedBalance.toFriendlyString(), spendableBalance.toFriendlyString(), history.size());
         }
 
         log.info(
-                "SESSION-WALLET[sid={}] updateFromApi utxos={} balance={} PEPEPOW spendable={} PEPEPOW localLocks={} history={} changed={} ready=true",
-                sessionId, utxos.size(), cachedBalance.toPlainString(), spendableBalance.toPlainString(),
+                "SESSION-WALLET[sid={}] updateFromApi apiUtxos={} localChangeUtxos={} balance={} PEPEPOW spendable={} PEPEPOW localLocks={} history={} changed={} ready=true",
+                sessionId, apiUtxos.size(), localChangeUtxos.size(),
+                cachedBalance.toPlainString(), spendableBalance.toPlainString(),
                 lockedOutpoints.size(), history.size(), changed);
 
         return changed;
@@ -565,8 +745,12 @@ public class ApiSessionWallet {
             if (lockedOutpoints.contains(utxo.getKey())) {
                 continue; // Skip locally spent
             }
-            if (utxo.confirmations < 1) {
-                continue; // Skip immature/unconfirmed coins
+            boolean isLocalChange = localChangeUtxos.containsKey(utxo.getKey());
+            if (!isLocalChange && utxo.confirmations < 1) {
+                continue; // Skip immature/unconfirmed coins from API
+            }
+            if (isLocalChange && !localChangeUtxos.get(utxo.getKey()).spendable) {
+                continue; // Local change not yet spendable
             }
             selected.add(utxo);
             collected = collected.add(utxo.value);
@@ -640,15 +824,18 @@ public class ApiSessionWallet {
         return tx;
     }
 
-    public synchronized void commitTransaction(Transaction tx) {
+    public synchronized CommitResult commitTransaction(Transaction tx) {
         // 1. Add to pending transactions and lock inputs (prevent double-spend)
         addPendingTransaction(tx);
 
         // Calculate totalInput from the inputs we're spending
         Coin totalInput = Coin.ZERO;
+        int lockedInputsAdded = 0;
         for (TransactionInput input : tx.getInputs()) {
             String outpoint = input.getOutpoint().getHash().toString() + ":" + input.getOutpoint().getIndex();
-            lockOutpoint(outpoint);
+            if (lockedOutpoints.add(outpoint)) {
+                lockedInputsAdded++;
+            }
 
             // Get input value from our UTXO set
             SessionUtxo spentUtxo = utxos.get(outpoint);
@@ -660,7 +847,7 @@ public class ApiSessionWallet {
         // 2. Iterate outputs and classify as mine or external
         Coin totalToMine = Coin.ZERO;
         Coin totalToExternal = Coin.ZERO;
-        int changeOutputsAdded = 0;
+        List<OutgoingTxJournal.ChangeOutpoint> localChangeOutpoints = new ArrayList<>();
 
         for (int i = 0; i < tx.getOutputs().size(); i++) {
             TransactionOutput output = tx.getOutput(i);
@@ -675,8 +862,8 @@ public class ApiSessionWallet {
             } catch (Exception e) {
                 // Script parsing failed (e.g., OP_RETURN, non-standard)
                 // Treat as external/unknown - log and continue safely
-                log.warn("SESSION-WALLET[sid={}] commitTransaction output {} script parse failed: {}",
-                        sessionId, i, e.getMessage());
+                log.warn("SESSION-WALLET[sid={}] commitTransaction output {} script parse failed ex={} msg={}",
+                        sessionId, i, e.getClass().getSimpleName(), e.getMessage());
             }
 
             // Check ownership using our custom ownedAddresses set
@@ -685,9 +872,9 @@ public class ApiSessionWallet {
             if (isMine) {
                 totalToMine = totalToMine.add(outputValue);
 
-                // Add change output as local pending UTXO (confirmations=0, not spendable until
-                // confirmed)
-                // This ensures balance reflects the change even before next snapshot refresh
+                // Add change output as local pending UTXO (confirmations=0, spendable once
+                // broadcast has been initiated).
+                // This ensures balance reflects the change even before next snapshot refresh.
                 String outpointKey = tx.getTxId().toString() + ":" + i;
                 if (!utxos.containsKey(outpointKey)) {
                     // Create pending UTXO with confirmations=0
@@ -702,8 +889,13 @@ public class ApiSessionWallet {
                             0, // confirmations = 0 (pending)
                             -1 // height = -1 (unconfirmed)
                     );
-                    utxos.put(outpointKey, pendingUtxo);
-                    changeOutputsAdded++;
+                    addLocalChangeUtxo(pendingUtxo, true);
+                    localChangeOutpoints.add(new OutgoingTxJournal.ChangeOutpoint(
+                            tx.getTxId().toString(),
+                            i,
+                            outputValue.value,
+                            outputAddress,
+                            pendingUtxo.scriptPubKey));
                 }
             } else {
                 totalToExternal = totalToExternal.add(outputValue);
@@ -732,7 +924,8 @@ public class ApiSessionWallet {
                 totalToExternal.negate(), // Negative for outgoing
                 0, // confirmations = 0 (pending)
                 TxDirection.SENT,
-                true // pending = true
+                true, // pending = true
+                totalToExternal.isZero() // isSelfSend
         );
         history.add(0, item); // Add to top of history
         historyByTxId.put(item.txId, item);
@@ -750,5 +943,56 @@ public class ApiSessionWallet {
                 fee.toPlainString(),
                 utxos.size(),
                 history.size());
+
+        return new CommitResult(lockedInputsAdded, localChangeOutpoints);
+    }
+
+    public synchronized void rollbackTransaction(Transaction tx) {
+        if (tx == null) {
+            return;
+        }
+
+        pendingTransactions.remove(tx.getTxId());
+
+        int unlockedInputs = 0;
+        for (TransactionInput input : tx.getInputs()) {
+            String outpoint = input.getOutpoint().getHash().toString() + ":" + input.getOutpoint().getIndex();
+            if (lockedOutpoints.remove(outpoint)) {
+                unlockedInputs++;
+            }
+        }
+
+        int localChangeRemoved = 0;
+        for (int i = 0; i < tx.getOutputs().size(); i++) {
+            TransactionOutput output = tx.getOutput(i);
+            String outputAddress = null;
+            try {
+                Script script = output.getScriptPubKey();
+                Address addr = script.getToAddress(params);
+                outputAddress = addr.toBase58();
+            } catch (Exception e) {
+                log.warn("SESSION-WALLET[sid={}] rollbackTransaction output {} script parse failed ex={} msg={}",
+                        sessionId, i, e.getClass().getSimpleName(), e.getMessage());
+            }
+
+            boolean isMine = outputAddress != null && isAddressMine(outputAddress);
+            if (isMine) {
+                String outpointKey = tx.getTxId().toString() + ":" + i;
+                if (localChangeUtxos.remove(outpointKey) != null) {
+                    utxos.remove(outpointKey);
+                    localChangeRemoved++;
+                }
+            }
+        }
+
+        SessionTxItem historyItem = historyByTxId.remove(tx.getTxId().toString());
+        if (historyItem != null) {
+            history.remove(historyItem);
+        }
+
+        recalculateBalances();
+
+        log.info("SESSION-WALLET[sid={}] rollbackOutgoing txid={} unlockedInputs={} localChangeRemoved={}",
+                sessionId, tx.getTxId(), unlockedInputs, localChangeRemoved);
     }
 }

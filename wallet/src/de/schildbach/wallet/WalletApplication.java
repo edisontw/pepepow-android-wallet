@@ -275,6 +275,9 @@ public class WalletApplication extends MultiDexApplication implements ViewModelS
         // }
         initEnvironment();
         registerDeviceInteractiveReceiver();
+
+        // BUG FIX #6: Log if there's a pending explorer change from previous session
+        de.schildbach.wallet.util.ExplorerConfig.logPendingExplorerChangeOnStartup(this);
     }
 
     public void loadWallet() {

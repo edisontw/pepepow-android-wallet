@@ -42,6 +42,8 @@ import org.dash.wallet.common.util.GenericUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -56,6 +58,7 @@ import de.schildbach.wallet.service.BlockchainService.DataSource;
 import org.pepepow.wallet.R;
 
 public final class HeaderBalanceFragment extends Fragment {
+    private static final Logger log = LoggerFactory.getLogger(HeaderBalanceFragment.class);
 
     private WalletApplication application;
     private AbstractBindServiceActivity activity;
@@ -252,6 +255,9 @@ public final class HeaderBalanceFragment extends Fragment {
 
         if (isApiSession && service.getSessionWallet() != null) {
             displayBalance = service.getSessionWallet().getBalance();
+            // Objective B: BALANCE_UI_REFRESH log
+            log.info("BALANCE_UI_REFRESH reason=API_SESSION_CHANGED value={}",
+                    displayBalance.toFriendlyString());
         }
 
         if (displayBalance == null) {

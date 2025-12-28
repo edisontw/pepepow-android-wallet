@@ -236,6 +236,7 @@ class LockScreenActivity : SendCoinsQrActivity() {
         pinRetryController.clearPinFailPrefs()
         walletApplication.maybeStartAutoLogoutTimer()
         val intent = WalletActivity.createIntent(this)
+                .putExtra(WalletActivity.EXTRA_PIN_UNLOCK, true)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
         finish()

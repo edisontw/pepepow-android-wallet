@@ -109,8 +109,9 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         private final String addressLabel;
         private final Transaction.Type type;
 
-        private TransactionCacheEntry(final Coin value, final boolean sent, final boolean self, final boolean showFee, final @Nullable Address address,
-                                      final @Nullable String addressLabel, final Transaction.Type type) {
+        private TransactionCacheEntry(final Coin value, final boolean sent, final boolean self, final boolean showFee,
+                final @Nullable Address address,
+                final @Nullable String addressLabel, final Transaction.Type type) {
             this.value = value;
             this.sent = sent;
             this.self = self;
@@ -122,7 +123,7 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     public TransactionsAdapter(final Context context, final Wallet wallet,
-                               final int maxConnectedPeers, final @Nullable OnClickListener onClickListener) {
+            final int maxConnectedPeers, final @Nullable OnClickListener onClickListener) {
         this.context = context;
         inflater = LayoutInflater.from(context);
 
@@ -251,6 +252,7 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     public interface OnClickListener {
         void onTransactionMenuClick(View view, Transaction tx);
+
         void onTransactionRowClicked(Transaction tx);
     }
 
@@ -303,7 +305,8 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     address = WalletUtils.getWalletAddressOfReceived(tx, wallet);
                 }
                 final String addressLabel = address != null
-                        ? AddressBookProvider.resolveLabel(context, address.toBase58()) : null;
+                        ? AddressBookProvider.resolveLabel(context, address.toBase58())
+                        : null;
 
                 final Transaction.Type txType = tx.getType();
 
@@ -326,28 +329,30 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             }
 
             //
-            // Set the time. eg.  "On <date> at <time>"
+            // Set the time. eg. "On <date> at <time>"
             //
             final Date time = tx.getUpdateTime();
             String onTimeText = context.getString(R.string.transaction_row_time_text);
 
             timeView.setText(String.format(onTimeText,
-                    DateUtils.formatDateTime(context, time.getTime(), DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_YEAR),
+                    DateUtils.formatDateTime(context, time.getTime(),
+                            DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_YEAR),
                     DateUtils.formatDateTime(context, time.getTime(), DateUtils.FORMAT_SHOW_TIME)));
 
             //
-            // Set primary status - Sent:  Sent, Masternode Special Tx's, Internal
-            //                  Received:  Received, Mining Rewards, Masternode Rewards
+            // Set primary status - Sent: Sent, Masternode Special Tx's, Internal
+            // Received: Received, Mining Rewards, Masternode Rewards
             //
             int idPrimaryStatus = TransactionUtil.getTransactionTypeName(tx, wallet);
             primaryStatusView.setText(idPrimaryStatus);
             primaryStatusView.setTextColor(primaryStatusColor);
 
             //
-            // Set the value.  [signal] D [value]
-            // signal is + or -, or not visible if the value is zero (internal or other special transactions)
+            // Set the value. [signal] D [value]
+            // signal is + or -, or not visible if the value is zero (internal or other
+            // special transactions)
             // D is the Dash Symbol
-            // value has no sign.  It is zero for internal or other special transactions
+            // value has no sign. It is zero for internal or other special transactions
             //
             valueView.setFormat(format);
             final Coin value;
@@ -361,10 +366,10 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             signalView.setTextColor(valueColor);
             dashSymbolView.setColorFilter(valueColor);
 
-            if(value.isPositive()) {
+            if (value.isPositive()) {
                 signalView.setText(String.format("%c", org.dash.wallet.common.Constants.CURRENCY_PLUS_SIGN));
                 valueView.setAmount(value);
-            } else if(value.isNegative()) {
+            } else if (value.isNegative()) {
                 signalView.setText(String.format("%c", org.dash.wallet.common.Constants.CURRENCY_MINUS_SIGN));
                 valueView.setAmount(value.negate());
             } else {
@@ -372,9 +377,9 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             }
 
             // fiat value
-            if(!value.isZero()) {
+            if (!value.isZero()) {
                 final ExchangeRate exchangeRate = tx.getExchangeRate();
-                if(exchangeRate != null) {
+                if (exchangeRate != null) {
                     String exchangeCurrencyCode = GenericUtils.currencySymbol(exchangeRate.fiat.currencyCode);
                     fiatView.setFiatAmount(txCache.value, exchangeRate, Constants.LOCAL_FORMAT,
                             exchangeCurrencyCode);
@@ -389,19 +394,25 @@ public class TransactionsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 rateNotAvailableView.setVisibility(View.GONE);
             }
 
-
             //
             // Show the secondary status:
             //
             int secondaryStatusId = -1;
-            if(confidence.hasErrors())
+            if (confidence.hasErrors())
                 secondaryStatusId = TransactionUtil.getErrorName(tx);
-            else if(!txCache.sent)
+            else if (!txCache.sent)
                 secondaryStatusId = TransactionUtil.getReceivedStatusString(tx, wallet);
 
-            if(secondaryStatusId != -1)
+            if (secondaryStatusId != -1)
                 secondaryStatusView.setText(secondaryStatusId);
-            else secondaryStatusView.setText(null);
+            else
+                secondaryStatusView.setText(null);
+
+            if (txCache.self) {
+                String existing = secondaryStatusView.getText().toString();
+                secondaryStatusView.setText((existing.isEmpty() ? "" : existing + "\n") + "寄給自己（內部轉帳）");
+            }
+
             secondaryStatusView.setTextColor(secondaryStatusColor);
         }
 

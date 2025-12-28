@@ -164,10 +164,15 @@ class TransactionResultViewBinder(private val containerView: View) {
                 primaryStatusTxt.visibility = View.GONE
             }
             if (secondaryStatusStr.isNotEmpty()) {
-
                 secondaryStatusTxt.text = secondaryStatusStr
             } else {
                 secondaryStatusTxt.visibility = View.GONE
+            }
+
+            if (tx.isEntirelySelf) {
+                val existing = if (secondaryStatusTxt.visibility == View.VISIBLE) secondaryStatusTxt.text.toString() else ""
+                secondaryStatusTxt.text = (if (existing.isEmpty()) "" else existing + "\n\n") + ctx.getString(R.string.history_send_to_self_note)
+                secondaryStatusTxt.visibility = View.VISIBLE
             }
         }
 
