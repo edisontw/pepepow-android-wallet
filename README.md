@@ -103,3 +103,10 @@ APK outputs are under `wallet/build/outputs/apk`.
 - `DEBUG_CONTRACT_FASTBOOT.md` – Mandatory logging points
 - `TROUBLESHOOTING_SYNC.md` – Debugging overlay vs SPV issues
 - `BUILD_FIX_NOTES.md` – Common build fixes / toolchain notes
+<p align="center">
+  <img src=".github/images/PEPEPOW android wallet.png" width="400">
+</p>
+
+<p align="center">
+Wallet flow diagram
+</p>
